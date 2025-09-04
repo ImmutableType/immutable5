@@ -1,4 +1,5 @@
 require('dotenv').config({ path: '.env.local' });
+require("@nomicfoundation/hardhat-ethers");
 
 module.exports = {
     solidity: {

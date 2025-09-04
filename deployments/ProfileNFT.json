@@ -1,0 +1,10 @@
+{
+  "network": "Flow EVM Testnet",
+  "chainId": 545,
+  "timestamp": "2025-09-04T02:58:36.708Z",
+  "contracts": {
+    "TokenQualifier": "0x78b9240F3EF69cc517A66564fBC488C5E5309DF7",
+    "ProfileNFT": "0x09512878ac5662aFDE0bE6046d12B2eEa30A00Fe"
+  },
+  "deployer": "0x9402F9f20b4a27b55B1cC6cf015D98f764814fb2"
+}
