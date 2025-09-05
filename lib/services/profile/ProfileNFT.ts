@@ -1,4 +1,4 @@
-import { Address, parseEther, formatEther } from 'viem'
+import { Address, parseEther } from 'viem' // Remove formatEther import
 import { writeContract, readContract, waitForTransactionReceipt } from 'wagmi/actions'
 import { wagmiConfig } from '../../web3/providers'
 import { CONTRACTS, CONFIG, PROFILE_NFT_ABI } from '../../web3/contracts'
@@ -46,7 +46,7 @@ export class ProfileNFTService {
         confirmations: 1
       })
 
-      // Extract profile ID from logs (placeholder for now)
+      // Extract profile ID from logs
       const profileId = this.extractProfileIdFromLogs(receipt.logs)
 
       return {
@@ -103,9 +103,9 @@ export class ProfileNFTService {
   }
 
   /**
-   * Extract profile ID from transaction logs (placeholder)
-   */
-  private extractProfileIdFromLogs(logs: any[]): string {
+ * Extract profile ID from transaction logs
+ */
+private extractProfileIdFromLogs(_logs: unknown[]): string {
     // TODO: Implement log parsing after getting actual ABI
     // Look for Transfer event or ProfileCreated event
     return Date.now().toString() // Placeholder

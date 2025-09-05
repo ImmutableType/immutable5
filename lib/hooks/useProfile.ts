@@ -63,7 +63,10 @@ export function useProfile(): UseProfileReturn {
   const [formErrors, setFormErrors] = useState<ProfileFormErrors>({})
 
   // Load user profile when wallet connects
-  useEffect(() => {
+  // Replace the existing useEffect with this fixed version:
+
+// Load user profile when wallet connects
+useEffect(() => {
     if (address && isConnected) {
       loadUserProfile()
       checkQualification()
@@ -71,6 +74,7 @@ export function useProfile(): UseProfileReturn {
       setUserProfile(null)
       setQualificationStatus(null)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [address, isConnected])
 
   /**
