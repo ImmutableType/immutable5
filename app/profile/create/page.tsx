@@ -1,8 +1,825 @@
-export default function CreateProfilePage() {
+'use client'
+
+import React, { useState, useEffect } from 'react'
+import { useDirectWallet } from '../../../lib/hooks/useDirectWallet'
+import confetti from 'canvas-confetti'
+
+type AuthMethod = 'wallet' | 'farcaster' | 'crossmint' | null
+
+interface FormData {
+  displayName: string
+  bio: string
+  location: string
+  avatarUrl: string
+}
+
+interface CreationState {
+  status: 'idle' | 'preparing' | 'pending' | 'success' | 'error'
+  error?: string
+  result?: {
+    profileId: string
+    did: string
+  }
+}
+
+const CreateProfilePage: React.FC = () => {
+  const [selectedAuth, setSelectedAuth] = useState<AuthMethod>(null)
+  const [formData, setFormData] = useState<FormData>({
+    displayName: '',
+    bio: '',
+    location: '',
+    avatarUrl: ''
+  })
+  const [creationState, setCreationState] = useState<CreationState>({ status: 'idle' })
+  const [formErrors, setFormErrors] = useState<Partial<FormData>>({})
+
+  const { address, isConnected, connectWallet } = useDirectWallet()
+
+  // Trigger confetti on success
+  useEffect(() => {
+    if (creationState.status === 'success') {
+      confetti({
+        particleCount: 200,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#B3211E', '#1D7F6E', '#E8A317']
+      })
+    }
+  }, [creationState.status])
+
+  // Auto-connect wallet when wallet option is selected
+  useEffect(() => {
+    if (selectedAuth === 'wallet' && !isConnected) {
+      const hasWallet = typeof window !== 'undefined' && window.ethereum
+      if (hasWallet) {
+        connectWallet()
+      }
+    }
+  }, [selectedAuth, isConnected])
+
+  // Handle form input changes
+  const handleInputChange = (field: keyof FormData, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+    setFormErrors({})
+  }
+
+  // Validation
+  const validateForm = (data: FormData): boolean => {
+    const errors: Partial<FormData> = {}
+    
+    if (!data.displayName.trim()) {
+      errors.displayName = 'Display name is required'
+    } else if (data.displayName.length > 50) {
+      errors.displayName = 'Display name must be 50 characters or less'
+    }
+    
+    if (data.bio.length > 500) {
+      errors.bio = 'Bio must be 500 characters or less'
+    }
+    
+    if (data.location.length > 100) {
+      errors.location = 'Location must be 100 characters or less'
+    }
+    
+    if (data.avatarUrl.length > 500) {
+      errors.avatarUrl = 'Avatar URL must be 500 characters or less'
+    }
+
+    setFormErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
+  // Handle form submission (placeholder for now)
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!validateForm(formData)) return
+    
+    setCreationState({ status: 'preparing' })
+    
+    // Simulate profile creation for now
+    setTimeout(() => {
+      setCreationState({
+        status: 'success',
+        result: {
+          profileId: '1',
+          did: `did:pkh:eip155:545:${address}`
+        }
+      })
+    }, 2000)
+  }
+
+  // Check if user has wallets installed
+  const hasMetaMask = typeof window !== 'undefined' && window.ethereum?.isMetaMask
+  const hasWallet = typeof window !== 'undefined' && window.ethereum
+
+  // Auth method selection screen
+  if (!selectedAuth) {
     return (
-      <div>
-        <h1>Create Profile</h1>
-        <p>Profile creation UI will be implemented in Session 3</p>
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'var(--color-parchment)',
+        padding: '2rem'
+      }}>
+        <div style={{
+          backgroundColor: 'var(--color-white)',
+          borderRadius: '8px',
+          padding: '3rem',
+          maxWidth: '500px',
+          width: '100%',
+          textAlign: 'center',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)'
+        }}>
+          <h1 style={{
+            fontFamily: 'var(--font-headlines)',
+            fontSize: '2rem',
+            marginBottom: '1rem',
+            color: 'var(--color-black)'
+          }}>
+            Create Your Profile
+          </h1>
+          
+          <p style={{
+            fontSize: '1.1rem',
+            marginBottom: '2rem',
+            color: 'var(--color-black)',
+            opacity: 0.8
+          }}>
+            Choose how you'd like to verify your identity
+          </p>
+
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1rem'
+          }}>
+            {/* Wallet Connection */}
+            <button
+              onClick={() => setSelectedAuth('wallet')}
+              style={{
+                padding: '1.5rem',
+                backgroundColor: 'var(--color-typewriter-red)',
+                color: 'var(--color-white)',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '1.1rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'background-color 0.2s ease'
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.backgroundColor = '#8C1A17'
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.backgroundColor = 'var(--color-typewriter-red)'
+              }}
+            >
+              Connect Wallet (Tier 0)
+              <div style={{ fontSize: '0.9rem', opacity: 0.9, marginTop: '0.25rem' }}>
+                Basic profile with wallet verification
+              </div>
+            </button>
+
+            {/* Farcaster - Coming Soon */}
+            <button
+              disabled
+              style={{
+                padding: '1.5rem',
+                backgroundColor: 'var(--color-digital-silver)',
+                color: 'var(--color-white)',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '1.1rem',
+                fontWeight: 600,
+                cursor: 'not-allowed',
+                opacity: 0.6
+              }}
+            >
+              Connect Farcaster (Tier 1)
+              <div style={{ fontSize: '0.9rem', opacity: 0.9, marginTop: '0.25rem' }}>
+                Coming soon - Social verification
+              </div>
+            </button>
+
+            {/* Crossmint - Coming Soon */}
+            <button
+              disabled
+              style={{
+                padding: '1.5rem',
+                backgroundColor: 'var(--color-digital-silver)',
+                color: 'var(--color-white)',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '1.1rem',
+                fontWeight: 600,
+                cursor: 'not-allowed',
+                opacity: 0.6
+              }}
+            >
+              Verify with Crossmint (Tier 2)
+              <div style={{ fontSize: '0.9rem', opacity: 0.9, marginTop: '0.25rem' }}>
+                Coming soon - Identity verification
+              </div>
+            </button>
+          </div>
+        </div>
       </div>
     )
   }
+
+  // Wallet setup required (no wallet detected)
+  if (selectedAuth === 'wallet' && !hasWallet) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'var(--color-parchment)',
+        padding: '2rem'
+      }}>
+        <div style={{
+          backgroundColor: 'var(--color-white)',
+          borderRadius: '8px',
+          padding: '3rem',
+          maxWidth: '400px',
+          width: '100%',
+          textAlign: 'center'
+        }}>
+          <h2 style={{
+            fontFamily: 'var(--font-headlines)',
+            fontSize: '1.5rem',
+            marginBottom: '1rem'
+          }}>
+            Get a Wallet First
+          </h2>
+          
+          <p style={{
+            marginBottom: '2rem',
+            color: 'var(--color-black)',
+            opacity: 0.8
+          }}>
+            You need a crypto wallet to create your profile on Flow EVM
+          </p>
+
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1rem',
+            marginBottom: '2rem'
+          }}>
+            <a 
+              href="https://metamask.io/download/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              style={{ textDecoration: 'none' }}
+            >
+              <button style={{
+                width: '100%',
+                padding: '1rem 2rem',
+                backgroundColor: '#F6851B',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '1rem',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}>
+                Download MetaMask
+              </button>
+            </a>
+
+            <a 
+              href="https://www.coinbase.com/wallet" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              style={{ textDecoration: 'none' }}
+            >
+              <button style={{
+                width: '100%',
+                padding: '1rem 2rem',
+                backgroundColor: '#0052FF',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '1rem',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}>
+                Download Coinbase Wallet
+              </button>
+            </a>
+
+            <a 
+              href="https://wallet.flow.com/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              style={{ textDecoration: 'none' }}
+            >
+              <button style={{
+                width: '100%',
+                padding: '1rem 2rem',
+                backgroundColor: '#00C896',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '1rem',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}>
+                Download Flow Wallet
+              </button>
+            </a>
+          </div>
+
+          <p style={{
+            fontSize: '0.85rem',
+            color: 'var(--color-digital-silver)',
+            marginBottom: '1rem'
+          }}>
+            After installing, refresh this page and try again
+          </p>
+
+          <button
+            onClick={() => setSelectedAuth(null)}
+            style={{
+              padding: '0.5rem',
+              backgroundColor: 'transparent',
+              color: 'var(--color-digital-silver)',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '0.9rem'
+            }}
+          >
+            ← Back to auth options
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // Wallet connecting state (while MetaMask processes)
+  if (selectedAuth === 'wallet' && hasWallet && !isConnected) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'var(--color-parchment)',
+        padding: '2rem'
+      }}>
+        <div style={{
+          backgroundColor: 'var(--color-white)',
+          borderRadius: '8px',
+          padding: '3rem',
+          maxWidth: '400px',
+          width: '100%',
+          textAlign: 'center'
+        }}>
+          <h2 style={{
+            fontFamily: 'var(--font-headlines)',
+            fontSize: '1.5rem',
+            marginBottom: '1rem'
+          }}>
+            Connecting...
+          </h2>
+          
+          <p style={{
+            marginBottom: '2rem',
+            color: 'var(--color-black)',
+            opacity: 0.8
+          }}>
+            Please approve the connection in MetaMask and switch to Flow EVM network if prompted
+          </p>
+
+          <button
+            onClick={() => setSelectedAuth(null)}
+            style={{
+              padding: '0.75rem 1.5rem',
+              backgroundColor: 'transparent',
+              color: 'var(--color-digital-silver)',
+              border: '1px solid var(--color-digital-silver)',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '0.9rem'
+            }}
+          >
+            ← Back to auth options
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // Success state
+  if (creationState.status === 'success') {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'var(--color-parchment)',
+        padding: '2rem'
+      }}>
+        <div style={{
+          backgroundColor: 'var(--color-white)',
+          borderRadius: '8px',
+          padding: '3rem',
+          maxWidth: '500px',
+          width: '100%',
+          textAlign: 'center'
+        }}>
+          <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🎉</div>
+          
+          <h2 style={{
+            fontFamily: 'var(--font-headlines)',
+            fontSize: '1.8rem',
+            marginBottom: '1rem',
+            color: 'var(--color-verification-green)'
+          }}>
+            Profile Created Successfully!
+          </h2>
+
+          <div style={{
+            backgroundColor: 'var(--color-parchment)',
+            padding: '1rem',
+            borderRadius: '8px',
+            marginBottom: '2rem',
+            fontFamily: 'monospace',
+            fontSize: '0.9rem',
+            wordBreak: 'break-all'
+          }}>
+            <strong>Your DID:</strong><br />
+            {creationState.result?.did}
+          </div>
+
+          <p style={{
+            marginBottom: '2rem',
+            color: 'var(--color-black)',
+            opacity: 0.8
+          }}>
+            Redirecting to your profile in a few seconds...
+          </p>
+
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1rem'
+          }}>
+            <button
+              onClick={() => window.location.href = `/profile/${creationState.result?.profileId}`}
+              style={{
+                padding: '1rem 2rem',
+                backgroundColor: 'var(--color-typewriter-red)',
+                color: 'var(--color-white)',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '1rem',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              View My Profile
+            </button>
+
+            <button
+              disabled
+              style={{
+                padding: '0.75rem 1.5rem',
+                backgroundColor: 'var(--color-digital-silver)',
+                color: 'var(--color-white)',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '0.9rem',
+                cursor: 'not-allowed',
+                opacity: 0.6
+              }}
+            >
+              Upgrade to Farcaster (Coming Soon)
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Profile creation form (wallet connected)
+  if (selectedAuth === 'wallet' && isConnected) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        backgroundColor: 'var(--color-parchment)',
+        padding: '2rem'
+      }}>
+        <div style={{
+          maxWidth: '600px',
+          margin: '0 auto',
+          backgroundColor: 'var(--color-white)',
+          borderRadius: '8px',
+          padding: '2rem'
+        }}>
+          {/* Header */}
+          <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
+            <h1 style={{
+              fontFamily: 'var(--font-headlines)',
+              fontSize: '1.8rem',
+              marginBottom: '0.5rem'
+            }}>
+              Create Your Profile
+            </h1>
+            
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.5rem',
+              fontSize: '0.9rem',
+              color: 'var(--color-digital-silver)'
+            }}>
+              <span>{address?.substring(0, 6)}...{address?.substring(address.length - 4)}</span>
+              <span>•</span>
+              <span>Flow EVM Testnet</span>
+            </div>
+          </div>
+
+          {/* Fee Information */}
+          <div style={{
+            backgroundColor: 'var(--color-alert-amber)',
+            color: 'var(--color-white)',
+            padding: '1rem',
+            borderRadius: '8px',
+            marginBottom: '2rem',
+            textAlign: 'center'
+          }}>
+            <div>
+              <strong>💰 Creation fee: 3 FLOW</strong>
+              <div style={{ fontSize: '0.9rem', opacity: 0.9, marginTop: '0.25rem' }}>
+                Or hold 100+ $BUFFAFLOW to create for free
+              </div>
+            </div>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit}>
+            {/* Display Name */}
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{
+                display: 'block',
+                marginBottom: '0.5rem',
+                fontWeight: 600,
+                fontSize: '0.9rem'
+              }}>
+                Display Name *
+              </label>
+              <input
+                type="text"
+                value={formData.displayName}
+                onChange={(e) => handleInputChange('displayName', e.target.value)}
+                placeholder="Enter your display name"
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: `2px solid ${formErrors.displayName ? 'var(--color-alert-red)' : 'var(--color-digital-silver)'}`,
+                  borderRadius: '8px',
+                  fontSize: '1rem',
+                  transition: 'border-color 0.2s ease'
+                }}
+              />
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                fontSize: '0.8rem',
+                marginTop: '0.25rem'
+              }}>
+                {formErrors.displayName && (
+                  <span style={{ color: 'var(--color-alert-red)' }}>
+                    {formErrors.displayName}
+                  </span>
+                )}
+                <span style={{ 
+                  color: 'var(--color-digital-silver)',
+                  marginLeft: 'auto'
+                }}>
+                  {formData.displayName.length}/50
+                </span>
+              </div>
+            </div>
+
+            {/* Bio */}
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{
+                display: 'block',
+                marginBottom: '0.5rem',
+                fontWeight: 600,
+                fontSize: '0.9rem'
+              }}>
+                Bio
+              </label>
+              <textarea
+                value={formData.bio}
+                onChange={(e) => handleInputChange('bio', e.target.value)}
+                placeholder="Tell us about yourself..."
+                rows={3}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: `2px solid ${formErrors.bio ? 'var(--color-alert-red)' : 'var(--color-digital-silver)'}`,
+                  borderRadius: '8px',
+                  fontSize: '1rem',
+                  resize: 'vertical',
+                  fontFamily: 'inherit'
+                }}
+              />
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                fontSize: '0.8rem',
+                marginTop: '0.25rem'
+              }}>
+                {formErrors.bio && (
+                  <span style={{ color: 'var(--color-alert-red)' }}>
+                    {formErrors.bio}
+                  </span>
+                )}
+                <span style={{ 
+                  color: 'var(--color-digital-silver)',
+                  marginLeft: 'auto'
+                }}>
+                  {formData.bio.length}/500
+                </span>
+              </div>
+            </div>
+
+            {/* Location */}
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{
+                display: 'block',
+                marginBottom: '0.5rem',
+                fontWeight: 600,
+                fontSize: '0.9rem'
+              }}>
+                Location
+              </label>
+              <input
+                type="text"
+                value={formData.location}
+                onChange={(e) => handleInputChange('location', e.target.value)}
+                placeholder="City, Country"
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: `2px solid ${formErrors.location ? 'var(--color-alert-red)' : 'var(--color-digital-silver)'}`,
+                  borderRadius: '8px',
+                  fontSize: '1rem'
+                }}
+              />
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                fontSize: '0.8rem',
+                marginTop: '0.25rem'
+              }}>
+                {formErrors.location && (
+                  <span style={{ color: 'var(--color-alert-red)' }}>
+                    {formErrors.location}
+                  </span>
+                )}
+                <span style={{ 
+                  color: 'var(--color-digital-silver)',
+                  marginLeft: 'auto'
+                }}>
+                  {formData.location.length}/100
+                </span>
+              </div>
+            </div>
+
+            {/* Avatar URL */}
+            <div style={{ marginBottom: '2rem' }}>
+              <label style={{
+                display: 'block',
+                marginBottom: '0.5rem',
+                fontWeight: 600,
+                fontSize: '0.9rem'
+              }}>
+                Avatar URL
+              </label>
+              <input
+                type="url"
+                value={formData.avatarUrl}
+                onChange={(e) => handleInputChange('avatarUrl', e.target.value)}
+                placeholder="https://example.com/avatar.jpg"
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: `2px solid ${formErrors.avatarUrl ? 'var(--color-alert-red)' : 'var(--color-digital-silver)'}`,
+                  borderRadius: '8px',
+                  fontSize: '1rem'
+                }}
+              />
+              {formData.avatarUrl && (
+                <div style={{
+                  marginTop: '0.5rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}>
+                  <div style={{
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    overflow: 'hidden',
+                    backgroundColor: 'var(--color-digital-silver)'
+                  }}>
+                    <img 
+                      src={formData.avatarUrl} 
+                      alt="Avatar preview"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none'
+                      }}
+                    />
+                  </div>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--color-digital-silver)' }}>
+                    Avatar preview
+                  </span>
+                </div>
+              )}
+              <div style={{
+                fontSize: '0.8rem',
+                marginTop: '0.25rem',
+                color: 'var(--color-digital-silver)'
+              }}>
+                {formData.avatarUrl.length}/500
+              </div>
+            </div>
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={creationState.status === 'preparing' || creationState.status === 'pending'}
+              style={{
+                width: '100%',
+                padding: '1rem',
+                backgroundColor: (creationState.status === 'preparing' || creationState.status === 'pending') 
+                  ? 'var(--color-digital-silver)' 
+                  : 'var(--color-typewriter-red)',
+                color: 'var(--color-white)',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '1.1rem',
+                fontWeight: 600,
+                cursor: (creationState.status === 'preparing' || creationState.status === 'pending') 
+                  ? 'default' 
+                  : 'pointer',
+                transition: 'background-color 0.2s ease'
+              }}
+            >
+              {creationState.status === 'preparing' && 'Preparing...'}
+              {creationState.status === 'pending' && 'Creating Profile...'}
+              {(creationState.status === 'idle' || creationState.status === 'error') && 'Create Profile (3 FLOW)'}
+            </button>
+
+            {/* Error State */}
+            {creationState.status === 'error' && (
+              <div style={{
+                marginTop: '1rem',
+                padding: '1rem',
+                backgroundColor: 'var(--color-alert-red)',
+                color: 'var(--color-white)',
+                borderRadius: '8px',
+                textAlign: 'center'
+              }}>
+                <strong>Error:</strong> {creationState.error}
+              </div>
+            )}
+          </form>
+
+          {/* Local Cache Warning */}
+          <div style={{
+            marginTop: '2rem',
+            padding: '1rem',
+            backgroundColor: 'var(--color-parchment)',
+            borderRadius: '8px',
+            fontSize: '0.85rem',
+            color: 'var(--color-black)',
+            opacity: 0.7,
+            textAlign: 'center'
+          }}>
+            <strong>Note:</strong> Profile data is stored locally until minted. 
+            Your draft will be lost if you navigate away without completing the transaction.
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Fallback return
+  return null
+}
+
+export default CreateProfilePage
