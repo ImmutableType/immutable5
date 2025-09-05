@@ -47,3 +47,14 @@ cleanup-candidates.txt
 # Test files
 test-connection.mjs
 fetch-abis.mjs
+
+# ESLint cache
+.eslintcache
+
+# Deployment artifacts
+deployments/localhost/
+deployments/hardhat/
+
+# Misc
+*.tgz
+*.tar.gz
