@@ -112,8 +112,10 @@ const CreateProfilePage: React.FC = () => {
   // Check if user has wallets installed
   const hasMetaMask = typeof window !== 'undefined' && window.ethereum?.isMetaMask
   const hasWallet = typeof window !== 'undefined' && window.ethereum
+  const hasFlowWallet = typeof window !== 'undefined' && window.ethereum?.isFlowWallet
+  const hasCoinbaseWallet = typeof window !== 'undefined' && window.ethereum?.isCoinbaseWallet
 
-  // Auth method selection screen
+  // Auth method selection screen with wallet status dashboard
   if (!selectedAuth) {
     return (
       <div style={{
@@ -128,7 +130,7 @@ const CreateProfilePage: React.FC = () => {
           backgroundColor: 'var(--color-white)',
           borderRadius: '8px',
           padding: '3rem',
-          maxWidth: '500px',
+          maxWidth: '600px',
           width: '100%',
           textAlign: 'center',
           boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)'
@@ -161,27 +163,220 @@ const CreateProfilePage: React.FC = () => {
               onClick={() => setSelectedAuth('wallet')}
               style={{
                 padding: '1.5rem',
-                backgroundColor: 'var(--color-typewriter-red)',
+                backgroundColor: hasWallet ? 'var(--color-typewriter-red)' : 'var(--color-digital-silver)',
                 color: 'var(--color-white)',
                 border: 'none',
                 borderRadius: '8px',
                 fontSize: '1.1rem',
                 fontWeight: 600,
                 cursor: 'pointer',
-                transition: 'background-color 0.2s ease'
+                transition: 'background-color 0.2s ease',
+                opacity: hasWallet ? 1 : 0.8
               }}
               onMouseOver={(e) => {
-                e.currentTarget.style.backgroundColor = '#8C1A17'
+                if (hasWallet) {
+                  e.currentTarget.style.backgroundColor = '#8C1A17'
+                }
               }}
               onMouseOut={(e) => {
-                e.currentTarget.style.backgroundColor = 'var(--color-typewriter-red)'
+                e.currentTarget.style.backgroundColor = hasWallet ? 'var(--color-typewriter-red)' : 'var(--color-digital-silver)'
               }}
             >
-              Connect Wallet (Tier 0)
+              {hasWallet ? '✓ Connect Wallet (Tier 0)' : '⚠️ Install Wallet (Tier 0)'}
               <div style={{ fontSize: '0.9rem', opacity: 0.9, marginTop: '0.25rem' }}>
-                Basic profile with wallet verification
+                {hasWallet ? 'Ready to connect - Basic profile with wallet verification' : 'Install a wallet to get started'}
               </div>
             </button>
+
+            {/* Wallet Status Dashboard */}
+            <div style={{
+              backgroundColor: 'var(--color-parchment)',
+              padding: '1.5rem',
+              borderRadius: '8px',
+              marginBottom: '1rem'
+            }}>
+              <h3 style={{
+                fontSize: '1rem',
+                fontWeight: 600,
+                marginBottom: '1rem',
+                color: 'var(--color-black)'
+              }}>
+                Supported Wallets
+              </h3>
+              
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                gap: '1rem'
+              }}>
+                {/* MetaMask */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.75rem',
+                  backgroundColor: 'var(--color-white)',
+                  borderRadius: '6px',
+                  border: `2px solid ${hasMetaMask ? 'var(--color-verification-green)' : 'var(--color-digital-silver)'}`
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}>
+                    <div style={{
+                      width: '24px',
+                      height: '24px',
+                      backgroundColor: '#F6851B',
+                      borderRadius: '4px'
+                    }}></div>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>MetaMask</span>
+                  </div>
+                  <span style={{
+                    fontSize: '0.8rem',
+                    color: hasMetaMask ? 'var(--color-verification-green)' : 'var(--color-digital-silver)',
+                    fontWeight: 600
+                  }}>
+                    {hasMetaMask ? '✓ Ready' : 'Install'}
+                  </span>
+                </div>
+
+                {/* Flow Wallet */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.75rem',
+                  backgroundColor: 'var(--color-white)',
+                  borderRadius: '6px',
+                  border: `2px solid ${hasFlowWallet ? 'var(--color-verification-green)' : 'var(--color-digital-silver)'}`
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}>
+                    <div style={{
+                      width: '24px',
+                      height: '24px',
+                      backgroundColor: '#00C896',
+                      borderRadius: '4px'
+                    }}></div>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>Flow Wallet</span>
+                  </div>
+                  <span style={{
+                    fontSize: '0.8rem',
+                    color: hasFlowWallet ? 'var(--color-verification-green)' : 'var(--color-digital-silver)',
+                    fontWeight: 600
+                  }}>
+                    {hasFlowWallet ? '✓ Ready' : 'Install'}
+                  </span>
+                </div>
+
+                {/* Coinbase Wallet */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.75rem',
+                  backgroundColor: 'var(--color-white)',
+                  borderRadius: '6px',
+                  border: `2px solid ${hasCoinbaseWallet ? 'var(--color-verification-green)' : 'var(--color-digital-silver)'}`
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}>
+                    <div style={{
+                      width: '24px',
+                      height: '24px',
+                      backgroundColor: '#0052FF',
+                      borderRadius: '4px'
+                    }}></div>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>Coinbase</span>
+                  </div>
+                  <span style={{
+                    fontSize: '0.8rem',
+                    color: hasCoinbaseWallet ? 'var(--color-verification-green)' : 'var(--color-digital-silver)',
+                    fontWeight: 600
+                  }}>
+                    {hasCoinbaseWallet ? '✓ Ready' : 'Install'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Download Links */}
+              {!hasWallet && (
+                <div style={{
+                  marginTop: '1rem',
+                  display: 'flex',
+                  gap: '0.5rem',
+                  flexWrap: 'wrap',
+                  justifyContent: 'center'
+                }}>
+                  <a 
+                    href="https://metamask.io/download/" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    style={{ textDecoration: 'none' }}
+                  >
+                    <button style={{
+                      padding: '0.5rem 1rem',
+                      backgroundColor: '#F6851B',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontSize: '0.8rem',
+                      fontWeight: 500,
+                      cursor: 'pointer'
+                    }}>
+                      Get MetaMask
+                    </button>
+                  </a>
+
+                  <a 
+                    href="https://wallet.flow.com/" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    style={{ textDecoration: 'none' }}
+                  >
+                    <button style={{
+                      padding: '0.5rem 1rem',
+                      backgroundColor: '#00C896',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontSize: '0.8rem',
+                      fontWeight: 500,
+                      cursor: 'pointer'
+                    }}>
+                      Get Flow Wallet
+                    </button>
+                  </a>
+
+                  <a 
+                    href="https://www.coinbase.com/wallet" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    style={{ textDecoration: 'none' }}
+                  >
+                    <button style={{
+                      padding: '0.5rem 1rem',
+                      backgroundColor: '#0052FF',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontSize: '0.8rem',
+                      fontWeight: 500,
+                      cursor: 'pointer'
+                    }}>
+                      Get Coinbase
+                    </button>
+                  </a>
+                </div>
+              )}
+            </div>
 
             {/* Farcaster - Coming Soon */}
             <button

@@ -1,15 +1,10 @@
-# **Updated Architecture Documentation**
-
-**Update `architecture.md`:**
-
-```markdown
 # ImmutableType Phase 2 - Updated Architecture Documentation
-**Tiered Identity Verification System - Tier 0 Profile Creation**
-**Updated: September 4, 2025**
+**Tiered Identity Verification System - Wallet Connection Complete**
+**Updated: September 5, 2025**
 
 ## System Overview
 
-ImmutableType Phase 2 implements a tiered identity verification system on Flow EVM with transferable profile NFTs. **Currently completed Tier 0 profile creation system** where users connect wallets and create basic profiles with fee payment or token qualification bypass.
+ImmutableType Phase 2 implements a tiered identity verification system on Flow EVM with transferable profile NFTs. **Currently completed: Full wallet connection UX with seamless MetaMask integration**. Users can now connect wallets with immediate popup triggers and proper state management.
 
 ## Contract Addresses (Flow EVM Testnet)
 
@@ -23,299 +18,203 @@ ImmutableType Phase 2 implements a tiered identity verification system on Flow E
 
 ## Current Implementation Status
 
-### **Phase 1: ✅ COMPLETE**
-- ProfileNFT contract deployed with transferability
-- TokenQualifier contract deployed for fee management
-- Basic profile creation infrastructure ready
+### **Wallet Connection System: ✅ COMPLETE**
+- Direct `window.ethereum` integration (no Wagmi dependency issues)
+- Immediate MetaMask popup on "Connect Wallet" click
+- Automatic Flow EVM network switching after connection
+- Proper connecting state to eliminate blank screens
+- Error handling for user rejection and connection failures
 
-### **Phase 2: 🔄 IN PROGRESS - Sessions 1-2 COMPLETE**
-- ✅ **Contract Integration**: Services built and tested with real contracts
-- ✅ **Profile Creation Logic**: Complete useProfile hook with wallet integration
-- ✅ **Fee Structure**: 3 FLOW payment or 100+ $BUFFAFLOW bypass logic
-- ✅ **Web3 Stack**: viem + wagmi configuration complete
-- 🔲 **User Interface**: Profile creation form (Session 3)
-- 🔲 **Testing & Polish**: End-to-end validation (Session 4)
+### **Architecture Evolution**
+**Previous Attempt**: Wagmi + library abstractions caused infinite loops and connection failures
+**Current Solution**: Direct MetaMask API calls with proven reliability from working codebase
+**Key Fix**: Removed dependency chain issues and connection proxy errors
 
-## Architecture Principles
+### **Phase Progress**
+- ✅ **Smart Contracts**: ProfileNFT and TokenQualifier deployed and verified
+- ✅ **Wallet Integration**: Direct wallet connection with immediate popup UX
+- ✅ **Network Management**: Automatic Flow EVM switching and chain detection
+- ✅ **UI Flow**: Complete auth selection → wallet connection → profile form progression
+- 🔲 **Contract Integration**: Connect UI to actual ProfileNFT smart contract calls
+- 🔲 **Form Submission**: Profile creation with blockchain transactions
 
-### **1. Tier-Based Identity System**
-- **Tier 0 (Basic)**: ✅ Wallet connection - 3 FLOW fee or token qualification
-- **Tier 1 (Social)**: 🔲 Future Farcaster verification
-- **Tier 2 (Identity)**: 🔲 Future Crossmint KYC verification
-- **Tier 3+ (Enhanced)**: 🔲 Future advanced verification methods
+## Technical Architecture
 
-### **2. Fee Structure & Token Qualification**
-- **Profile Creation**: 3 FLOW tokens paid to treasury wallet
-- **Fee Bypass**: 100+ $BUFFAFLOW tokens OR any $BUFFAFLOW NFT
-- **BUFFAFLOW**: 404 contract with both tokens and NFTs (mainnet only)
-- **TokenQualifier**: Manages qualification logic for fee bypass
-- **Network Awareness**: Testnet = fee only, Mainnet = fee + BUFFAFLOW bypass
-
-### **3. Transferable Profile NFTs**
-- **Profile ownership**: Tradeable like any NFT
-- **Data preservation**: Tier level and creation timestamp transfer
-- **Data reset**: Personal info (name, bio, etc.) resets on transfer
-- **DID format**: `did:pkh:eip155:545:0x{walletAddress}` (auto-generated)
-
-## Smart Contract Architecture
-
-### **Profile Data Structure**
-```solidity
-struct Profile {
-    uint256 tier;                   // Current verification tier (0 for basic)
-    string did;                     // W3C DID: did:pkh:eip155:545:0x...
-    
-    // Personal data (reset on transfer)
-    string displayName;             // User's chosen name
-    string bio;                     // User biography
-    string location;                // User location
-    string avatarUrl;               // Profile avatar URL
-    
-    // System data (preserved on transfer)
-    uint256 createdAt;              // Profile creation timestamp
-    uint256 lastTierUpgrade;        // Last verification upgrade
-    
-    // Verification bindings (deactivated on transfer)
-    AuthBinding[] bindings;         // Verification methods used
+### **Wallet Connection Stack**
+```typescript
+// lib/hooks/useDirectWallet.ts - Direct MetaMask integration
+const connectWallet = async () => {
+  await ensureCorrectNetwork()  // Add/switch to Flow EVM first
+  const accounts = await window.ethereum.request({
+    method: 'eth_requestAccounts'  // Direct API call - immediate popup
+  })
+  setAddress(accounts[0])
 }
 ```
 
-### **Fee Payment & Token Qualification**
-```solidity
-// ProfileNFT.createBasicProfile() flow:
-1. User pays 3 FLOW fee to treasury (if required), AND/OR
-2. TokenQualifier.isQualified() validates BUFFAFLOW qualification
-
-// TokenQualifier checks BUFFAFLOW contract for:
-- Token balance >= 100 $BUFFAFLOW tokens, OR  
-- NFT ownership (any $BUFFAFLOW NFT)
-- Network awareness (mainnet only)
+### **UI State Management**
+```typescript
+// Complete flow states in app/profile/create/page.tsx
+1. Auth method selection (!selectedAuth)
+2. Wallet download required (!hasWallet) 
+3. Connecting state (selectedAuth && hasWallet && !isConnected)
+4. Profile creation form (selectedAuth && isConnected)
+5. Success state (creationState.status === 'success')
 ```
 
-## Project Structure ✅ BUILT
+### **Key UX Improvements**
+- **Eliminated blank screens**: Proper connecting state during wallet processing
+- **Immediate popup triggers**: Direct MetaMask API calls, no library delays
+- **Network auto-switching**: Seamless Flow EVM network addition and switching
+- **Clean error handling**: User rejection handled gracefully without error states
+
+## Project Structure (Current)
 
 ```
 app/
-├── page.tsx                     # Landing page
-├── layout.tsx                   # Root layout with globals.css
-├── globals.css                  # Global styles
+├── page.tsx                     # Landing page with redirection logic
+├── layout.tsx                   # Root layout with DirectWalletProvider
+├── globals.css                  # Global styles and CSS variables
 └── profile/
-    ├── create/page.tsx          # 🔲 Tier 0 creation UI (to build)
-    ├── tier1/page.tsx           # Empty - future Farcaster
-    └── layout.tsx               # Profile section layout
+    └── create/page.tsx          # ✅ Complete wallet connection + form UI
 
 lib/
-├── services/profile/
-│   ├── ProfileNFT.ts            # ✅ Complete contract service
-│   └── TokenQualifier.ts        # ✅ Complete BUFFAFLOW qualification
 ├── hooks/
-│   └── useProfile.ts            # ✅ Complete profile operations
+│   ├── useDirectWallet.ts       # ✅ Direct MetaMask integration (replaces Wagmi)
+│   ├── useProfile.ts            # Legacy file (not currently used)
+│   └── useWallet.ts             # Legacy file (reference implementation)
+├── providers/
+│   ├── DirectWalletProvider.tsx # ✅ Minimal provider for wallet state
+│   └── Web3Provider.tsx         # Legacy file (unused)
 ├── types/
-│   └── profile.ts               # ✅ Complete type definitions
-└── web3/
-    ├── providers.ts             # ✅ Flow EVM configuration
-    ├── contracts.ts             # ✅ Contract addresses & ABIs
-    └── generated-abis.ts        # ✅ Contract ABIs from testnet
+│   └── profile.ts               # ✅ TypeScript interfaces
+├── web3/
+│   ├── chains.ts               # ✅ Flow EVM testnet configuration
+│   └── contracts.ts            # 🔲 Empty ABIs - needs contract integration
+└── services/profile/
+    ├── ProfileNFT.ts           # 🔲 Contract service (needs integration)
+    └── TokenQualifier.ts       # 🔲 Contract service (needs integration)
 ```
 
-## Technical Implementation ✅ COMPLETE
+## Current Working Implementation
 
-### **Web3 Stack**
-- **Library**: viem + wagmi (chosen for durability over ethers.js)
-- **Chain**: Flow EVM Testnet (545) / Mainnet (747)
-- **Provider**: https://testnet.evm.nodes.onflow.org
-- **Dependencies**: ✅ Installed and configured
-
-### **Contract Services**
+### **Wallet Connection (Complete)**
 ```typescript
-// ProfileNFT Service - Complete
-- createBasicProfile(profileData, userAddress)
-- getUserProfile(userAddress) 
-- updateProfile(profileId, profileData, userAddress)
-- generateDID(userAddress)
-- getCreationFeeFormatted()
+const { address, isConnected, connectWallet, isConnecting } = useDirectWallet()
 
-// TokenQualifier Service - Complete  
-- checkQualification(userAddress)
-- isBuffaflowBypassAvailable()
-- getQualificationRequirements()
-- getNetworkInfo()
+// Flow:
+1. User clicks "Connect Wallet (Tier 0)"
+2. setSelectedAuth('wallet') triggers useEffect
+3. connectWallet() called immediately
+4. MetaMask popup appears (direct window.ethereum call)
+5. User approves connection
+6. Network switches to Flow EVM automatically  
+7. Profile creation form displays
 ```
 
-### **useProfile Hook Capabilities ✅ COMPLETE**
+### **Form Data Structure (Ready)**
 ```typescript
-const {
-  // Wallet state
-  isConnected, address, connect, disconnect,
-  
-  // Profile state  
-  userProfile, isLoadingProfile,
-  
-  // Creation state
-  creationState, isCreating,
-  
-  // Qualification state
-  qualificationStatus, canBypassFee,
-  
-  // Form validation
-  formErrors, validateForm, clearErrors,
-  
-  // Actions
-  createProfile, checkQualification, generateDID,
-  
-  // Helpers
-  getCreationFee, isFeeRequired, getQualificationText
-} = useProfile()
+interface FormData {
+  displayName: string  // Required, 1-50 characters
+  bio: string         // Optional, max 500 characters  
+  location: string    // Optional, max 100 characters
+  avatarUrl: string   // Optional, max 500 characters, URL validation
+}
 ```
 
-### **Real Implementation - No Mocks**
-- ✅ **BUFFAFLOW logic**: Real contract interaction (mainnet-aware)
-- ✅ **Network detection**: Automatic testnet/mainnet handling
-- ✅ **Transaction management**: Full blockchain transaction states
-- ✅ **Error handling**: Real contract errors and recovery
-- ✅ **Fee calculation**: Dynamic based on actual qualification
+## Next Development Phase
 
-## Verified Contract Testing ✅
+### **Priority 1: Contract Integration**
+- Populate `lib/web3/contracts.ts` with ProfileNFT and TokenQualifier ABIs
+- Connect form submission to actual `ProfileNFT.createBasicProfile()` calls
+- Implement fee checking (3 FLOW payment requirement)
+- Add transaction state management (preparing → pending → success → error)
 
-**Connection Test Results**:
-```bash
-🧪 Testing Flow EVM Testnet connection...
-✅ Latest block: 66903638
-✅ ProfileNFT: 0x09512878ac5662aFDE0bE6046d12B2eEa30A00Fe EXISTS
-   📝 Bytecode length: 30872 characters
-✅ TokenQualifier: 0x78b9240F3EF69cc517A66564fBC488C5E5309DF7 EXISTS
-   📝 Bytecode length: 5398 characters
-❌ BUFFAFLOW: Not available on testnet (mainnet only)
-❌ Treasury: EOA wallet (not a contract)
-🎉 Connection test complete!
-```
+### **Priority 2: Complete Profile Creation**
+- Real blockchain transaction submission on form submit
+- Transaction hash display and Explorer links
+- Profile ID generation and DID creation
+- Success state with actual profile data
 
-## Session 3: UI Implementation (NEXT)
-
-### **Immediate Tasks**
-1. **Profile Creation Form** (`app/profile/create/page.tsx`)
-   - Form fields: displayName, bio, location, avatarUrl
-   - Real-time validation with useProfile hook
-   - Character limits enforced (displayName: 2-50, bio: 500, location: 100)
-
-2. **Wallet Connection UI**
-   - Connect/disconnect wallet functionality
-   - Network status display (testnet/mainnet)
-   - BUFFAFLOW qualification status
-
-3. **Transaction State Management**
-   - Fee display (3 FLOW) or qualification bypass
-   - Transaction progress (idle/preparing/pending/success/error)
-   - Success state with generated DID display
-   - Error handling with retry options
-
-### **User Journey (Ready to Build)**
-1. **Connect Wallet**: useProfile.connect() → Flow EVM testnet
-2. **Check Qualification**: Automatic BUFFAFLOW check on wallet connection
-3. **Fill Form**: Profile data with real-time validation
-4. **Review & Submit**: Fee display or bypass confirmation
-5. **Transaction**: Blockchain transaction with progress tracking
-6. **Success**: Profile created with DID displayed
-
-## Security & Anti-Fraud ✅ IMPLEMENTED
-
-### **Tier 0 Security Measures**
-- ✅ **One profile per wallet**: Contract-level enforcement
-- ✅ **Fee payment verification**: 3 FLOW to treasury validation
-- ✅ **Token qualification**: Real BUFFAFLOW balance checking
-- ✅ **DID uniqueness**: Auto-generated from wallet (guaranteed unique)
-- ✅ **Gas payment**: User pays own gas (natural spam prevention)
-- ✅ **Form validation**: Character limits, URL validation, required fields
-
-## Data Privacy & Compliance ✅ IMPLEMENTED
-
-### **W3C DID Standard**
-- **Format**: `did:pkh:eip155:545:0x{walletAddress}`
-- **Generation**: Automatic via profileNFTService.generateDID()
-- **Compliance**: W3C Decentralized Identifier specification
-- **Uniqueness**: Guaranteed by wallet address uniqueness
-
-### **Transfer Privacy (Contract Ready)**
-- **Preserved**: Profile ownership, tier level, creation timestamp
-- **Reset**: displayName, bio, location, avatarUrl
-- **Deactivated**: All authentication bindings
-- **Re-verification**: New owner must verify to reactivate
-
-## Network Configuration ✅ COMPLETE
-
-### **Multi-Network Support**
+### **Files Requiring Contract Integration**
 ```typescript
-// Automatic network detection
-const networkConfig = getNetworkConfig()
-// {
-//   chainId: 545,
-//   isTestnet: true, 
-//   hasBuffaflow: false,
-//   rpcUrl: 'https://testnet.evm.nodes.onflow.org',
-//   explorerUrl: 'https://evm-testnet.flowscan.io'
-// }
+// lib/web3/contracts.ts - Add real ABIs
+export const ProfileNFT_ABI = [...] // From deployed contract
+export const TokenQualifier_ABI = [...] // From deployed contract
+
+// lib/services/profile/ProfileNFT.ts - Implement contract calls
+export async function createBasicProfile(profileData, userAddress) {
+  // Real contract interaction using viem/ethers
+}
+
+// app/profile/create/page.tsx - Connect form to contract
+const handleSubmit = async (e) => {
+  // Replace setTimeout simulation with real transaction
+  const result = await createBasicProfile(formData, address)
+}
 ```
 
-### **Environment Configuration**
-```bash
-# Optional environment variables
-NEXT_PUBLIC_TREASURY_ADDRESS=0x9402F9f20b4a27b55B1cC6cf015D98f764814fb2
-NEXT_PUBLIC_BUFFAFLOW_ADDRESS=0xc8654a7a4bd671d4ceac6096a92a3170fa3b4798
-NEXT_PUBLIC_ENABLE_BUFFAFLOW=true
-NEXT_PUBLIC_ENABLE_TREASURY_FEES=true
-```
+## Wallet Integration Lessons Learned
+
+### **What Didn't Work**
+- **Wagmi abstractions**: Caused infinite loops and connection proxy errors
+- **Library dependency chains**: Created timing issues and state conflicts
+- **Complex provider wrapping**: Introduced unnecessary connection delays
+
+### **What Works**
+- **Direct `window.ethereum` calls**: Immediate, reliable MetaMask integration
+- **Network management first**: Add/switch network before requesting accounts
+- **Simple state management**: Minimal provider, direct state updates
+- **Proven patterns**: Using battle-tested implementation from working project
+
+## Fee Structure (Ready for Integration)
+
+- **Profile Creation**: 3 FLOW tokens paid to treasury wallet
+- **Fee Bypass**: 100+ $BUFFAFLOW tokens OR any $BUFFAFLOW NFT (mainnet only)
+- **Current State**: UI shows fee information, contract integration needed
+- **TokenQualifier Logic**: Ready to implement BUFFAFLOW checking
+
+## Security Measures (Implemented)
+
+- **Form validation**: Character limits, required fields, URL validation
+- **Network verification**: Flow EVM testnet chain ID enforcement  
+- **User consent**: MetaMask approval required for all connections
+- **Error boundaries**: Graceful handling of wallet rejection and failures
 
 ## Development Status Summary
 
-### ✅ **Complete (Sessions 1-2)**
-- Contract verification and integration
-- Service layer with real blockchain interaction
-- Profile creation hook with wallet integration
-- Transaction state management
-- Form validation logic
-- Network-aware BUFFAFLOW logic
-- TypeScript types and error handling
+### ✅ **Complete**
+- Wallet connection UX with immediate MetaMask popup
+- Flow EVM network auto-switching and management
+- Profile creation form with validation
+- Complete UI state management (no blank screens)
+- Clean error handling and user feedback
 
-### 🔲 **Remaining (Sessions 3-4)**
-- Profile creation form UI
-- Wallet connection components
-- Transaction progress UI
-- Testing and polish
-- Documentation for Phase 2 handoff
+### 🔲 **Next Session Priority**
+- Contract ABI integration
+- Real ProfileNFT.createBasicProfile() transaction calls
+- Transaction state management and success handling
+- Fee payment validation and BUFFAFLOW qualification
 
-### 🚫 **Out of Scope (Future Phases)**
-- Farcaster integration (Phase 2 of overall project)
-- Crossmint KYC integration (Phase 4)
-- zK proof verification (Phase 5)
-- Social graph features
-- Admin dashboard
+### 🚫 **Out of Scope**
+- Farcaster integration (Tier 1)
+- Crossmint KYC integration (Tier 2)  
+- Advanced verification methods (Tier 3+)
+- Profile editing and management
+- Admin dashboard features
 
-## Ready for Session 3
+## Critical Technical Notes
 
-**Foundation Status**: ✅ Solid, tested, and production-ready  
-**Contract Integration**: ✅ Real blockchain interaction working  
-**Business Logic**: ✅ Complete fee and qualification system  
-**Next Priority**: 🎯 User interface to complete the user journey  
+### **Wallet Connection Architecture**
+The current implementation bypasses all Web3 library abstractions and uses direct MetaMask API calls. This pattern proved reliable and should be maintained. Any future wallet integrations should follow this direct approach rather than introducing library dependencies that caused previous connection failures.
 
-**Architecture is battle-tested and ready for UI implementation.**
+### **Contract Integration Path**
+The UI framework is complete and ready for contract integration. The next developer should focus on populating contract ABIs and implementing real transaction calls rather than modifying the wallet connection logic, which is working correctly.
 
 ---
 
-**Status**: Phase 2 Development - Sessions 1-2 Complete  
-**Current**: Session 3 - UI Implementation  
-**Next Milestone**: Complete working Tier 0 profile creation flow  
-**Last Updated**: September 4, 2025  
-**Ready For**: Profile creation form and wallet connection UI
-```
-
-**Key updates made:**
-✅ **Marked Sessions 1-2 as complete**  
-✅ **Added verification test results**  
-✅ **Updated status from "to build" to "built" for completed components**  
-✅ **Added detailed hook capabilities**  
-✅ **Emphasized "no mocks" real implementation**  
-✅ **Clarified BUFFAFLOW mainnet-only availability**  
-✅ **Updated project structure with completion status**  
-✅ **Added Session 3 as the clear next priority**
-
-This gives the next agent a complete picture of what's been built and exactly what needs to be done next.
+**Repository**: `github.com:ImmutableType/immutable5.git`  
+**Last Commit**: `ebec814` - "Fix wallet connection UX flow"  
+**Status**: Wallet connection complete, ready for contract integration  
+**Next Milestone**: Working profile creation with blockchain transactions  
+**Last Updated**: September 5, 2025

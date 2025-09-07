@@ -4,13 +4,14 @@ import { Address } from 'viem'
 import { profileNFTService } from '../services/profile/ProfileNFT'
 import { tokenQualifierService } from '../services/profile/TokenQualifier'
 import type { 
-  ProfileData, 
-  ProfileCreationResult, 
-  Profile, 
-  TransactionState, 
-  QualificationStatus,
-  ProfileFormErrors 
-} from '../types/profile'
+    ProfileData, 
+    ProfileCreationResult, 
+    Profile, 
+    TransactionState, 
+    QualificationStatus,
+    ProfileFormErrors
+  } from '../types/profile'
+  import { PROFILE_VALIDATION } from '../types/profile'
 
 export interface UseProfileReturn {
   // Wallet state
@@ -38,7 +39,7 @@ export interface UseProfileReturn {
   // Actions
   createProfile: (profileData: ProfileData) => Promise<ProfileCreationResult>
   checkQualification: () => Promise<void>
-  validateForm: (profileData: ProfileData) => ProfileFormErrors
+  validateForm: (profileData: ProfileData) => boolean
   clearErrors: () => void
   generateDID: () => string | null
   
@@ -49,7 +50,7 @@ export interface UseProfileReturn {
 }
 
 export function useProfile(): UseProfileReturn {
-  // Wallet connection
+  // Wallet connection hooks
   const { address, isConnected } = useAccount()
   const { connect: wagmiConnect, connectors } = useConnect()
   const { disconnect: wagmiDisconnect } = useDisconnect()
@@ -62,43 +63,41 @@ export function useProfile(): UseProfileReturn {
   const [isCheckingQualification, setIsCheckingQualification] = useState(false)
   const [formErrors, setFormErrors] = useState<ProfileFormErrors>({})
 
-  // Load user profile when wallet connects
-  // Replace the existing useEffect with this fixed version:
-
-// Load user profile when wallet connects
-useEffect(() => {
-    if (address && isConnected) {
-      loadUserProfile()
-      checkQualification()
-    } else {
-      setUserProfile(null)
-      setQualificationStatus(null)
+  // Wallet connection handlers
+  const connect = useCallback(() => {
+    const connector = connectors[0] // Use first available connector (MetaMask/Injected)
+    if (connector) {
+      wagmiConnect({ connector })
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [address, isConnected])
+  }, [wagmiConnect, connectors])
 
-  /**
-   * Load user's existing profile
-   */
+  const disconnect = useCallback(() => {
+    wagmiDisconnect()
+  }, [wagmiDisconnect])
+
+  // Load user's existing profile (if any)
   const loadUserProfile = useCallback(async () => {
     if (!address) return
 
     setIsLoadingProfile(true)
     try {
-      const profile = await profileNFTService.getUserProfile(address)
-      setUserProfile(profile)
+      // TODO: Implement after we have profile lookup by address
+      // For now, just clear the profile
+      setUserProfile(null)
     } catch (error) {
       console.error('Error loading user profile:', error)
+      setUserProfile(null)
     } finally {
       setIsLoadingProfile(false)
     }
   }, [address])
 
-  /**
-   * Check user's qualification for fee bypass
-   */
+  // Check BUFFAFLOW qualification status
   const checkQualification = useCallback(async () => {
-    if (!address) return
+    if (!address) {
+      setQualificationStatus(null)
+      return
+    }
 
     setIsCheckingQualification(true)
     try {
@@ -117,167 +116,143 @@ useEffect(() => {
     }
   }, [address])
 
-  /**
-   * Validate profile form data
-   */
-  const validateForm = useCallback((profileData: ProfileData): ProfileFormErrors => {
+  // Form validation
+  const validateForm = useCallback((profileData: ProfileData): boolean => {
     const errors: ProfileFormErrors = {}
 
-    // Display name validation
+    // Display Name validation
     if (!profileData.displayName.trim()) {
       errors.displayName = 'Display name is required'
-    } else if (profileData.displayName.length < 2) {
-      errors.displayName = 'Display name must be at least 2 characters'
-    } else if (profileData.displayName.length > 50) {
-      errors.displayName = 'Display name must be less than 50 characters'
+    } else if (profileData.displayName.length < PROFILE_VALIDATION.DISPLAY_NAME.min) {
+      errors.displayName = `Display name must be at least ${PROFILE_VALIDATION.DISPLAY_NAME.min} characters`
+    } else if (profileData.displayName.length > PROFILE_VALIDATION.DISPLAY_NAME.max) {
+      errors.displayName = `Display name must be no more than ${PROFILE_VALIDATION.DISPLAY_NAME.max} characters`
     }
 
     // Bio validation
-    if (profileData.bio.length > 500) {
-      errors.bio = 'Bio must be less than 500 characters'
+    if (profileData.bio.length > PROFILE_VALIDATION.BIO.max) {
+      errors.bio = `Bio must be no more than ${PROFILE_VALIDATION.BIO.max} characters`
     }
 
     // Location validation
-    if (profileData.location.length > 100) {
-      errors.location = 'Location must be less than 100 characters'
+    if (profileData.location.length > PROFILE_VALIDATION.LOCATION.max) {
+      errors.location = `Location must be no more than ${PROFILE_VALIDATION.LOCATION.max} characters`
     }
 
     // Avatar URL validation
-    if (profileData.avatarUrl && profileData.avatarUrl.length > 500) {
-      errors.avatarUrl = 'Avatar URL must be less than 500 characters'
-    }
-
-    // Basic URL validation if provided
-    if (profileData.avatarUrl && profileData.avatarUrl.trim()) {
-      try {
-        new URL(profileData.avatarUrl)
-      } catch {
-        errors.avatarUrl = 'Please enter a valid URL'
+    if (profileData.avatarUrl) {
+      if (profileData.avatarUrl.length > PROFILE_VALIDATION.AVATAR_URL.max) {
+        errors.avatarUrl = `Avatar URL must be no more than ${PROFILE_VALIDATION.AVATAR_URL.max} characters`
+      } else {
+        // Basic URL validation
+        try {
+          new URL(profileData.avatarUrl)
+        } catch {
+          errors.avatarUrl = 'Please enter a valid URL'
+        }
       }
     }
 
-    return errors
+    setFormErrors(errors)
+    return Object.keys(errors).length === 0
   }, [])
 
-  /**
-   * Create a new profile
-   */
+  // Clear form errors
+  const clearErrors = useCallback(() => {
+    setFormErrors({})
+  }, [])
+
+  // Generate DID for current user
+  const generateDID = useCallback((): string | null => {
+    if (!address) return null
+    return profileNFTService.generateDID(address)
+  }, [address])
+
+  // Create profile
   const createProfile = useCallback(async (profileData: ProfileData): Promise<ProfileCreationResult> => {
     if (!address) {
-      return { success: false, error: 'Wallet not connected' }
+      return {
+        success: false,
+        error: 'Wallet not connected'
+      }
     }
 
     // Validate form first
-    const errors = validateForm(profileData)
-    setFormErrors(errors)
-    
-    if (Object.keys(errors).length > 0) {
-      return { success: false, error: 'Please fix form errors' }
+    if (!validateForm(profileData)) {
+      return {
+        success: false,
+        error: 'Please fix form errors before submitting'
+      }
     }
-
-    // Check if user already has a profile
-    if (userProfile) {
-      return { success: false, error: 'You already have a profile' }
-    }
-
-    setCreationState({ status: 'preparing' })
 
     try {
+      setCreationState({ status: 'preparing' })
+
       // Create the profile
-      setCreationState({ status: 'pending' })
       const result = await profileNFTService.createBasicProfile(profileData, address)
 
       if (result.success) {
         setCreationState({ 
-          status: 'success', 
-          hash: result.transactionHash 
+          status: 'success',
+          hash: result.transactionHash,
+          result: result  // Add this line
         })
         
-        // Reload user profile
+        // Reload profile data
         await loadUserProfile()
         
         return result
       } else {
         setCreationState({ 
           status: 'error', 
-          error: result.error 
+          error: result.error || 'Profile creation failed'
         })
         return result
       }
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
-      setCreationState({ 
-        status: 'error', 
-        error: errorMessage 
-      })
-      return { success: false, error: errorMessage }
+      setCreationState({ status: 'error', error: errorMessage })
+      return {
+        success: false,
+        error: errorMessage
+      }
     }
-  }, [address, userProfile, validateForm, loadUserProfile])
+  }, [address, validateForm, loadUserProfile])
 
-  /**
-   * Connect wallet
-   */
-  const connect = useCallback(() => {
-    const injectedConnector = connectors.find(connector => connector.id === 'injected')
-    if (injectedConnector) {
-      wagmiConnect({ connector: injectedConnector })
-    }
-  }, [wagmiConnect, connectors])
-
-  /**
-   * Disconnect wallet
-   */
-  const disconnect = useCallback(() => {
-    wagmiDisconnect()
-    setUserProfile(null)
-    setQualificationStatus(null)
-    setCreationState({ status: 'idle' })
-    setFormErrors({})
-  }, [wagmiDisconnect])
-
-  /**
-   * Clear form errors
-   */
-  const clearErrors = useCallback(() => {
-    setFormErrors({})
-    if (creationState.status === 'error') {
-      setCreationState({ status: 'idle' })
-    }
-  }, [creationState.status])
-
-  /**
-   * Generate DID for current address
-   */
-  const generateDID = useCallback((): string | null => {
-    if (!address) return null
-    return profileNFTService.generateDID(address)
-  }, [address])
-
-  /**
-   * Get creation fee formatted
-   */
+  // Helper functions
   const getCreationFee = useCallback((): string => {
     return profileNFTService.getCreationFeeFormatted()
   }, [])
 
-  /**
-   * Check if fee is required (not qualified for bypass)
-   */
   const isFeeRequired = useCallback((): boolean => {
-    return !qualificationStatus?.canBypassFee && profileNFTService.isFeeEnabled()
-  }, [qualificationStatus?.canBypassFee])
+    return !qualificationStatus?.canBypassFee
+  }, [qualificationStatus])
 
-  /**
-   * Get qualification status text
-   */
+  const canBypassFee = qualificationStatus?.canBypassFee || false
+
   const getQualificationText = useCallback((): string => {
-    return tokenQualifierService.getQualificationRequirements()
-  }, [])
+    if (!qualificationStatus) return 'Checking qualification...'
+    if (qualificationStatus.canBypassFee) {
+      return 'Qualified for free profile creation'
+    }
+    return `Fee required: ${getCreationFee()} FLOW`
+  }, [qualificationStatus, getCreationFee])
+
+  // Effects
+  useEffect(() => {
+    if (address && isConnected) {
+      loadUserProfile()
+      checkQualification()
+    } else {
+      setUserProfile(null)
+      setQualificationStatus(null)
+      setCreationState({ status: 'idle' })
+    }
+  }, [address, isConnected, loadUserProfile, checkQualification])
 
   // Computed values
   const isCreating = creationState.status === 'preparing' || creationState.status === 'pending'
-  const canBypassFee = qualificationStatus?.canBypassFee ?? false
 
   return {
     // Wallet state

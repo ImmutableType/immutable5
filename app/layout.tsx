@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { DirectWalletProvider } from "../lib/providers/DirectWalletProvider";
 
 export const metadata: Metadata = {
   title: "ImmutableType",
@@ -14,8 +15,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
-        {/* TODO: Add providers here - WalletProvider, FarcasterProvider */}
-        {children}
+        <DirectWalletProvider>
+          {children}
+        </DirectWalletProvider>
       </body>
     </html>
   );

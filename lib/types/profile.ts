@@ -23,10 +23,12 @@ export interface ProfileData {
   }
   
   // Transaction states
+  // Update the TransactionState interface
   export interface TransactionState {
     status: 'idle' | 'preparing' | 'pending' | 'success' | 'error'
     hash?: string
     error?: string
+    result?: ProfileCreationResult  // Add this line
   }
   
   // Profile creation result
