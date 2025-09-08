@@ -19,6 +19,7 @@ interface CreationState {
   result?: {
     profileId: string
     did: string
+    transactionHash?: string
   }
 }
 
@@ -104,25 +105,63 @@ const CreateProfilePage: React.FC = () => {
     return Object.keys(errors).length === 0
   }
 
-  // Handle form submission (placeholder for now)
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  // Handle form submission - REAL CONTRACT INTEGRATION
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault()
+  
+  if (!validateForm(formData)) return
+  if (!address) return
+  
+  setCreationState({ status: 'preparing' })
+  
+  try {
+    console.log('Checking BUFFAFLOW qualification for:', address)
     
-    if (!validateForm(formData)) return
+    // Import services dynamically to avoid SSR issues
+    const { profileNFTService } = await import('../../../lib/services/profile/ProfileNFT')
+    const { tokenQualifierService } = await import('../../../lib/services/profile/TokenQualifier')
     
-    setCreationState({ status: 'preparing' })
+    // Check qualification status
+    const qualification = await tokenQualifierService.checkQualification(address as `0x${string}`)
+    console.log('Qualification result:', qualification)
     
-    // Simulate profile creation for now
-    setTimeout(() => {
+    setCreationState({ status: 'pending' })
+    console.log('Creating profile with data:', formData)
+    
+    // Create profile with real contract call
+    const result = await profileNFTService.createBasicProfile(
+      formData, 
+      address, 
+      qualification.canBypassFee
+    )
+    
+    console.log('Profile creation result:', result)
+    
+    if (result.success) {
       setCreationState({
         status: 'success',
         result: {
-          profileId: '1',
-          did: `did:pkh:eip155:545:${address}`
+          profileId: result.profileId!,
+          did: result.did!,
+          transactionHash: result.transactionHash
         }
       })
-    }, 2000)
+    } else {
+      setCreationState({
+        status: 'error',
+        error: result.error || 'Profile creation failed'
+      })
+    }
+    
+  } catch (error: any) {
+    console.error('Profile creation error:', error)
+    setCreationState({
+      status: 'error',
+      error: error.message || 'Unknown error occurred'
+    })
   }
+}
+
 
   // Show loading state during hydration
   if (!isClient) {
