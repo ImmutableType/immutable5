@@ -105,62 +105,49 @@ const CreateProfilePage: React.FC = () => {
     return Object.keys(errors).length === 0
   }
 
-  // Handle form submission - REAL CONTRACT INTEGRATION
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault()
-  
-  if (!validateForm(formData)) return
-  if (!address) return
-  
-  setCreationState({ status: 'preparing' })
-  
-  try {
-    console.log('Checking BUFFAFLOW qualification for:', address)
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
     
-    // Import services dynamically to avoid SSR issues
-    const { profileNFTService } = await import('../../../lib/services/profile/ProfileNFT')
-    const { tokenQualifierService } = await import('../../../lib/services/profile/TokenQualifier')
+    if (!validateForm(formData)) return
+    if (!address) return
     
-    // Check qualification status
-    const qualification = await tokenQualifierService.checkQualification(address as `0x${string}`)
-    console.log('Qualification result:', qualification)
+    setCreationState({ status: 'preparing' })
     
-    setCreationState({ status: 'pending' })
-    console.log('Creating profile with data:', formData)
-    
-    // Create profile with real contract call
-    const result = await profileNFTService.createBasicProfile(
-      formData, 
-      address, 
-      qualification.canBypassFee
-    )
-    
-    console.log('Profile creation result:', result)
-    
-    if (result.success) {
-      setCreationState({
-        status: 'success',
-        result: {
-          profileId: result.profileId!,
-          did: result.did!,
-          transactionHash: result.transactionHash
-        }
-      })
-    } else {
+    try {
+      // Skip qualification check for now - always pay fee on testnet
+      console.log('Creating profile with 3 FLOW fee (testnet)')
+      
+      // Import service dynamically
+      const { profileNFTService } = await import('../../../lib/services/profile/ProfileNFT')
+      
+      setCreationState({ status: 'pending' })
+      
+      // Create profile with simplified call (no qualification parameter)
+      const result = await profileNFTService.createBasicProfile(formData, address)
+      
+      if (result.success) {
+        setCreationState({
+          status: 'success',
+          result: {
+            profileId: result.profileId!,
+            did: result.did!,
+            transactionHash: result.transactionHash
+          }
+        })
+      } else {
+        setCreationState({
+          status: 'error',
+          error: result.error || 'Failed to create profile'
+        })
+      }
+    } catch (error: any) {
+      console.error('Profile creation error:', error)
       setCreationState({
         status: 'error',
-        error: result.error || 'Profile creation failed'
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
       })
     }
-    
-  } catch (error: any) {
-    console.error('Profile creation error:', error)
-    setCreationState({
-      status: 'error',
-      error: error.message || 'Unknown error occurred'
-    })
   }
-}
 
 
   // Show loading state during hydration
