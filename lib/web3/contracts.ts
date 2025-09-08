@@ -2,8 +2,8 @@
 import { Address } from 'viem'
 
 export const CONTRACTS = {
-  PROFILE_NFT: '0x09512878ac5662aFDE0bE6046d12B2eEa30A00Fe' as Address,
-  TOKEN_QUALIFIER: '0x78b9240F3EF69cc517A66564fBC488C5E5309DF7' as Address,
+  PROFILE_NFT: '0x2b1DAc1E85d5CFFFaCD38ad27595766ADf1Ffb23' as Address,
+  TOKEN_QUALIFIER: '0x4F8E10cC1f1cC1b937208F5B5ef23242b90d05ff' as Address,
   
   // Treasury - configurable for future implementation
   TREASURY: (process.env.NEXT_PUBLIC_TREASURY_ADDRESS as Address) || 
@@ -32,7 +32,7 @@ export const CONFIG = {
   TESTNET_RPC_URL: 'https://testnet.evm.nodes.onflow.org',
 } as const
 
-// Basic ABIs - will be replaced by generated ones
+// Updated ABIs with new contract addresses and functions
 export const PROFILE_NFT_ABI = [
   // ERC721 basics
   {
@@ -56,14 +56,14 @@ export const PROFILE_NFT_ABI = [
     "stateMutability": "view",
     "type": "function"
   },
-  // Profile creation - placeholder structure
+  // Profile creation - Updated with 4 parameters and payable
   {
-    "inputs": [{"name": "data", "type": "tuple", "components": [
+    "inputs": [
       {"name": "displayName", "type": "string"},
       {"name": "bio", "type": "string"},
       {"name": "location", "type": "string"},
       {"name": "avatarUrl", "type": "string"}
-    ]}],
+    ],
     "name": "createBasicProfile",
     "outputs": [{"name": "", "type": "uint256"}],
     "stateMutability": "payable",
@@ -80,7 +80,12 @@ export const PROFILE_NFT_ABI = [
       {"name": "bio", "type": "string"},
       {"name": "location", "type": "string"},
       {"name": "avatarUrl", "type": "string"},
-      {"name": "createdAt", "type": "uint256"}
+      {"name": "createdAt", "type": "uint256"},
+      {"name": "lastTierUpgrade", "type": "uint256"},
+      {"name": "isActive", "type": "bool"},
+      {"name": "socialGraphHash", "type": "bytes32"},
+      {"name": "connectionCount", "type": "uint256"},
+      {"name": "lastSocialUpdate", "type": "uint256"}
     ]}],
     "stateMutability": "view",
     "type": "function"
@@ -89,16 +94,102 @@ export const PROFILE_NFT_ABI = [
   {
     "inputs": [
       {"name": "profileId", "type": "uint256"},
-      {"name": "data", "type": "tuple", "components": [
-        {"name": "displayName", "type": "string"},
-        {"name": "bio", "type": "string"},
-        {"name": "location", "type": "string"},
-        {"name": "avatarUrl", "type": "string"}
-      ]}
+      {"name": "displayName", "type": "string"},
+      {"name": "bio", "type": "string"},
+      {"name": "location", "type": "string"},
+      {"name": "avatarUrl", "type": "string"}
     ],
     "name": "updateProfile",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  // Profile by address
+  {
+    "inputs": [{"name": "owner", "type": "address"}],
+    "name": "getProfileByAddress",
+    "outputs": [{"name": "", "type": "tuple", "components": [
+      {"name": "tier", "type": "uint256"},
+      {"name": "did", "type": "string"},
+      {"name": "displayName", "type": "string"},
+      {"name": "bio", "type": "string"},
+      {"name": "location", "type": "string"},
+      {"name": "avatarUrl", "type": "string"},
+      {"name": "createdAt", "type": "uint256"},
+      {"name": "lastTierUpgrade", "type": "uint256"},
+      {"name": "isActive", "type": "bool"},
+      {"name": "socialGraphHash", "type": "bytes32"},
+      {"name": "connectionCount", "type": "uint256"},
+      {"name": "lastSocialUpdate", "type": "uint256"}
+    ]}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  // Check if address has profile
+  {
+    "inputs": [{"name": "owner", "type": "address"}],
+    "name": "hasProfile",
+    "outputs": [{"name": "", "type": "bool"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  // Get total profiles count
+  {
+    "inputs": [],
+    "name": "totalProfiles",
+    "outputs": [{"name": "", "type": "uint256"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  // Get basic profile fee
+  {
+    "inputs": [],
+    "name": "getBasicProfileFee",
+    "outputs": [{"name": "", "type": "uint256"}],
+    "stateMutability": "pure",
+    "type": "function"
+  },
+  // Tier advancement functions
+  {
+    "inputs": [
+      {"name": "profileId", "type": "uint256"},
+      {"name": "fid", "type": "uint256"},
+      {"name": "proof", "type": "bytes"}
+    ],
+    "name": "stepUpWithFarcaster",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {"name": "profileId", "type": "uint256"},
+      {"name": "kycId", "type": "string"},
+      {"name": "proof", "type": "bytes"}
+    ],
+    "name": "stepUpWithCrossmint",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  // Admin functions
+  {
+    "inputs": [
+      {"name": "profileId", "type": "uint256"},
+      {"name": "targetTier", "type": "uint256"},
+      {"name": "method", "type": "string"}
+    ],
+    "name": "adminVerifyProfile",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  // TokenQualifier reference
+  {
+    "inputs": [],
+    "name": "tokenQualifier",
+    "outputs": [{"name": "", "type": "address"}],
+    "stateMutability": "view",
     "type": "function"
   }
 ] as const
@@ -114,21 +205,34 @@ export const TOKEN_QUALIFIER_ABI = [
   {
     "inputs": [
       {"name": "user", "type": "address"},
-      {"name": "token", "type": "address"},
-      {"name": "amount", "type": "uint256"}
+      {"name": "tierLevel", "type": "uint256"}
     ],
-    "name": "checkTokenBalance",
+    "name": "hasQualifyingTokens",
     "outputs": [{"name": "", "type": "bool"}],
     "stateMutability": "view",
     "type": "function"
   },
   {
-    "inputs": [{"name": "user", "type": "address"}],
-    "name": "getQualificationStatus",
-    "outputs": [
-      {"name": "qualified", "type": "bool"},
-      {"name": "reason", "type": "string"}
+    "inputs": [{"name": "tierLevel", "type": "uint256"}],
+    "name": "getRequiredFee",
+    "outputs": [{"name": "", "type": "uint256"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{"name": "tierLevel", "type": "uint256"}],
+    "name": "getQualifyingTokens",
+    "outputs": [{"name": "", "type": "address[]"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {"name": "tierLevel", "type": "uint256"},
+      {"name": "tokenAddress", "type": "address"}
     ],
+    "name": "getMinimumBalance",
+    "outputs": [{"name": "", "type": "uint256"}],
     "stateMutability": "view",
     "type": "function"
   }
@@ -181,9 +285,9 @@ export const EXPECTED_PROFILE_FUNCTIONS = [
 ] as const
 
 export const EXPECTED_QUALIFIER_FUNCTIONS = [
-  'isQualified',
-  'checkTokenBalance',
-  'getQualificationStatus'
+  'hasQualifyingTokens',
+  'getRequiredFee',
+  'getQualifyingTokens'
 ] as const
 
 // Helper functions for network switching

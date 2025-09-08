@@ -105,6 +105,12 @@ const CreateProfilePage: React.FC = () => {
     return Object.keys(errors).length === 0
   }
 
+
+
+
+
+
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -114,15 +120,13 @@ const CreateProfilePage: React.FC = () => {
     setCreationState({ status: 'preparing' })
     
     try {
-      // Skip qualification check for now - always pay fee on testnet
-      console.log('Creating profile with 3 FLOW fee (testnet)')
+      console.log('Creating profile on Flow EVM...')
       
       // Import service dynamically
       const { profileNFTService } = await import('../../../lib/services/profile/ProfileNFT')
       
       setCreationState({ status: 'pending' })
       
-      // Create profile with simplified call (no qualification parameter)
       const result = await profileNFTService.createBasicProfile(formData, address)
       
       if (result.success) {
@@ -141,7 +145,7 @@ const CreateProfilePage: React.FC = () => {
         })
       }
     } catch (error: any) {
-      console.error('Profile creation error:', error)
+      console.error('Unexpected error:', error)
       setCreationState({
         status: 'error',
         error: error instanceof Error ? error.message : 'Unknown error occurred'
