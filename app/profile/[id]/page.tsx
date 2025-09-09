@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { profileNFTService } from '../../../lib/services/profile/ProfileNFT'
 
-interface ProfileData {
+interface ProfileDisplayData {
   tier: number
   did: string
   displayName: string
@@ -19,13 +19,9 @@ export default function ProfilePage() {
   const params = useParams()
   const profileId = params.id as string
   
-  const [profile, setProfile] = useState<ProfileData | null>(null)
+  const [profile, setProfile] = useState<ProfileDisplayData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    loadProfile()
-  }, [profileId])
 
   const loadProfile = async () => {
     try {
@@ -34,28 +30,23 @@ export default function ProfilePage() {
       
       await profileNFTService.initialize()
       
-      // Try to get profile directly from contract
-      const contract = (profileNFTService as any).contract
-      const profileData = await contract.getProfile(profileId)
+      // Use the public method instead of accessing private contract
+      const profileData = await profileNFTService.getProfile(profileId)
       
-      setProfile({
-        tier: Number(profileData.tier),
-        did: profileData.did,
-        displayName: profileData.displayName,
-        bio: profileData.bio,
-        location: profileData.location,
-        avatarUrl: profileData.avatarUrl,
-        createdAt: Number(profileData.createdAt),
-        isActive: profileData.isActive
-      })
+      setProfile(profileData)
       
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error loading profile:', err)
-      setError(err.message || 'Failed to load profile')
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load profile'
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    loadProfile()
+  }, [profileId])
 
   if (loading) {
     return (

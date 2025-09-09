@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useDirectWallet } from '../../../lib/hooks/useDirectWallet'
 import confetti from 'canvas-confetti'
+import Image from 'next/image'
 
 type AuthMethod = 'wallet' | 'flow-wallet' | 'farcaster' | 'crossmint' | null
 
@@ -105,12 +106,6 @@ const CreateProfilePage: React.FC = () => {
     return Object.keys(errors).length === 0
   }
 
-
-
-
-
-
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -144,15 +139,15 @@ const CreateProfilePage: React.FC = () => {
           error: result.error || 'Failed to create profile'
         })
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Unexpected error:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
       setCreationState({
         status: 'error',
-        error: error instanceof Error ? error.message : 'Unknown error occurred'
+        error: errorMessage
       })
     }
   }
-
 
   // Show loading state during hydration
   if (!isClient) {
@@ -212,7 +207,7 @@ const CreateProfilePage: React.FC = () => {
             color: 'var(--color-black)',
             opacity: 0.8
           }}>
-            Choose how you'd like to verify your identity
+            Choose how you&apos;d like to verify your identity
           </p>
 
           <div style={{
@@ -1162,9 +1157,11 @@ const CreateProfilePage: React.FC = () => {
                     overflow: 'hidden',
                     backgroundColor: 'var(--color-digital-silver)'
                   }}>
-                    <img 
+                    <Image 
                       src={formData.avatarUrl} 
                       alt="Avatar preview"
+                      width={40}
+                      height={40}
                       style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                       onError={(e) => {
                         e.currentTarget.style.display = 'none'

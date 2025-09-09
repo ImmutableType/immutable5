@@ -1,11 +1,22 @@
-import { ethers } from 'ethers'
+import { ethers, Contract, BrowserProvider, TransactionReceipt, ContractTransactionResponse, FunctionFragment } from 'ethers'
 import type { ProfileData, ProfileCreationResult } from '../../types/profile'
 import { CONTRACTS, PROFILE_NFT_ABI } from '../../web3/contracts'
 
+interface ProfileDisplayData {
+  tier: number
+  did: string
+  displayName: string
+  bio: string
+  location: string
+  avatarUrl: string
+  createdAt: number
+  isActive: boolean
+}
+
 export class ProfileNFTService {
   private contractAddress = CONTRACTS.PROFILE_NFT
-  private provider: ethers.BrowserProvider | null = null
-  private contract: ethers.Contract | null = null
+  private provider: BrowserProvider | null = null
+  private contract: Contract | null = null
 
   async initialize(): Promise<void> {
     if (!window.ethereum) {
@@ -18,6 +29,29 @@ export class ProfileNFTService {
       PROFILE_NFT_ABI,
       this.provider
     )
+  }
+
+  async getProfile(profileId: string): Promise<ProfileDisplayData> {
+    if (!this.contract) {
+      await this.initialize()
+    }
+
+    try {
+      const profileData = await this.contract!.getProfile(profileId)
+      return {
+        tier: Number(profileData.tier),
+        did: profileData.did,
+        displayName: profileData.displayName,
+        bio: profileData.bio,
+        location: profileData.location,
+        avatarUrl: profileData.avatarUrl,
+        createdAt: Number(profileData.createdAt),
+        isActive: profileData.isActive
+      }
+    } catch (error: unknown) {
+      const err = error as Error
+      throw new Error(`Failed to get profile: ${err.message}`)
+    }
   }
 
   async createBasicProfile(profileData: ProfileData, address: string): Promise<ProfileCreationResult> {
@@ -38,23 +72,26 @@ export class ProfileNFTService {
       try {
         const tokenQualifierAddr = await this.contract!.tokenQualifier()
         console.log("TokenQualifier address:", tokenQualifierAddr)
-      } catch (e: any) {
-        console.log("Error getting TokenQualifier:", e.message)
+      } catch (e: unknown) {
+        const error = e as Error
+        console.log("Error getting TokenQualifier:", error.message)
       }
       
       try {
         const profileCount = await this.contract!.balanceOf(userAddress)
         console.log("User profile count:", profileCount.toString())
-      } catch (e: any) {
-        console.log("Error getting profile count:", e.message)
+      } catch (e: unknown) {
+        const error = e as Error
+        console.log("Error getting profile count:", error.message)
       }
 
       console.log("Available contract functions:")
       const contractInterface = this.contract!.interface
       const fragments = contractInterface.fragments
-      fragments.forEach((fragment: any) => {
+      fragments.forEach((fragment) => {
         if (fragment.type === 'function') {
-          console.log("  -", fragment.name)
+          const funcFragment = fragment as FunctionFragment
+          console.log("  -", funcFragment.name)
         }
       })
 
@@ -63,16 +100,16 @@ export class ProfileNFTService {
       // TEST: Try without fee payment first
       console.log("=== ATTEMPTING TRANSACTION WITHOUT FEE ===")
       try {
-        const tx = await (contractWithSigner as any).createBasicProfile(
+        const tx = await (contractWithSigner as Contract).createBasicProfile(
           profileData.displayName || '',
           profileData.bio || '',
           profileData.location || '',
           profileData.avatarUrl || ''
-        )
+        ) as ContractTransactionResponse
         console.log("Transaction sent (no fee):", tx.hash)
         
-        const receipt = await tx.wait()
-        console.log("Transaction confirmed:", receipt.transactionHash)
+        const receipt = await tx.wait() as TransactionReceipt
+        console.log("Transaction confirmed:", receipt.hash)
         
         const profileId = receipt.logs?.[0]?.topics?.[3] || '1'
         
@@ -80,26 +117,27 @@ export class ProfileNFTService {
           success: true,
           profileId,
           did: `did:pkh:eip155:545:${userAddress.toLowerCase()}`,
-          transactionHash: receipt.transactionHash
+          transactionHash: receipt.hash
         }
         
-      } catch (error: any) {
-        console.log("Transaction failed without fee:", error.message)
+      } catch (error: unknown) {
+        const err = error as Error
+        console.log("Transaction failed without fee:", err.message)
         
         // TEST: Try with fee payment
         console.log("=== ATTEMPTING TRANSACTION WITH 3 FLOW FEE ===")
         try {
-          const txWithFee = await (contractWithSigner as any).createBasicProfile(
+          const txWithFee = await (contractWithSigner as Contract).createBasicProfile(
             profileData.displayName || '',
             profileData.bio || '',
             profileData.location || '',
             profileData.avatarUrl || '',
             { value: ethers.parseEther('3') }
-          )
+          ) as ContractTransactionResponse
           console.log("Transaction sent (with fee):", txWithFee.hash)
           
-          const receiptWithFee = await txWithFee.wait()
-          console.log("Transaction confirmed:", receiptWithFee.transactionHash)
+          const receiptWithFee = await txWithFee.wait() as TransactionReceipt
+          console.log("Transaction confirmed:", receiptWithFee.hash)
           
           const profileId = receiptWithFee.logs?.[0]?.topics?.[3] || '1'
           
@@ -107,27 +145,28 @@ export class ProfileNFTService {
             success: true,
             profileId,
             did: `did:pkh:eip155:545:${userAddress.toLowerCase()}`,
-            transactionHash: receiptWithFee.transactionHash
+            transactionHash: receiptWithFee.hash
           }
           
-        } catch (feeError: any) {
-          console.error("Transaction failed with fee:", feeError.message)
+        } catch (feeError: unknown) {
+          const feeErr = feeError as Error
+          console.error("Transaction failed with fee:", feeErr.message)
           return {
             success: false,
-            error: feeError.message
+            error: feeErr.message
           }
         }
       }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as Error
       console.error("=== DETAILED TRANSACTION ERROR ===")
       console.error("Full error:", error)
-      console.error("Error message:", error.message)
-      console.error("Error code:", error.code)
+      console.error("Error message:", err.message)
       
       return {
         success: false,
-        error: error.message || 'Unknown error occurred'
+        error: err.message || 'Unknown error occurred'
       }
     }
   }
@@ -140,7 +179,7 @@ export class ProfileNFTService {
     try {
       const count = await this.contract!.balanceOf(userAddress)
       return Number(count)
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error getting profile count:', error)
       return 0
     }
