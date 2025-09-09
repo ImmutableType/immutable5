@@ -47,10 +47,10 @@ const CreateProfilePage: React.FC = () => {
   // Detect wallets after hydration
   useEffect(() => {
     setIsClient(true)
-    setHasMetaMask(typeof window !== 'undefined' && window.ethereum?.isMetaMask)
-    setHasWallet(typeof window !== 'undefined' && window.ethereum)
-    setHasFlowWallet(typeof window !== 'undefined' && window.ethereum?.isFlowWallet)
-    setHasCoinbaseWallet(typeof window !== 'undefined' && window.ethereum?.isCoinbaseWallet)
+    setHasMetaMask(typeof window !== 'undefined' && !!window.ethereum?.isMetaMask)
+    setHasWallet(typeof window !== 'undefined' && !!window.ethereum)
+    setHasFlowWallet(typeof window !== 'undefined' && !!window.ethereum?.isFlowWallet)
+    setHasCoinbaseWallet(typeof window !== 'undefined' && !!window.ethereum?.isCoinbaseWallet)
   }, [])
 
   // Trigger confetti on success

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import { profileNFTService } from '../../../lib/services/profile/ProfileNFT'
 
@@ -23,7 +23,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const loadProfile = async () => {
+  const loadProfile = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -42,11 +42,11 @@ export default function ProfilePage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [profileId])
 
   useEffect(() => {
     loadProfile()
-  }, [profileId])
+  }, [loadProfile])
 
   if (loading) {
     return (
