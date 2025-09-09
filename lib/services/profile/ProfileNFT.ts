@@ -189,6 +189,9 @@ export class ProfileNFTService {
     const count = await this.getProfileCount(userAddress)
     return count === 0
   }
+  generateDID(address: string): string {
+    return `did:pkh:eip155:545:${address.toLowerCase()}`
+  }
 }
 
 export const profileNFTService = new ProfileNFTService()
