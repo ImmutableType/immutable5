@@ -11,13 +11,85 @@
         }
     </style>
 </head>
-<body class="bg-white h-screen overflow-hidden">
-    <div class="flex h-full">
-        <!-- Left Panel: Navigation -->
-        <div class="w-80 bg-gray-900 text-white flex flex-col">
+<body class="bg-white">
+    <!-- Mobile Header with Hamburger -->
+    <div class="lg:hidden bg-gray-900 text-white p-4 flex justify-between items-center fixed top-0 left-0 right-0 z-40">
+        <div>
+            <h1 class="text-lg font-bold">ImmutableType <span class="text-xs bg-red-500 px-2 py-1 rounded">BETA</span></h1>
+        </div>
+        <button id="mobile-menu-btn" class="text-white">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+            </svg>
+        </button>
+    </div>
+
+    <!-- Mobile Menu Overlay -->
+    <div id="mobile-menu" class="lg:hidden fixed inset-0 bg-gray-900 bg-opacity-95 z-50 hidden">
+        <div class="flex flex-col h-full">
+            <div class="p-4 border-b border-gray-700 flex justify-between items-center">
+                <h1 class="text-xl font-bold text-white">ImmutableType <span class="text-xs bg-red-500 px-2 py-1 rounded">BETA</span></h1>
+                <button id="mobile-menu-close" class="text-white">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <nav class="flex-1 p-4 overflow-y-auto">
+                <div class="space-y-3">
+                    <a href="#welcome" class="mobile-nav-link block p-4 text-white hover:bg-gray-800 rounded-lg">
+                        <div class="font-semibold">Welcome</div>
+                        <div class="text-sm text-gray-400">Getting started</div>
+                    </a>
+                    <a href="#about" class="mobile-nav-link block p-4 text-white hover:bg-gray-800 rounded-lg">
+                        <div class="font-semibold">About Us</div>
+                        <div class="text-sm text-gray-400">Our mission</div>
+                    </a>
+                    <a href="#create-profile" class="mobile-nav-link block p-4 text-white hover:bg-gray-800 rounded-lg">
+                        <div class="font-semibold">Create Profile</div>
+                        <div class="text-sm text-gray-400">Journalist identity</div>
+                    </a>
+                    <a href="#chrome-extension" class="mobile-nav-link block p-4 text-white hover:bg-gray-800 rounded-lg">
+                        <div class="font-semibold">Chrome Extension</div>
+                        <div class="text-sm text-gray-400">Research tools</div>
+                    </a>
+                    <a href="#nft-collection" class="mobile-nav-link block p-4 text-white hover:bg-gray-800 rounded-lg">
+                        <div class="font-semibold">MoonBuffaFLOW</div>
+                        <div class="text-sm text-gray-400">NFT Collection</div>
+                    </a>
+                    <a href="#buy-buffaflow" class="mobile-nav-link block p-4 text-white hover:bg-gray-800 rounded-lg">
+                        <div class="font-semibold">Buy $BUFFAFLOW</div>
+                        <div class="text-sm text-gray-400">Governance tokens</div>
+                    </a>
+                    <a href="https://immutabletype.com/collections/all" target="_blank" class="block p-4 text-white hover:bg-gray-800 rounded-lg">
+                        <div class="font-semibold">Shop Gear</div>
+                        <div class="text-sm text-gray-400">Merchandise & apparel</div>
+                    </a>
+                    <a href="#social" class="mobile-nav-link block p-4 text-white hover:bg-gray-800 rounded-lg">
+                        <div class="font-semibold">Follow Us</div>
+                        <div class="text-sm text-gray-400">Join community</div>
+                    </a>
+                    <a href="#email-signup" class="mobile-nav-link block p-4 text-white hover:bg-gray-800 rounded-lg">
+                        <div class="font-semibold">Newsletter</div>
+                        <div class="text-sm text-gray-400">Stay updated</div>
+                    </a>
+                    <a href="#faq" class="mobile-nav-link block p-4 text-white hover:bg-gray-800 rounded-lg">
+                        <div class="font-semibold">FAQ</div>
+                        <div class="text-sm text-gray-400">Get answers</div>
+                    </a>
+                </div>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Desktop/Mobile Layout Container -->
+    <div class="flex h-screen lg:h-screen">
+        <!-- Desktop Sidebar (hidden on mobile) -->
+        <div class="hidden lg:flex w-80 bg-gray-900 text-white flex-col overflow-y-auto">   
             <!-- Header -->
-            <div class="p-6 border-b border-gray-700">
-                <h1 class="text-xl font-bold">ImmutableType</h1>
+            <div class="p-10 border-b border-gray-700">
+                <h1 class="text-xl font-bold">ImmutableType <span class="text-xs bg-red-500 px-2 py-1 rounded">BETA</span></h1>
                 <p class="text-sm text-gray-400 mt-1">Decentralized Journalism</p>
             </div>
             
@@ -73,32 +145,33 @@
                         <div class="font-semibold">FAQ</div>
                         <div class="text-xs text-gray-400 mt-1">Get answers</div>
                     </a>
+
+                    
                 </div>
             </nav>
-            
-            <!-- Footer -->
-            <div class="p-4 border-t border-gray-700 text-xs text-gray-400">
-                <div>Not connected</div>
-                <div class="mt-1">Connect wallet to access platform</div>
-            </div>
+
         </div>
         
-        <!-- Right Panel: Scrollable Content -->
-        <div class="flex-1 bg-gray-50 overflow-y-auto">
+        <!-- Main Content (responsive) -->
+        <div class="flex-1 bg-gray-50 overflow-y-auto pt-16 lg:pt-0">
             <!-- Welcome Section -->
-            <section id="welcome" class="p-12 min-h-screen flex items-center">
-                <div class="max-w-2xl">
-                    <h2 class="text-5xl font-bold text-gray-900 mb-6">Welcome to ImmutableType</h2>
-                    <p class="text-2xl text-gray-600 mb-8 leading-relaxed">
+            <section id="welcome" class="p-6 lg:p-12 min-h-screen flex items-center">
+                <div class="max-w-2xl mx-auto lg:mx-0">
+                    <div class="bg-red-100 border border-red-300 rounded-lg p-4 mb-6">
+                        <p class="text-red-800 text-sm font-semibold">Beta Notice: This platform is in beta testing. Use at your own risk. Features may change without notice.</p>
+                    </div>
+                    
+                    <h2 class="text-3xl lg:text-5xl font-bold text-gray-900 mb-6">Welcome to ImmutableType</h2>
+                    <p class="text-lg lg:text-2xl text-gray-600 mb-8 leading-relaxed">
                         The future of journalism is decentralized, transparent, and immutable.
                     </p>
-                    <p class="text-lg text-gray-600 mb-8">
+                    <p class="text-base lg:text-lg text-gray-600 mb-8">
                         ImmutableType is building the infrastructure for independent journalism - 
                         where truth can't be censored, sources are protected, and readers can trust 
                         what they're reading through blockchain verification.
                     </p>
                     
-                    <div class="grid grid-cols-2 gap-6 mb-8">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                         <div class="bg-white border border-gray-200 rounded-lg p-6">
                             <h3 class="font-bold text-gray-900 mb-2">For Journalists</h3>
                             <p class="text-sm text-gray-600">Create verified profiles, publish immutable articles, build reader trust</p>
@@ -109,17 +182,17 @@
                         </div>
                     </div>
                     
-                    <a href="#create-profile" class="bg-purple-600 text-white px-8 py-4 rounded-lg font-semibold hover:bg-purple-700 transition-colors inline-block">
+                    <a href="#create-profile" class="bg-purple-600 text-white px-6 lg:px-8 py-3 lg:py-4 rounded-lg font-semibold hover:bg-purple-700 transition-colors inline-block">
                         Get Started
                     </a>
                 </div>
             </section>
             
             <!-- About Us Section -->
-            <section id="about" class="p-12 min-h-screen border-t border-gray-200">
-                <div class="max-w-2xl">
-                    <h2 class="text-3xl font-bold text-gray-900 mb-6">About ImmutableType</h2>
-                    <p class="text-lg text-gray-600 mb-6">
+            <section id="about" class="p-6 lg:p-12 min-h-screen border-t border-gray-200">
+                <div class="max-w-2xl mx-auto lg:mx-0">
+                    <h2 class="text-2xl lg:text-3xl font-bold text-gray-900 mb-6">About ImmutableType</h2>
+                    <p class="text-base lg:text-lg text-gray-600 mb-6">
                         ImmutableType addresses the fundamental challenges facing modern journalism:
                         advertiser influence, platform censorship, and reader trust erosion.
                     </p>
@@ -150,14 +223,14 @@
             </section>
             
             <!-- Create Profile Section -->
-            <section id="create-profile" class="p-12 min-h-screen border-t border-gray-200">
-                <div class="max-w-2xl">
-                    <h2 class="text-3xl font-bold text-gray-900 mb-6">Create Your Journalist Profile</h2>
-                    <p class="text-lg text-gray-600 mb-8">
+            <section id="create-profile" class="p-6 lg:p-12 min-h-screen border-t border-gray-200">
+                <div class="max-w-2xl mx-auto lg:mx-0">
+                    <h2 class="text-2xl lg:text-3xl font-bold text-gray-900 mb-6">Create Your Journalist Profile</h2>
+                    <p class="text-base lg:text-lg text-gray-600 mb-8">
                         Build your verified identity on ImmutableType through our progressive tier system.
                     </p>
                     
-                    <div class="grid grid-cols-2 gap-4 mb-8">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
                         <div class="border border-gray-200 rounded-lg p-4">
                             <div class="text-lg font-semibold text-gray-900">Tier 0: Basic</div>
                             <div class="text-sm text-gray-600 mt-1">Wallet connection</div>
@@ -183,7 +256,7 @@
                     <div class="bg-white border border-gray-200 rounded-lg p-6">
                         <div class="text-lg font-semibold text-gray-900 mb-2">Ready to create your profile?</div>
                         <div class="text-gray-600 mb-4">Start with Tier 0 for 3 FLOW tokens (free with BUFFAFLOW holdings)</div>
-                        <a href="/profile/create" class="bg-purple-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors inline-block">
+                        <a href="/profile/create" class="bg-purple-600 text-white px-6 lg:px-8 py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors inline-block">
                             Launch Application
                         </a>
                     </div>
@@ -191,23 +264,23 @@
             </section>
             
             <!-- Chrome Extension Section -->
-            <section id="chrome-extension" class="p-12 min-h-screen border-t border-gray-200">
-                <div class="max-w-2xl">
-                    <h2 class="text-3xl font-bold text-gray-900 mb-6">Chrome Extension</h2>
-                    <p class="text-lg text-gray-600 mb-8">
+            <section id="chrome-extension" class="p-6 lg:p-12 min-h-screen border-t border-gray-200">
+                <div class="max-w-2xl mx-auto lg:mx-0">
+                    <h2 class="text-2xl lg:text-3xl font-bold text-gray-900 mb-6">Chrome Extension</h2>
+                    <p class="text-base lg:text-lg text-gray-600 mb-8">
                         Enhance your research workflow with our Chrome extension. 
                         Automatically capture and organize bookmarks, sources, and research 
                         directly to your ImmutableType profile.
                     </p>
                     
-                    <div class="bg-gray-100 h-64 rounded-lg mb-8 flex items-center justify-center">
+                    <div class="bg-gray-100 h-48 lg:h-64 rounded-lg mb-8 flex items-center justify-center">
                         <span class="text-gray-500">Extension Interface Preview</span>
                     </div>
                     
                     <div class="bg-white border border-gray-200 rounded-lg p-6">
                         <div class="text-lg font-semibold text-gray-900 mb-2">Download Extension</div>
                         <div class="text-gray-600 mb-4">Available now in the Chrome Web Store</div>
-                        <a href="https://chromewebstore.google.com/detail/eplgoiihhgmihacfngflijkokfbhfceo" target="_blank" class="bg-green-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors inline-block">
+                        <a href="https://chromewebstore.google.com/detail/eplgoiihhgmihacfngflijkokfbhfceo" target="_blank" class="bg-green-600 text-white px-6 lg:px-8 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors inline-block">
                             Add to Chrome
                         </a>
                     </div>
@@ -215,15 +288,15 @@
             </section>
             
             <!-- NFT Collection Section -->
-            <section id="nft-collection" class="p-12 min-h-screen border-t border-gray-200">
-                <div class="max-w-2xl">
-                    <h2 class="text-3xl font-bold text-gray-900 mb-6">MoonBuffaFLOW Collection</h2>
-                    <p class="text-lg text-gray-600 mb-8">
+            <section id="nft-collection" class="p-6 lg:p-12 min-h-screen border-t border-gray-200">
+                <div class="max-w-2xl mx-auto lg:mx-0">
+                    <h2 class="text-2xl lg:text-3xl font-bold text-gray-900 mb-6">MoonBuffaFLOW Collection</h2>
+                    <p class="text-base lg:text-lg text-gray-600 mb-8">
                         The MoonBuffaFLOW NFT collection represents our community of early supporters 
                         and contributors to the decentralized journalism movement.
                     </p>
                     
-                    <div class="bg-gray-100 h-64 rounded-lg mb-8 flex items-center justify-center">
+                    <div class="bg-gray-100 h-48 lg:h-64 rounded-lg mb-8 flex items-center justify-center">
                         <span class="text-gray-500">NFT Collection Gallery</span>
                     </div>
                     
@@ -235,7 +308,7 @@
                             <li>• Early feature previews</li>
                             <li>• Governance participation rights</li>
                         </ul>
-                        <a href="#" class="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors inline-block">
+                        <a href="#" class="bg-blue-600 text-white px-6 lg:px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors inline-block">
                             View Collection
                         </a>
                     </div>
@@ -243,15 +316,15 @@
             </section>
             
             <!-- Buy BUFFAFLOW Section -->
-            <section id="buy-buffaflow" class="p-12 min-h-screen border-t border-gray-200">
-                <div class="max-w-2xl">
-                    <h2 class="text-3xl font-bold text-gray-900 mb-6">$BUFFAFLOW Governance Token</h2>
-                    <p class="text-lg text-gray-600 mb-8">
+            <section id="buy-buffaflow" class="p-6 lg:p-12 min-h-screen border-t border-gray-200">
+                <div class="max-w-2xl mx-auto lg:mx-0">
+                    <h2 class="text-2xl lg:text-3xl font-bold text-gray-900 mb-6">$BUFFAFLOW Governance Token</h2>
+                    <p class="text-base lg:text-lg text-gray-600 mb-8">
                         BUFFAFLOW tokens provide governance rights in the ImmutableType ecosystem 
                         and unlock premium platform features.
                     </p>
                     
-                    <div class="grid grid-cols-2 gap-6 mb-8">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                         <div class="bg-white border border-gray-200 rounded-lg p-6">
                             <h3 class="font-bold text-gray-900 mb-2">Token Benefits</h3>
                             <ul class="text-sm text-gray-600 space-y-1">
@@ -273,7 +346,7 @@
                     <div class="bg-white border border-gray-200 rounded-lg p-6">
                         <div class="text-lg font-semibold text-gray-900 mb-2">Purchase BUFFAFLOW</div>
                         <div class="text-gray-600 mb-4">Available on decentralized exchanges</div>
-                        <a href="#" class="bg-yellow-500 text-white px-8 py-3 rounded-lg font-semibold hover:bg-yellow-600 transition-colors inline-block">
+                        <a href="#" class="bg-yellow-500 text-white px-6 lg:px-8 py-3 rounded-lg font-semibold hover:bg-yellow-600 transition-colors inline-block">
                             Buy Now
                         </a>
                     </div>
@@ -281,30 +354,30 @@
             </section>
             
             <!-- Social Section -->
-            <section id="social" class="p-12 min-h-screen border-t border-gray-200">
-                <div class="max-w-2xl">
-                    <h2 class="text-3xl font-bold text-gray-900 mb-6">Join Our Community</h2>
-                    <p class="text-lg text-gray-600 mb-8">
+            <section id="social" class="p-6 lg:p-12 min-h-screen border-t border-gray-200">
+                <div class="max-w-2xl mx-auto lg:mx-0">
+                    <h2 class="text-2xl lg:text-3xl font-bold text-gray-900 mb-6">Join Our Community</h2>
+                    <p class="text-base lg:text-lg text-gray-600 mb-8">
                         Follow our progress and join the conversation about the future of decentralized journalism.
                     </p>
                     
                     <div class="space-y-4">
-                        <div class="bg-white border border-gray-200 rounded-lg p-6 flex items-center justify-between">
+                        <div class="bg-white border border-gray-200 rounded-lg p-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                             <div>
                                 <h3 class="font-bold text-gray-900">X (Twitter)</h3>
                                 <p class="text-sm text-gray-600">Latest updates and news</p>
                             </div>
-                            <a href="https://x.com/Immutable_type" target="_blank" class="bg-black text-white px-6 py-2 rounded-lg font-semibold hover:bg-gray-800 transition-colors">
+                            <a href="https://x.com/Immutable_type" target="_blank" class="bg-black text-white px-6 py-2 rounded-lg font-semibold hover:bg-gray-800 transition-colors text-center">
                                 Follow
                             </a>
                         </div>
                         
-                        <div class="bg-white border border-gray-200 rounded-lg p-6 flex items-center justify-between">
+                        <div class="bg-white border border-gray-200 rounded-lg p-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                             <div>
                                 <h3 class="font-bold text-gray-900">Blog</h3>
                                 <p class="text-sm text-gray-600">In-depth articles and commentary</p>
                             </div>
-                            <a href="https://immutabletype.com/blogs/news" target="_blank" class="bg-purple-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-purple-700 transition-colors">
+                            <a href="https://immutabletype.com/blogs/news" target="_blank" class="bg-purple-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-purple-700 transition-colors text-center">
                                 Read
                             </a>
                         </div>
@@ -313,23 +386,23 @@
             </section>
             
             <!-- Newsletter Section -->
-            <section id="email-signup" class="p-12 min-h-screen border-t border-gray-200">
-                <div class="max-w-xl">
-                    <h2 class="text-3xl font-bold text-gray-900 mb-6">Newsletter Signup</h2>
-                    <p class="text-lg text-gray-600 mb-8">
+            <section id="email-signup" class="p-6 lg:p-12 min-h-screen border-t border-gray-200">
+                <div class="max-w-xl mx-auto lg:mx-0">
+                    <h2 class="text-2xl lg:text-3xl font-bold text-gray-900 mb-6">Newsletter Signup</h2>
+                    <p class="text-base lg:text-lg text-gray-600 mb-8">
                         Get updates on platform development, new features, and the latest 
                         in decentralized journalism delivered to your inbox.
                     </p>
                     
                     <form class="space-y-4">
-                        <input type="email" placeholder="Enter your email address" class="w-full p-4 border border-gray-300 rounded-lg text-lg">
+                        <input type="email" placeholder="Enter your email address" class="w-full p-4 border border-gray-300 rounded-lg text-base lg:text-lg">
                         <div class="flex items-start space-x-3">
                             <input type="checkbox" id="newsletter" class="mt-1.5">
                             <label for="newsletter" class="text-sm text-gray-600">
                                 I agree to receive updates about ImmutableType and can unsubscribe at any time.
                             </label>
                         </div>
-                        <button type="submit" class="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+                        <button type="submit" class="bg-blue-600 text-white px-6 lg:px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors w-full lg:w-auto">
                             Subscribe
                         </button>
                     </form>
@@ -337,9 +410,9 @@
             </section>
             
             <!-- FAQ Section -->
-            <section id="faq" class="p-12 min-h-screen border-t border-gray-200">
-                <div class="max-w-2xl">
-                    <h2 class="text-3xl font-bold text-gray-900 mb-8">Frequently Asked Questions</h2>
+            <section id="faq" class="p-6 lg:p-12 min-h-screen border-t border-gray-200">
+                <div class="max-w-2xl mx-auto lg:mx-0">
+                    <h2 class="text-2xl lg:text-3xl font-bold text-gray-900 mb-8">Frequently Asked Questions</h2>
                     
                     <div class="space-y-6">
                         <div class="bg-white border border-gray-200 rounded-lg p-6">
@@ -366,14 +439,93 @@
                             <h3 class="font-semibold text-gray-900 mb-2">What is BUFFAFLOW?</h3>
                             <p class="text-gray-600">BUFFAFLOW is our governance token that provides voting rights, free profile creation, and access to premium platform features.</p>
                         </div>
+                        
+                        <div class="bg-white border border-gray-200 rounded-lg p-6">
+                            <h3 class="font-semibold text-gray-900 mb-2">Is this platform safe to use?</h3>
+                            <p class="text-gray-600">ImmutableType is currently in beta testing. While we've implemented security best practices, please use the platform at your own risk and only with funds you can afford to lose.</p>
+                        </div>
                     </div>
                 </div>
             </section>
+            
+            <!-- Footer -->
+            <footer class="bg-gray-900 text-white py-12">
+                <div class="max-w-6xl mx-auto px-6 lg:px-12">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                        <div>
+                            <h4 class="font-bold mb-4">ImmutableType <span class="text-xs bg-red-500 px-2 py-1 rounded ml-2">BETA</span></h4>
+                            <p class="text-sm text-gray-400">Building the future of decentralized journalism</p>
+                        </div>
+                        <div>
+                            <h4 class="font-bold mb-4">Platform</h4>
+                            <div class="space-y-2 text-sm">
+                                <a href="#create-profile" class="block text-gray-400 hover:text-white">Create Profile</a>
+                                <a href="#chrome-extension" class="block text-gray-400 hover:text-white">Chrome Extension</a>
+                                <a href="#buy-buffaflow" class="block text-gray-400 hover:text-white">Buy BUFFAFLOW</a>
+                                <a href="#nft-collection" class="block text-gray-400 hover:text-white">NFT Collection</a>
+                            </div>
+                        </div>
+                        <div>
+                            <h4 class="font-bold mb-4">Community</h4>
+                            <div class="space-y-2 text-sm">
+                                <a href="https://immutabletype.com/blogs/news" target="_blank" class="block text-gray-400 hover:text-white">Blog</a>
+                                <a href="https://x.com/Immutable_type" target="_blank" class="block text-gray-400 hover:text-white">Twitter</a>
+                                <a href="https://immutabletype.com/collections/all" target="_blank" class="block text-gray-400 hover:text-white">Shop</a>
+                                <a href="#email-signup" class="block text-gray-400 hover:text-white">Newsletter</a>
+                            </div>
+                        </div>
+                        <div>
+                            <h4 class="font-bold mb-4">Legal</h4>
+                            <div class="space-y-2 text-sm">
+                                <a href="#" class="block text-gray-400 hover:text-white">Terms of Use</a>
+                                <a href="#" class="block text-gray-400 hover:text-white">Privacy Policy</a>
+                                <a href="#faq" class="block text-gray-400 hover:text-white">FAQ</a>
+                                <a href="#" class="block text-gray-400 hover:text-white">Contact</a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="border-t border-gray-700 mt-8 pt-8">
+                        <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+                            <div class="text-sm text-gray-400">
+                                © <span id="current-year"></span> Stadium Gates Collective. All rights reserved.
+                            </div>
+                            <div class="text-sm text-gray-400">
+                                Beta Platform - Use at your own risk
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </footer>
         </div>
     </div>
 
     <script>
-        // Update active nav state based on scroll position
+        // Set current year dynamically
+        document.getElementById('current-year').textContent = new Date().getFullYear();
+        
+        // Mobile menu functionality
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const mobileMenuClose = document.getElementById('mobile-menu-close');
+        const mobileNavLinks = document.querySelectorAll('.mobile-nav-link');
+
+        mobileMenuBtn.addEventListener('click', () => {
+            mobileMenu.classList.remove('hidden');
+        });
+
+        mobileMenuClose.addEventListener('click', () => {
+            mobileMenu.classList.add('hidden');
+        });
+
+        // Close mobile menu when nav link is clicked
+        mobileNavLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                mobileMenu.classList.add('hidden');
+            });
+        });
+
+        // Desktop navigation active state
         const navLinks = document.querySelectorAll('.nav-link');
         const sections = document.querySelectorAll('section[id]');
         
@@ -397,8 +549,10 @@
             });
         }
         
-        // Update nav on scroll
-        document.querySelector('.flex-1.overflow-y-auto').addEventListener('scroll', updateActiveNav);
+        // Update nav on scroll (desktop only)
+        if (window.innerWidth >= 1024) {
+            document.querySelector('.flex-1.overflow-y-auto').addEventListener('scroll', updateActiveNav);
+        }
         
         // Update nav on nav link click
         navLinks.forEach(link => {
