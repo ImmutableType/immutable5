@@ -96,3 +96,38 @@ body {
   margin-top: 0.25rem;
   font-weight: normal;
 }
+
+/* Landing page specific styles */
+html { 
+    scroll-behavior: smooth; 
+}
+
+/* Fixed logo styling for desktop */
+@media (min-width: 1024px) {
+    .fixed-logo {
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        background-color: #111827;
+        border-bottom: 1px solid #374151;
+    }
+    
+    .scrollable-nav {
+        flex: 1;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+    
+    main {
+        overscroll-behavior: contain;
+    }
+}
+
+/* Telegram button styling */
+.telegram-btn {
+    background: linear-gradient(135deg, #0088cc 0%, #005c99 100%);
+}
+
+.telegram-btn:hover {
+    background: linear-gradient(135deg, #005c99 0%, #003d66 100%);
+}
