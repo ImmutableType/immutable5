@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ImmutableType - Decentralized Journalism Platform</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: system-ui, sans-serif; line-height: 1.6; }
+        
+        /* Layout */
+        .layout { display: flex; min-height: 100vh; }
+        .sidebar { width: 320px; background: #111827; color: white; position: fixed; height: 100vh; overflow-y: auto; }
+        .main-content { margin-left: 320px; flex: 1; background: #f9fafb; }
+        
+        /* Sidebar */
+        .sidebar-header { padding: 40px; border-bottom: 1px solid #374151; }
+        .logo { font-size: 20px; font-weight: bold; }
+        .beta-badge { background: #ef4444; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-left: 8px; }
+        .tagline { color: #9ca3af; margin-top: 4px; font-size: 14px; }
+        
+        .nav { padding: 16px; }
+        .nav-item { display: block; padding: 12px; margin-bottom: 8px; border-radius: 8px; color: white; text-decoration: none; transition: background 0.2s; }
+        .nav-item:hover { background: #374151; }
+        .nav-item.active { background: #374151; border-left: 4px solid #8b5cf6; }
+        .nav-title { font-weight: 600; }
+        .nav-subtitle { font-size: 12px; color: #9ca3af; margin-top: 2px; }
+        
+        /* Main content */
+        .section { padding: 48px; min-height: 100vh; display: flex; align-items: center; }
+        .section:not(:first-child) { border-top: 1px solid #e5e7eb; }
+        .content { max-width: 640px; }
+        
+        /* Typography */
+        h1 { font-size: 48px; font-weight: bold; color: #111827; margin-bottom: 24px; }
+        h2 { font-size: 32px; font-weight: bold; color: #111827; margin-bottom: 24px; }
+        h3 { font-size: 24px; font-weight: bold; color: #111827; margin-bottom: 16px; }
+        .lead { font-size: 24px; color: #6b7280; margin-bottom: 32px; line-height: 1.4; }
+        .text { font-size: 18px; color: #6b7280; margin-bottom: 32px; }
+        
+        /* Cards */
+        .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px; }
+        .card { background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 24px; }
+        .card h4 { font-weight: bold; color: #111827; margin-bottom: 16px; }
+        .card p { color: #6b7280; margin-bottom: 16px; font-size: 14px; }
+        
+        /* Buttons */
+        .btn { display: inline-block; padding: 12px 24px; border-radius: 8px; font-weight: 600; text-decoration: none; transition: all 0.2s; cursor: pointer; border: none; font-size: 16px; }
+        .btn-primary { background: #8b5cf6; color: white; }
+        .btn-primary:hover { background: #7c3aed; }
+        .btn-telegram { background: linear-gradient(135deg, #0088cc 0%, #005c99 100%); color: white; display: inline-flex; align-items: center; }
+        .btn-telegram:hover { background: linear-gradient(135deg, #005c99 0%, #003d66 100%); }
+        .btn-green { background: #059669; color: white; }
+        .btn-green:hover { background: #047857; }
+        .btn-blue { background: #2563eb; color: white; }
+        .btn-blue:hover { background: #1d4ed8; }
+        .btn-yellow { background: #eab308; color: white; }
+        .btn-yellow:hover { background: #ca8a04; }
+        .btn-black { background: #000; color: white; }
+        .btn-black:hover { background: #333; }
+        .btn-orange { background: #ea580c; color: white; }
+        .btn-orange:hover { background: #c2410c; }
+        
+        /* Notice */
+        .notice { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; margin-bottom: 24px; }
+        .notice-text { color: #991b1b; font-size: 14px; font-weight: 600; }
+        
+        /* Tiers */
+        .tiers { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 32px; }
+        .tier { border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; }
+        .tier-name { font-size: 18px; font-weight: 600; color: #111827; }
+        .tier-desc { font-size: 14px; color: #6b7280; margin-top: 4px; }
+        .tier-fee { font-size: 12px; color: #8b5cf6; margin-top: 4px; }
+        
+        /* Footer */
+        .footer { background: #111827; color: white; padding: 48px; }
+        .footer-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; max-width: 1200px; margin: 0 auto; }
+        .footer-section h4 { font-weight: bold; margin-bottom: 16px; }
+        .footer-link { display: block; color: #9ca3af; text-decoration: none; margin-bottom: 8px; font-size: 14px; }
+        .footer-link:hover { color: white; }
+        .footer-bottom { border-top: 1px solid #374151; margin-top: 32px; padding-top: 32px; display: flex; justify-content: space-between; align-items: center; }
+        .footer-bottom div { font-size: 14px; color: #9ca3af; }
+        
+        /* Mobile */
+        @media (max-width: 1024px) {
+            .layout { flex-direction: column; }
+            .sidebar { width: 100%; position: static; height: auto; }
+            .main-content { margin-left: 0; }
+            .cards, .tiers { grid-template-columns: 1fr; }
+            .footer-grid { grid-template-columns: repeat(2, 1fr); }
+            h1 { font-size: 36px; }
+            .section { padding: 24px; }
+        }
+        
+        /* Telegram icon */
+        .telegram-icon { width: 20px; height: 20px; margin-right: 8px; }
+    </style>
+</head>
+<body>
+    <div class="layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">ImmutableType<span class="beta-badge">BETA</span></div>
+                <div class="tagline">Decentralized Journalism</div>
+            </div>
+            
+            <nav class="nav">
+                <a href="#welcome" class="nav-item active">
+                    <div class="nav-title">Welcome</div>
+                    <div class="nav-subtitle">Getting started</div>
+                </a>
+                <a href="#about" class="nav-item">
+                    <div class="nav-title">About Us</div>
+                    <div class="nav-subtitle">Our mission</div>
+                </a>
+                <a href="#create-profile" class="nav-item">
+                    <div class="nav-title">Create Profile</div>
+                    <div class="nav-subtitle">Journalist identity</div>
+                </a>
+                <a href="#chrome-extension" class="nav-item">
+                    <div class="nav-title">Chrome Extension</div>
+                    <div class="nav-subtitle">Research tools</div>
+                </a>
+                <a href="#nft-collection" class="nav-item">
+                    <div class="nav-title">MoonBuffaFLOW</div>
+                    <div class="nav-subtitle">NFT Collection</div>
+                </a>
+                <a href="#buy-buffaflow" class="nav-item">
+                    <div class="nav-title">Buy $BUFFAFLOW</div>
+                    <div class="nav-subtitle">Governance tokens</div>
+                </a>
+                <a href="https://immutabletype.com/collections/all" target="_blank" class="nav-item">
+                    <div class="nav-title">Shop Gear</div>
+                    <div class="nav-subtitle">Merchandise & apparel</div>
+                </a>
+                <a href="#social" class="nav-item">
+                    <div class="nav-title">Follow Us</div>
+                    <div class="nav-subtitle">Join community</div>
+                </a>
+                <a href="#faq" class="nav-item">
+                    <div class="nav-title">FAQ</div>
+                    <div class="nav-subtitle">Get answers</div>
+                </a>
+            </nav>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Welcome Section -->
+            <section id="welcome" class="section">
+                <div class="content">
+                    <div class="notice">
+                        <p class="notice-text">Beta Notice: This platform is in beta testing. Use at your own risk. Features may change without notice.</p>
+                    </div>
+                    
+                    <h1>Welcome to ImmutableType</h1>
+                    <p class="lead">The future of journalism is decentralized, transparent, and immutable.</p>
+                    <p class="text">ImmutableType is building the infrastructure for independent journalism - where truth can't be censored, sources are protected, and readers can trust what they're reading through blockchain verification.</p>
+                    
+                    <div class="cards">
+                        <div class="card">
+                            <h4>For Journalists</h4>
+                            <p>Create verified profiles, publish immutable articles, build reader trust</p>
+                            <a href="https://t.me/immutabletypewaitlist" target="_blank" class="btn btn-telegram">
+                                <svg class="telegram-icon" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+                                </svg>
+                                Join Waitlist
+                            </a>
+                        </div>
+                        <div class="card">
+                            <h4>For Readers</h4>
+                            <p>Verify sources, support independent media, access uncensored content</p>
+                            <a href="/profile/create" class="btn btn-primary">Launch Application</a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- About Section -->
+            <section id="about" class="section">
+                <div class="content">
+                    <h2>About ImmutableType</h2>
+                    <p class="text">ImmutableType addresses the fundamental challenges facing modern journalism: advertiser influence, platform censorship, and reader trust erosion.</p>
+                    
+                    <div style="margin-bottom: 32px;">
+                        <h3>Immutable Publishing</h3>
+                        <p style="color: #6b7280; margin-bottom: 24px;">Articles published on-chain cannot be deleted or modified, preserving journalistic integrity</p>
+                        
+                        <h3>Verified Identities</h3>
+                        <p style="color: #6b7280; margin-bottom: 24px;">Progressive verification system ensures readers know who they're reading</p>
+                        
+                        <h3>Decentralized Governance</h3>
+                        <p style="color: #6b7280; margin-bottom: 24px;">Community-driven platform decisions through BUFFAFLOW token governance</p>
+                        
+                        <h3>Independent Funding</h3>
+                        <p style="color: #6b7280; margin-bottom: 24px;">Direct reader support without advertiser dependency</p>
+                    </div>
+                    
+                    <p style="color: #6b7280;">Read more about our mission on our <a href="https://immutabletype.substack.com" target="_blank" style="color: #8b5cf6;">Substack</a> or <a href="https://immutabletype.com/blogs/news" target="_blank" style="color: #8b5cf6;">blog</a>.</p>
+                </div>
+            </section>
+            
+            <!-- Create Profile Section -->
+            <section id="create-profile" class="section">
+                <div class="content">
+                    <h2>Create Your Profile</h2>
+                    <p class="text">Build your verified identity on ImmutableType through our progressive tier system.</p>
+                    
+                    <div class="tiers">
+                        <div class="tier">
+                            <div class="tier-name">Tier 0: Basic</div>
+                            <div class="tier-desc">Wallet connection</div>
+                            <div class="tier-fee">3 FLOW fee</div>
+                        </div>
+                        <div class="tier">
+                            <div class="tier-name">Tier 1: Social</div>
+                            <div class="tier-desc">Farcaster verification</div>
+                            <div class="tier-fee">Social credibility</div>
+                        </div>
+                        <div class="tier">
+                            <div class="tier-name">Tier 2: Identity</div>
+                            <div class="tier-desc">KYC verification</div>
+                            <div class="tier-fee">Professional trust</div>
+                        </div>
+                        <div class="tier">
+                            <div class="tier-name">Tier 3: Anonymous</div>
+                            <div class="tier-desc">Zero-knowledge proofs</div>
+                            <div class="tier-fee">Protected sources</div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h4>Ready to create your profile?</h4>
+                        <p>Start with Tier 0 for 3 FLOW tokens (free with BUFFAFLOW holdings)</p>
+                        <a href="/profile/create" class="btn btn-primary">Launch Application</a>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Chrome Extension Section -->
+            <section id="chrome-extension" class="section">
+                <div class="content">
+                    <h2>Chrome Extension</h2>
+                    <p class="text">Enhance your research workflow with our Chrome extension. Automatically capture and organize bookmarks, sources, and research directly to your ImmutableType profile.</p>
+                    
+                    <div class="card">
+                        <h4>Download Extension</h4>
+                        <p>Available now in the Chrome Web Store</p>
+                        <a href="https://chromewebstore.google.com/detail/eplgoiihhgmihacfngflijkokfbhfceo" target="_blank" class="btn btn-green">Add to Chrome</a>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- NFT Collection Section -->
+            <section id="nft-collection" class="section">
+                <div class="content">
+                    <h2>MoonBuffaFLOW Collection</h2>
+                    <p class="text">The MoonBuffaFLOW NFT collection represents our community of early supporters and contributors to the decentralized journalism movement.</p>
+                    
+                    <div class="card">
+                        <h4>Collector Benefits</h4>
+                        <ul style="color: #6b7280; margin-bottom: 16px;">
+                            <li>• Display NFTs on your ImmutableType profile</li>
+                            <li>• Exclusive community access</li>
+                            <li>• Early feature previews</li>
+                            <li>• Governance participation rights</li>
+                        </ul>
+                        <a href="https://opensea.io/collection/moonbuffaflow" target="_blank" class="btn btn-blue">View Collection</a>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Buy BUFFAFLOW Section -->
+            <section id="buy-buffaflow" class="section">
+                <div class="content">
+                    <h2>$BUFFAFLOW Governance Token</h2>
+                    <p class="text">BUFFAFLOW tokens provide governance rights in the ImmutableType ecosystem and unlock premium platform features.</p>
+                    
+                    <div class="cards">
+                        <div class="card">
+                            <h4>Token Benefits</h4>
+                            <ul style="color: #6b7280;">
+                                <li>• Free profile creation</li>
+                                <li>• Governance voting rights</li>
+                                <li>• Premium features access</li>
+                                <li>• Community recognition</li>
+                            </ul>
+                        </div>
+                        <div class="card">
+                            <h4>How to Use</h4>
+                            <p>Hold BUFFAFLOW tokens in your wallet to automatically bypass profile creation fees and access governance features.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h4>Purchase BUFFAFLOW</h4>
+                        <p>Available on decentralized exchanges</p>
+                        <a href="https://flowfun.xyz/collection/6893c3f9fc44a8bb9e159eb4/token" target="_blank" class="btn btn-yellow">Buy Now</a>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Social Section -->
+            <section id="social" class="section">
+                <div class="content">
+                    <h2>Join Our Community</h2>
+                    <p class="text">Follow our progress and join the conversation about the future of decentralized journalism.</p>
+                    
+                    <div style="display: flex; flex-direction: column; gap: 16px;">
+                        <div class="card" style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <h4>X (Twitter)</h4>
+                                <p>Latest updates and news</p>
+                            </div>
+                            <a href="https://x.com/Immutable_type" target="_blank" class="btn btn-black">Follow</a>
+                        </div>
+                        
+                        <div class="card" style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <h4>Newsletter</h4>
+                                <p>In-depth articles and commentary</p>
+                            </div>
+                            <a href="https://immutabletype.substack.com" target="_blank" class="btn btn-orange">Subscribe</a>
+                        </div>
+                        
+                        <div class="card" style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <h4>Blog</h4>
+                                <p>Platform updates and insights</p>
+                            </div>
+                            <a href="https://immutabletype.com/blogs/news" target="_blank" class="btn btn-primary">Read</a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- FAQ Section -->
+            <section id="faq" class="section">
+                <div class="content">
+                    <h2>Frequently Asked Questions</h2>
+                    
+                    <div style="display: flex; flex-direction: column; gap: 16px;">
+                        <div class="card">
+                            <h4>What is ImmutableType?</h4>
+                            <p>ImmutableType is a decentralized journalism platform that uses blockchain technology to ensure article immutability, journalist verification, and reader trust.</p>
+                        </div>
+                        
+                        <div class="card">
+                            <h4>How much does it cost to create a profile?</h4>
+                            <p>Creating a basic profile costs 3 FLOW tokens. However, BUFFAFLOW token holders can create profiles for free.</p>
+                        </div>
+                        
+                        <div class="card">
+                            <h4>What are the verification tiers?</h4>
+                            <p>We offer 4 tiers: Basic (wallet), Social (Farcaster), Identity (KYC), and Anonymous (zK proofs). Each provides different levels of credibility and features.</p>
+                        </div>
+                        
+                        <div class="card">
+                            <h4>How does decentralized journalism work?</h4>
+                            <p>Articles are published on-chain, making them immutable and uncensorable. Journalists have verified identities, and readers can trust the authenticity of content.</p>
+                        </div>
+                        
+                        <div class="card">
+                            <h4>What is BUFFAFLOW?</h4>
+                            <p>BUFFAFLOW is our governance token that provides voting rights, free profile creation, and access to premium platform features.</p>
+                        </div>
+                        
+                        <div class="card">
+                            <h4>Is this platform safe to use?</h4>
+                            <p>ImmutableType is currently in beta testing. While we've implemented security best practices, please use the platform at your own risk and only with funds you can afford to lose.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-grid">
+            <div class="footer-section">
+                <h4>ImmutableType <span class="beta-badge">BETA</span></h4>
+                <p style="color: #9ca3af; font-size: 14px;">Building the future of decentralized journalism</p>
+            </div>
+            <div class="footer-section">
+                <h4>Platform</h4>
+                <a href="#create-profile" class="footer-link">Create Profile</a>
+                <a href="#chrome-extension" class="footer-link">Chrome Extension</a>
+                <a href="#buy-buffaflow" class="footer-link">Buy BUFFAFLOW</a>
+                <a href="#nft-collection" class="footer-link">NFT Collection</a>
+            </div>
+            <div class="footer-section">
+                <h4>Community</h4>
+                <a href="https://immutabletype.com/blogs/news" target="_blank" class="footer-link">Blog</a>
+                <a href="https://immutabletype.substack.com" target="_blank" class="footer-link">Substack</a>
+                <a href="https://x.com/Immutable_type" target="_blank" class="footer-link">Twitter</a>
+                <a href="https://immutabletype.com/collections/all" target="_blank" class="footer-link">Shop</a>
+            </div>
+            <div class="footer-section">
+                <h4>Legal</h4>
+                <a href="#" class="footer-link">Terms of Use</a>
+                <a href="#" class="footer-link">Privacy Policy</a>
+                <a href="#faq" class="footer-link">FAQ</a>
+                <a href="#" class="footer-link">Contact</a>
+            </div>
+        </div>
+        
+        <div class="footer-bottom">
+            <div>© <span id="current-year"></span> Stadium Gates Collective. All rights reserved.</div>
+            <div>Beta Platform - Use at your own risk</div>
+        </div>
+    </footer>
+    
+    <script>
+        // Set current year
+        document.getElementById('current-year').textContent = new Date().getFullYear();
+        
+        // Simple navigation highlighting
+        const navItems = document.querySelectorAll('.nav-item');
+        const sections = document.querySelectorAll('section[id]');
+        
+        function updateActiveNav() {
+            let current = '';
+            sections.forEach(section => {
+                const rect = section.getBoundingClientRect();
+                if (rect.top <= 100) {
+                    current = section.getAttribute('id');
+                }
+            });
+            
+            navItems.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + current) {
+                    link.classList.add('active');
+                }
+            });
+        }
+        
+        window.addEventListener('scroll', updateActiveNav);
+    </script>
+</body>
+</html>
