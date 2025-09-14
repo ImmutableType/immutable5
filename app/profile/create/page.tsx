@@ -151,7 +151,7 @@ const CreateProfilePage: React.FC = () => {
   <div className="profile-card">
     <h1 className="profile-title">Welcome to ImmutableType</h1>
     <p className="profile-subtitle">
-      The new journalism awaits.
+      Once moveable, now provable. 
     </p>
     <p className="profile-subtitle">
       Get started by creating a profile.
@@ -233,7 +233,7 @@ const CreateProfilePage: React.FC = () => {
         <div className="profile-card">
           <h2 className="profile-title">Connecting Wallet...</h2>
           <p className="profile-subtitle">
-            Please approve the wallet connection in MetaMask and ensure you're connected to the Flow EVM network
+            Please approve the wallet connection in MetaMask and ensure you&apos;re connected to the Flow EVM network
           </p>
 
           <button
