@@ -181,8 +181,8 @@ export default function HomePage() {
               </p>
               <p className="text-base lg:text-lg text-gray-600 mb-8">
                 ImmutableType is building the infrastructure for independent journalism - 
-                where truth can't be censored, sources are protected, and readers can trust 
-                what they're reading through blockchain verification.
+                where truth can&apos;t be censored, sources are protected, and readers can trust 
+                what they&apos;re reading through blockchain verification.
               </p>
               
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
@@ -232,7 +232,7 @@ export default function HomePage() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-2">Verified Identities</h3>
-                  <p className="text-gray-600">Progressive verification system ensures readers know who they're reading</p>
+                  <p className="text-gray-600">Progressive verification system ensures readers know who they&apos;re reading</p>
                 </div>
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-2">Decentralized Governance</h3>
@@ -489,7 +489,7 @@ export default function HomePage() {
                 
                 <div className="bg-white border border-gray-200 rounded-lg p-6">
                   <h3 className="font-semibold text-gray-900 mb-2">Is this platform safe to use?</h3>
-                  <p className="text-gray-600">ImmutableType is currently in beta testing. While we've implemented security best practices, please use the platform at your own risk and only with funds you can afford to lose.</p>
+                  <p className="text-gray-600">ImmutableType is currently in beta testing. While we&apos;ve implemented security best practices, please use the platform at your own risk and only with funds you can afford to lose.</p>
                 </div>
               </div>
             </div>
