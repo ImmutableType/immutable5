@@ -148,11 +148,14 @@ const CreateProfilePage: React.FC = () => {
   if (!selectedAuth) {
     return (
       <div className="profile-container profile-centered">
-        <div className="profile-card">
-        <h1 className="profile-title">Welcome to ImmutableType</h1>
-<p className="profile-subtitle">
-  Establish your on-chain identity on Flow EVM with our secure, transferable identity system.
-</p>
+  <div className="profile-card">
+    <h1 className="profile-title">Welcome to ImmutableType</h1>
+    <p className="profile-subtitle">
+      The new journalism awaits.
+    </p>
+    <p className="profile-subtitle">
+      Get started by creating a profile.
+    </p>
           
 
           {hasMetaMask ? (
