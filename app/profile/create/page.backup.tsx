@@ -51,7 +51,7 @@ const CreateProfilePage: React.FC = () => {
         particleCount: 200,
         spread: 70,
         origin: { y: 0.6 },
-        colors: ['#2563eb', '#059669', '#f59e0b']
+        colors: ['#B3211E', '#1D7F6E', '#E8A317']
       })
     }
   }, [creationState.status])
@@ -149,25 +149,25 @@ const CreateProfilePage: React.FC = () => {
     return (
       <div className="profile-container profile-centered">
         <div className="profile-card">
-        <h1 className="profile-title">Welcome to ImmutableType</h1>
-<p className="profile-subtitle">
-  Establish your on-chain identity on Flow EVM with our secure, transferable identity system.
-</p>
-          
+          <h1 className="profile-title">Create Your Profile</h1>
+          <p className="profile-subtitle">
+            Connect MetaMask to create a verified identity profile on Flow EVM
+          </p>
 
           {hasMetaMask ? (
             <button
-            onClick={() => setSelectedAuth('wallet')}
-            className="btn btn-primary btn-icon"
-          >
-            <span style={{ fontSize: '1.25rem' }}>🦊</span>
-            Connect with MetaMask
-          </button>
+              onClick={() => setSelectedAuth('wallet')}
+              className="btn btn-primary btn-icon"
+            >
+              <span style={{ fontSize: '1.25rem' }}>🦊</span>
+              <div>
+                <div className="btn-text-main">Connect MetaMask</div>
+                <div className="btn-text-sub">Tier 0 verification</div>
+              </div>
+            </button>
           ) : (
             <div>
-              <p className="install-message">
-                MetaMask wallet integration is required to create your verified identity profile
-              </p>
+              <p className="install-message">MetaMask is required to continue</p>
               
               <a 
                 href="https://metamask.io/download/" 
@@ -176,11 +176,11 @@ const CreateProfilePage: React.FC = () => {
                 className="btn btn-primary btn-icon"
               >
                 <span style={{ fontSize: '1.25rem' }}>🦊</span>
-                Install MetaMask Wallet
+                Install MetaMask
               </a>
               
               <p className="install-note">
-                After installation, refresh this page to continue with profile creation
+                After installing, refresh this page to continue
               </p>
             </div>
           )}
@@ -194,10 +194,8 @@ const CreateProfilePage: React.FC = () => {
     return (
       <div className="profile-container profile-centered">
         <div className="profile-card">
-          <h2 className="profile-title">Wallet Required</h2>
-          <p className="profile-subtitle">
-            MetaMask wallet is required to create and manage your identity profile
-          </p>
+          <h2 className="profile-title">Install MetaMask</h2>
+          <p className="profile-subtitle">MetaMask is required to create your profile</p>
 
           <a 
             href="https://metamask.io/download/" 
@@ -206,7 +204,7 @@ const CreateProfilePage: React.FC = () => {
             className="btn btn-primary btn-icon"
             style={{ marginBottom: '1rem' }}
           >
-            🦊 Install MetaMask Wallet
+            🦊 Download MetaMask
           </a>
 
           <p className="install-note">After installing, refresh and try again</p>
@@ -216,7 +214,7 @@ const CreateProfilePage: React.FC = () => {
             className="btn btn-secondary"
             style={{ marginTop: '1rem' }}
           >
-            ← Back to Options
+            ← Back
           </button>
         </div>
       </div>
@@ -228,16 +226,16 @@ const CreateProfilePage: React.FC = () => {
     return (
       <div className="profile-container profile-centered">
         <div className="profile-card">
-          <h2 className="profile-title">Connecting Wallet...</h2>
+          <h2 className="profile-title">Connecting...</h2>
           <p className="profile-subtitle">
-            Please approve the wallet connection in MetaMask and ensure you're connected to the Flow EVM network
+            Please approve the connection in MetaMask and switch to Flow EVM network if prompted
           </p>
 
           <button
             onClick={() => setSelectedAuth(null)}
             className="btn btn-secondary"
           >
-            ← Back to Options
+            ← Back
           </button>
         </div>
       </div>
@@ -250,10 +248,10 @@ const CreateProfilePage: React.FC = () => {
       <div className="profile-container profile-centered">
         <div className="profile-card">
           <div className="success-icon">🎉</div>
-          <h2 className="success-title">Identity Profile Created Successfully</h2>
+          <h2 className="success-title">Profile Created Successfully!</h2>
 
           <div className="success-did">
-            <strong>Your Decentralized Identifier (DID):</strong><br />
+            <strong>Your DID:</strong><br />
             {creationState.result?.did}
           </div>
 
@@ -261,7 +259,7 @@ const CreateProfilePage: React.FC = () => {
             onClick={() => window.location.href = `/profile/${creationState.result?.profileId}`}
             className="btn btn-success"
           >
-            View Identity Profile
+            View My Profile
           </button>
         </div>
       </div>
@@ -273,18 +271,18 @@ const CreateProfilePage: React.FC = () => {
     return (
       <div className="profile-container">
         <div className="profile-card profile-card-wide profile-card-form">
-          <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-            <h1 className="profile-title">Create Your On-chain Profile</h1>
+          <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+            <h1 className="profile-title">Create Your Profile</h1>
             <div className="profile-wallet-info">
-              <span>{address?.substring(0, 8)}...{address?.substring(address.length - 6)}</span>
+              <span>{address?.substring(0, 6)}...{address?.substring(address.length - 4)}</span>
               <span>•</span>
               <span>Flow EVM Testnet</span>
             </div>
           </div>
 
           <div className="alert alert-warning">
-            <div className="alert-title">💎 Profile Creation Fee: 3 FLOW</div>
-            <div className="alert-subtitle">Or hold 100+ $BUFFAFLOW tokens to create for free</div>
+            <div className="alert-title">💰 Creation fee: 3 FLOW</div>
+            <div className="alert-subtitle">Or hold 100+ $BUFFAFLOW to create for free</div>
           </div>
 
           <form onSubmit={handleSubmit}>
@@ -294,7 +292,7 @@ const CreateProfilePage: React.FC = () => {
                 type="text"
                 value={formData.displayName}
                 onChange={(e) => handleInputChange('displayName', e.target.value)}
-                placeholder="Enter your professional display name"
+                placeholder="Enter your display name"
                 className={`form-input ${formErrors.displayName ? 'form-input-error' : ''}`}
               />
               <div className="form-meta">
@@ -306,11 +304,11 @@ const CreateProfilePage: React.FC = () => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Professional Bio</label>
+              <label className="form-label">Bio</label>
               <textarea
                 value={formData.bio}
                 onChange={(e) => handleInputChange('bio', e.target.value)}
-                placeholder="Brief description of your professional background and interests..."
+                placeholder="Tell us about yourself..."
                 rows={3}
                 className={`form-input form-textarea ${formErrors.bio ? 'form-input-error' : ''}`}
               />
@@ -328,7 +326,7 @@ const CreateProfilePage: React.FC = () => {
                 type="text"
                 value={formData.location}
                 onChange={(e) => handleInputChange('location', e.target.value)}
-                placeholder="City, State/Country"
+                placeholder="City, Country"
                 className={`form-input ${formErrors.location ? 'form-input-error' : ''}`}
               />
               <div className="form-meta">
@@ -340,12 +338,12 @@ const CreateProfilePage: React.FC = () => {
             </div>
 
             <div className="form-group-last">
-              <label className="form-label">Avatar Image URL</label>
+              <label className="form-label">Avatar URL</label>
               <input
                 type="url"
                 value={formData.avatarUrl}
                 onChange={(e) => handleInputChange('avatarUrl', e.target.value)}
-                placeholder="https://example.com/your-avatar.jpg"
+                placeholder="https://example.com/avatar.jpg"
                 className={`form-input ${formErrors.avatarUrl ? 'form-input-error' : ''}`}
               />
               {formData.avatarUrl && (
@@ -362,7 +360,7 @@ const CreateProfilePage: React.FC = () => {
                       }}
                     />
                   </div>
-                  <span className="avatar-text">Profile avatar preview</span>
+                  <span className="avatar-text">Avatar preview</span>
                 </div>
               )}
               <div className="form-meta">
@@ -375,22 +373,21 @@ const CreateProfilePage: React.FC = () => {
               disabled={creationState.status === 'preparing' || creationState.status === 'pending'}
               className={`btn btn-success ${(creationState.status === 'preparing' || creationState.status === 'pending') ? 'btn-disabled' : ''}`}
             >
-              {creationState.status === 'preparing' && 'Preparing Transaction...'}
-              {creationState.status === 'pending' && 'Creating Identity Profile...'}
-              {(creationState.status === 'idle' || creationState.status === 'error') && 'Create Identity Profile (3 FLOW)'}
+              {creationState.status === 'preparing' && 'Preparing...'}
+              {creationState.status === 'pending' && 'Creating Profile...'}
+              {(creationState.status === 'idle' || creationState.status === 'error') && 'Create Profile (3 FLOW)'}
             </button>
 
             {creationState.status === 'error' && (
               <div className="alert alert-error">
-                <div className="alert-title">Creation Failed</div>
-                <div className="alert-subtitle">{creationState.error}</div>
+                <strong>Error:</strong> {creationState.error}
               </div>
             )}
           </form>
 
           <div className="form-note">
-            <strong>Secure & Transferable:</strong> Your identity profile is stored on-chain as a transferable NFT. 
-            Personal data resets upon transfer, ensuring privacy while maintaining profile history and verification status.
+            <strong>Note:</strong> Profile data is stored locally until minted. 
+            Your draft will be lost if you navigate away without completing the transaction.
           </div>
         </div>
       </div>
