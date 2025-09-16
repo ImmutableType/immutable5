@@ -116,7 +116,7 @@ export class ProfileNFTService {
         return {
           success: true,
           profileId,
-          did: `did:pkh:eip155:545:${userAddress.toLowerCase()}`,
+          did: `did:pkh:eip155:747:${userAddress.toLowerCase()}`,
           transactionHash: receipt.hash
         }
         
@@ -144,7 +144,7 @@ export class ProfileNFTService {
           return {
             success: true,
             profileId,
-            did: `did:pkh:eip155:545:${userAddress.toLowerCase()}`,
+            did: `did:pkh:eip155:747:${userAddress.toLowerCase()}`,
             transactionHash: receiptWithFee.hash
           }
           
@@ -191,7 +191,7 @@ export class ProfileNFTService {
   }
   
   generateDID(address: string): string {
-    return `did:pkh:eip155:545:${address.toLowerCase()}`
+    return `did:pkh:eip155:747:${address.toLowerCase()}`
   }
   
   getCreationFeeFormatted(): string {

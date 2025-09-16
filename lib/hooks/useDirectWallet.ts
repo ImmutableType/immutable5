@@ -19,11 +19,11 @@ declare global {
   }
 }
 
-const FLOW_EVM_TESTNET = {
-  chainId: '0x221',
-  chainName: 'Flow EVM Testnet',
-  rpcUrls: ['https://testnet.evm.nodes.onflow.org'],
-  blockExplorerUrls: ['https://evm-testnet.flowscan.org'],
+const FLOW_EVM_MAINNET = {
+  chainId: '0x2eb',
+  chainName: 'Flow EVM Mainnet',
+  rpcUrls: ['https://mainnet.evm.nodes.onflow.org'],
+  blockExplorerUrls: ['https://evm.flowscan.io'],
   nativeCurrency: {
     name: 'Flow',
     symbol: 'FLOW',
@@ -54,18 +54,18 @@ export function useDirectWallet() {
 
     const currentChainId = await window.ethereum.request({ method: 'eth_chainId' }) as string
     
-    if (currentChainId !== FLOW_EVM_TESTNET.chainId) {
+    if (currentChainId !== FLOW_EVM_MAINNET.chainId) {
       try {
         await window.ethereum.request({
           method: 'wallet_switchEthereumChain',
-          params: [{ chainId: FLOW_EVM_TESTNET.chainId }],
+          params: [{ chainId: FLOW_EVM_MAINNET.chainId }],
         })
       } catch (error: unknown) {
         const ethError = error as EthereumError
         if (ethError.code === 4902) {
           await window.ethereum.request({
             method: 'wallet_addEthereumChain',
-            params: [FLOW_EVM_TESTNET]
+            params: [FLOW_EVM_MAINNET]
           })
         }
       }

@@ -1,30 +1,30 @@
-// Flow EVM Testnet Contract Configuration
+// Flow EVM Mainnet Contract Configuration
 import { Address } from 'viem'
 
 export const CONTRACTS = {
-  PROFILE_NFT: '0x2b1DAc1E85d5CFFFaCD38ad27595766ADf1Ffb23' as Address,
-  TOKEN_QUALIFIER: '0x4F8E10cC1f1cC1b937208F5B5ef23242b90d05ff' as Address,
+  PROFILE_NFT: '0x35A314B550959B5Cd8821727bAC11C0c5D9c880F' as Address,
+  TOKEN_QUALIFIER: '0xf034a7802427695acCE47878Da898bff1D09f06B' as Address,
   
-  // Treasury - configurable for future implementation
+  // Treasury - mainnet address
   TREASURY: (process.env.NEXT_PUBLIC_TREASURY_ADDRESS as Address) || 
-           ('0x9402F9f20b4a27b55B1cC6cf015D98f764814fb2' as Address),
+           ('0x00000000000000000000000228B74E66CBD624Fc' as Address),
   
-  // BUFFAFLOW - mainnet address, configurable via env
+  // BUFFAFLOW - mainnet address
   BUFFAFLOW: (process.env.NEXT_PUBLIC_BUFFAFLOW_ADDRESS as Address) || 
-            ('0x0000000000000000000000000000000000000000' as Address), // Placeholder for testnet
+            ('0xc8654a7a4bd671d4ceac6096a92a3170fa3b4798' as Address),
 } as const
 
 export const CONFIG = {
   CREATION_FEE: '3000000000000000000', // 3 FLOW in wei
   BUFFAFLOW_THRESHOLD: '100000000000000000000', // 100 tokens in wei
-  CHAIN_ID: 545, // Testnet: 545, Mainnet: 747
-  RPC_URL: 'https://testnet.evm.nodes.onflow.org', // Will switch to mainnet when ready
+  CHAIN_ID: 747, // Mainnet: 747
+  RPC_URL: 'https://mainnet.evm.nodes.onflow.org', // Mainnet RPC
   
   // Feature flags for real deployment
   ENABLE_BUFFAFLOW_BYPASS: true, // Always enabled, but checks network availability
   ENABLE_TREASURY_FEES: true, // Always enabled for real deployment
   
-  // Real addresses per network
+  // Mainnet configuration
   MAINNET_BUFFAFLOW: '0xc8654a7a4bd671d4ceac6096a92a3170fa3b4798',
   MAINNET_CHAIN_ID: 747,
   TESTNET_CHAIN_ID: 545,
@@ -290,21 +290,20 @@ export const EXPECTED_QUALIFIER_FUNCTIONS = [
   'getQualifyingTokens'
 ] as const
 
-// Helper functions for network switching
+// Helper functions for mainnet-only configuration
 export const getNetworkConfig = (chainId: number = CONFIG.CHAIN_ID) => {
-  const isMainnet = chainId === CONFIG.MAINNET_CHAIN_ID
-  
+  // Always return mainnet configuration
   return {
-    chainId,
-    isMainnet,
-    isTestnet: !isMainnet,
-    rpcUrl: isMainnet ? CONFIG.MAINNET_RPC_URL : CONFIG.TESTNET_RPC_URL,
-    explorerUrl: isMainnet ? 'https://evm.flowscan.io' : 'https://evm-testnet.flowscan.io',
-    networkName: isMainnet ? 'Flow EVM Mainnet' : 'Flow EVM Testnet',
-    buffaflowAddress: isMainnet ? CONFIG.MAINNET_BUFFAFLOW : null,
-    hasBuffaflow: isMainnet
+    chainId: CONFIG.MAINNET_CHAIN_ID,
+    isMainnet: true,
+    isTestnet: false,
+    rpcUrl: CONFIG.MAINNET_RPC_URL,
+    explorerUrl: 'https://evm.flowscan.io',
+    networkName: 'Flow EVM Mainnet',
+    buffaflowAddress: CONFIG.MAINNET_BUFFAFLOW,
+    hasBuffaflow: true
   }
 }
 
-// Get current network configuration
+// Get current network configuration (always mainnet)
 export const CURRENT_NETWORK = getNetworkConfig()

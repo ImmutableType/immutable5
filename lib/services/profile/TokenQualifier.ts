@@ -7,8 +7,8 @@ import type { QualificationStatus } from '../../types/profile'
 export class TokenQualifierService {
   private qualifierAddress: Address = CONTRACTS.TOKEN_QUALIFIER
   
-  // Real BUFFAFLOW address (mainnet) - will be configured via env vars
-  private readonly BUFFAFLOW_MAINNET = '0xc8654a7a4bd671d4ceac6096a92a3170fa3b4798' as Address
+  // Real BUFFAFLOW address (mainnet)
+  private readonly BUFFAFLOW_MAINNET = CONTRACTS.BUFFAFLOW
 
   /**
    * Check if user qualifies for fee bypass
@@ -38,19 +38,8 @@ export class TokenQualifierService {
         }
       }
 
-      // If no BUFFAFLOW address configured, can't check
-      const buffaflowAddress = this.getBuffaflowAddress()
-      if (!buffaflowAddress || buffaflowAddress === '0x0000000000000000000000000000000000000000') {
-        return {
-          isQualified: false,
-          tokenBalance: '0',
-          nftCount: 0,
-          canBypassFee: false
-        }
-      }
-
-      // Check real BUFFAFLOW balance (when address is configured)
-      return await this.checkBuffaflowBalance(userAddress, buffaflowAddress)
+      // Check real BUFFAFLOW balance (mainnet address is always configured)
+      return await this.checkBuffaflowBalance(userAddress, this.BUFFAFLOW_MAINNET)
 
     } catch (error) {
       console.error('Error checking qualification:', error)
@@ -142,23 +131,6 @@ export class TokenQualifierService {
   }
 
   /**
-   * Get BUFFAFLOW address based on network (using dynamic network detection)
-   */
-  private getBuffaflowAddress(): Address | null {
-    // Use environment variable if set, otherwise use network-based logic
-    const envAddress = process.env.NEXT_PUBLIC_BUFFAFLOW_ADDRESS
-    if (envAddress && envAddress !== '0x0000000000000000000000000000000000000000') {
-      return envAddress as Address
-    }
-
-    // Get current network config dynamically
-    const networkConfig = getNetworkConfig()
-    
-    // Return BUFFAFLOW address if on mainnet and available
-    return networkConfig.buffaflowAddress as Address || null
-  }
-
-  /**
    * Get qualification threshold for display
    */
   getQualificationThreshold(): string {
@@ -173,33 +145,27 @@ export class TokenQualifierService {
       return 'BUFFAFLOW bypass disabled'
     }
     
-    const buffaflowAddress = this.getBuffaflowAddress()
-    if (!buffaflowAddress) {
-      return 'BUFFAFLOW not available on this network'
-    }
-    
     const threshold = this.getQualificationThreshold()
     return `Hold ${threshold}+ $BUFFAFLOW tokens OR any $BUFFAFLOW NFT`
   }
 
   /**
-   * Check if BUFFAFLOW bypass is available
+   * Check if BUFFAFLOW bypass is available (always true on mainnet)
    */
   isBuffaflowBypassAvailable(): boolean {
-    return CONFIG.ENABLE_BUFFAFLOW_BYPASS && !!this.getBuffaflowAddress()
+    return CONFIG.ENABLE_BUFFAFLOW_BYPASS
   }
 
   /**
-   * Get current network info for BUFFAFLOW (using dynamic network detection)
+   * Get current network info for BUFFAFLOW (always mainnet)
    */
-  getNetworkInfo(): { hasBuffaflow: boolean; networkName: string; buffaflowAddress?: Address } {
+  getNetworkInfo(): { hasBuffaflow: boolean; networkName: string; buffaflowAddress: Address } {
     const networkConfig = getNetworkConfig()
-    const buffaflowAddress = this.getBuffaflowAddress()
     
     return {
-      hasBuffaflow: !!buffaflowAddress,
+      hasBuffaflow: true,
       networkName: networkConfig.networkName,
-      buffaflowAddress: buffaflowAddress || undefined
+      buffaflowAddress: this.BUFFAFLOW_MAINNET
     }
   }
 }
