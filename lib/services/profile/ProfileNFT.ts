@@ -111,7 +111,8 @@ export class ProfileNFTService {
         const receipt = await tx.wait() as TransactionReceipt
         console.log("Transaction confirmed:", receipt.hash)
         
-        const profileId = receipt.logs?.[0]?.topics?.[3] || '1'
+        const profileIdHex = receipt.logs?.[0]?.topics?.[3] || '0x1'
+        const profileId = parseInt(profileIdHex, 16).toString()
         
         return {
           success: true,
@@ -139,7 +140,8 @@ export class ProfileNFTService {
           const receiptWithFee = await txWithFee.wait() as TransactionReceipt
           console.log("Transaction confirmed:", receiptWithFee.hash)
           
-          const profileId = receiptWithFee.logs?.[0]?.topics?.[3] || '1'
+          const profileIdHex = receiptWithFee.logs?.[0]?.topics?.[3] || '0x1'
+          const profileId = parseInt(profileIdHex, 16).toString()
           
           return {
             success: true,
