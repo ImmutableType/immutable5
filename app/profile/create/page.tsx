@@ -206,70 +206,56 @@ const CreateProfilePage: React.FC = () => {
     )
   }
 
-  // Auth selection - with mobile wallet detection
-  if (!selectedAuth) {
-    return (
-      <div className="profile-container profile-centered">
-        <div className="profile-card">
-          <h1 className="profile-title">Welcome to ImmutableType</h1>
-          <p className="profile-subtitle">
-            Once moveable, now provable. 
-          </p>
-          <p className="profile-subtitle">
-            Get started by creating a profile.
-          </p>
+  // Auth selection - with safer mobile wallet detection
+if (!selectedAuth) {
+  return (
+    <div className="profile-container profile-centered">
+      <div className="profile-card">
+        <h1 className="profile-title">Welcome to ImmutableType</h1>
+        <p className="profile-subtitle">
+          Once moveable, now provable. 
+        </p>
+        <p className="profile-subtitle">
+          Get started by creating a profile.
+        </p>
 
-          {isMobileDevice && !isMetaMaskMobileApp && !hasWalletProvider ? (
-            <div>
-              <p className="install-message">
-                Open this page in the MetaMask mobile app to create your verified identity profile
-              </p>
-              
-              <button
-                onClick={() => setSelectedAuth('wallet')}
-                className="btn btn-primary btn-icon"
-              >
-                <span style={{ fontSize: '1.25rem' }}>🦊</span>
-                Open in MetaMask App
-              </button>
-              
-              <p className="install-note">
-                Or install MetaMask mobile app first, then return to this page
-              </p>
-            </div>
-          ) : hasWalletProvider || isMetaMaskMobileApp ? (
-            <button
-              onClick={() => setSelectedAuth('wallet')}
-              className="btn btn-primary btn-icon"
-            >
-              <span style={{ fontSize: '1.25rem' }}>🦊</span>
-              Connect with MetaMask
-            </button>
-          ) : (
-            <div>
-              <p className="install-message">
-                MetaMask wallet integration is required to create your verified identity profile
-              </p>
-              
+        {/* Always show connect button with appropriate text */}
+        <button
+          onClick={() => setSelectedAuth('wallet')}
+          className="btn btn-primary btn-icon"
+        >
+          <span style={{ fontSize: '1.25rem' }}>🦊</span>
+          {hasWalletProvider ? 'Connect with MetaMask' : 'Open in MetaMask'}
+        </button>
+
+        {/* Mobile-specific guidance below the button */}
+        {isMobileDevice && !hasWalletProvider && (
+          <div style={{ marginTop: '1rem' }}>
+            <p className="install-note">
+              On mobile: Open this page in the MetaMask mobile app, or install MetaMask mobile first
+            </p>
+          </div>
+        )}
+
+        {!isMobileDevice && !hasWalletProvider && (
+          <div style={{ marginTop: '1rem' }}>
+            <p className="install-note">
               <a 
                 href="https://metamask.io/download/" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="btn btn-primary btn-icon"
+                style={{ color: 'var(--color-primary-600)' }}
               >
-                <span style={{ fontSize: '1.25rem' }}>🦊</span>
-                Install MetaMask Wallet
-              </a>
-              
-              <p className="install-note">
-                After installation, refresh this page to continue with profile creation
-              </p>
-            </div>
-          )}
-        </div>
+                Install MetaMask wallet
+              </a> if not already installed
+            </p>
+          </div>
+        )}
       </div>
-    )
-  }
+    </div>
+  )
+}
+
 
   // MetaMask not detected (desktop)
   if (selectedAuth === 'wallet' && !isMobileDevice && !hasWalletProvider) {
