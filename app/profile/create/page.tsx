@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useDirectWallet } from '../../../lib/hooks/useDirectWallet'
+import { tokenQualifierService } from '../../../lib/services/profile/TokenQualifier'
 import confetti from 'canvas-confetti'
 import Image from 'next/image'
 
@@ -24,6 +25,13 @@ interface CreationState {
   }
 }
 
+interface QualificationStatus {
+  isQualified: boolean
+  tokenBalance: string
+  nftCount: number
+  canBypassFee: boolean
+}
+
 const CreateProfilePage: React.FC = () => {
   const [selectedAuth, setSelectedAuth] = useState<AuthMethod>(null)
   const [formData, setFormData] = useState<FormData>({
@@ -34,15 +42,23 @@ const CreateProfilePage: React.FC = () => {
   })
   const [creationState, setCreationState] = useState<CreationState>({ status: 'idle' })
   const [formErrors, setFormErrors] = useState<Partial<FormData>>({})
+  const [qualificationStatus, setQualificationStatus] = useState<QualificationStatus | null>(null)
+  const [isCheckingQualification, setIsCheckingQualification] = useState(false)
+  const [qualificationError, setQualificationError] = useState<string | null>(null)
 
-  const [hasMetaMask, setHasMetaMask] = useState(false)
   const [isClient, setIsClient] = useState(false)
 
-  const { address, isConnected, connectWallet } = useDirectWallet()
+  const { 
+    address, 
+    isConnected, 
+    connectWallet, 
+    isMobileDevice, 
+    hasWalletProvider, 
+    isMetaMaskMobileApp 
+  } = useDirectWallet()
 
   useEffect(() => {
     setIsClient(true)
-    setHasMetaMask(typeof window !== 'undefined' && !!window.ethereum?.isMetaMask)
   }, [])
 
   useEffect(() => {
@@ -57,10 +73,42 @@ const CreateProfilePage: React.FC = () => {
   }, [creationState.status])
 
   useEffect(() => {
-    if (selectedAuth === 'wallet' && !isConnected && hasMetaMask) {
+    if (selectedAuth === 'wallet' && !isConnected && hasWalletProvider) {
       connectWallet()
     }
-  }, [selectedAuth, isConnected, hasMetaMask, connectWallet])
+  }, [selectedAuth, isConnected, hasWalletProvider, connectWallet])
+
+  // Check BUFFAFLOW qualification when wallet connects
+  useEffect(() => {
+    if (isConnected && address && selectedAuth === 'wallet') {
+      checkBuffaflowQualification()
+    }
+  }, [isConnected, address, selectedAuth])
+
+  const checkBuffaflowQualification = async () => {
+    if (!address) return
+    
+    setIsCheckingQualification(true)
+    setQualificationError(null)
+    
+    try {
+      const status = await tokenQualifierService.checkQualification(address as `0x${string}`)
+      setQualificationStatus(status)
+      
+      console.log('BUFFAFLOW Qualification Status:', {
+        isQualified: status.isQualified,
+        tokenBalance: status.tokenBalance,
+        nftCount: status.nftCount,
+        canBypassFee: status.canBypassFee
+      })
+    } catch (error: unknown) {
+      const err = error as Error
+      setQualificationError(err.message)
+      console.error('Error checking BUFFAFLOW qualification:', error)
+    } finally {
+      setIsCheckingQualification(false)
+    }
+  }
 
   const handleInputChange = (field: keyof FormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -134,6 +182,20 @@ const CreateProfilePage: React.FC = () => {
     }
   }
 
+  const getFeeDisplayText = () => {
+    if (isCheckingQualification) return 'Checking qualification...'
+    if (qualificationStatus?.canBypassFee) return 'FREE'
+    return '3 FLOW'
+  }
+
+  const getButtonText = () => {
+    if (creationState.status === 'preparing') return 'Preparing Transaction...'
+    if (creationState.status === 'pending') return 'Creating Identity Profile...'
+    
+    const feeText = getFeeDisplayText()
+    return `Create Identity Profile (${feeText})`
+  }
+
   if (!isClient) {
     return (
       <div className="profile-container profile-centered">
@@ -144,28 +206,45 @@ const CreateProfilePage: React.FC = () => {
     )
   }
 
-  // Auth selection - MetaMask only
+  // Auth selection - with mobile wallet detection
   if (!selectedAuth) {
     return (
       <div className="profile-container profile-centered">
-  <div className="profile-card">
-    <h1 className="profile-title">Welcome to ImmutableType</h1>
-    <p className="profile-subtitle">
-      Once moveable, now provable. 
-    </p>
-    <p className="profile-subtitle">
-      Get started by creating a profile.
-    </p>
-          
+        <div className="profile-card">
+          <h1 className="profile-title">Welcome to ImmutableType</h1>
+          <p className="profile-subtitle">
+            Once moveable, now provable. 
+          </p>
+          <p className="profile-subtitle">
+            Get started by creating a profile.
+          </p>
 
-          {hasMetaMask ? (
+          {isMobileDevice && !isMetaMaskMobileApp && !hasWalletProvider ? (
+            <div>
+              <p className="install-message">
+                Open this page in the MetaMask mobile app to create your verified identity profile
+              </p>
+              
+              <button
+                onClick={() => setSelectedAuth('wallet')}
+                className="btn btn-primary btn-icon"
+              >
+                <span style={{ fontSize: '1.25rem' }}>🦊</span>
+                Open in MetaMask App
+              </button>
+              
+              <p className="install-note">
+                Or install MetaMask mobile app first, then return to this page
+              </p>
+            </div>
+          ) : hasWalletProvider || isMetaMaskMobileApp ? (
             <button
-            onClick={() => setSelectedAuth('wallet')}
-            className="btn btn-primary btn-icon"
-          >
-            <span style={{ fontSize: '1.25rem' }}>🦊</span>
-            Connect with MetaMask
-          </button>
+              onClick={() => setSelectedAuth('wallet')}
+              className="btn btn-primary btn-icon"
+            >
+              <span style={{ fontSize: '1.25rem' }}>🦊</span>
+              Connect with MetaMask
+            </button>
           ) : (
             <div>
               <p className="install-message">
@@ -192,8 +271,8 @@ const CreateProfilePage: React.FC = () => {
     )
   }
 
-  // MetaMask not detected
-  if (selectedAuth === 'wallet' && !hasMetaMask) {
+  // MetaMask not detected (desktop)
+  if (selectedAuth === 'wallet' && !isMobileDevice && !hasWalletProvider) {
     return (
       <div className="profile-container profile-centered">
         <div className="profile-card">
@@ -227,7 +306,7 @@ const CreateProfilePage: React.FC = () => {
   }
 
   // Connecting state
-  if (selectedAuth === 'wallet' && hasMetaMask && !isConnected) {
+  if (selectedAuth === 'wallet' && hasWalletProvider && !isConnected) {
     return (
       <div className="profile-container profile-centered">
         <div className="profile-card">
@@ -260,6 +339,13 @@ const CreateProfilePage: React.FC = () => {
             {creationState.result?.did}
           </div>
 
+          {qualificationStatus?.canBypassFee && (
+            <div className="alert alert-success" style={{ marginTop: '1rem' }}>
+              <div className="alert-title">🎁 BUFFAFLOW Qualification Applied</div>
+              <div className="alert-subtitle">Profile created for free using your BUFFAFLOW tokens</div>
+            </div>
+          )}
+
           <button
             onClick={() => window.location.href = `/profile/${creationState.result?.profileId}`}
             className="btn btn-success"
@@ -281,14 +367,37 @@ const CreateProfilePage: React.FC = () => {
             <div className="profile-wallet-info">
               <span>{address?.substring(0, 8)}...{address?.substring(address.length - 6)}</span>
               <span>•</span>
-              <span>Flow EVM Testnet</span>
+              <span>Flow EVM Mainnet</span>
             </div>
           </div>
 
-          <div className="alert alert-warning">
-            <div className="alert-title">💎 Profile Creation Fee: 3 FLOW</div>
-            <div className="alert-subtitle">Or hold 100+ $BUFFAFLOW tokens to create for free</div>
-          </div>
+          {/* Dynamic Fee Alert based on BUFFAFLOW qualification */}
+          {isCheckingQualification ? (
+            <div className="alert alert-info">
+              <div className="alert-title">⏳ Checking BUFFAFLOW Qualification...</div>
+              <div className="alert-subtitle">Verifying your token balance for fee bypass</div>
+            </div>
+          ) : qualificationError ? (
+            <div className="alert alert-warning">
+              <div className="alert-title">⚠️ Profile Creation Fee: 3 FLOW</div>
+              <div className="alert-subtitle">Unable to check BUFFAFLOW qualification: {qualificationError}</div>
+            </div>
+          ) : qualificationStatus?.canBypassFee ? (
+            <div className="alert alert-success">
+              <div className="alert-title">🎁 BUFFAFLOW Qualification Detected!</div>
+              <div className="alert-subtitle">
+                Profile creation is FREE with your BUFFAFLOW tokens
+                {qualificationStatus.nftCount > 0 && ` (${qualificationStatus.nftCount} NFTs)`}
+                {qualificationStatus.tokenBalance !== '0' && qualificationStatus.tokenBalance !== 'N/A' && 
+                  ` (${parseFloat(qualificationStatus.tokenBalance).toFixed(2)} tokens)`}
+              </div>
+            </div>
+          ) : (
+            <div className="alert alert-warning">
+              <div className="alert-title">💎 Profile Creation Fee: 3 FLOW</div>
+              <div className="alert-subtitle">Or hold 100+ $BUFFAFLOW tokens to create for free</div>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit}>
             <div className="form-group">
@@ -375,12 +484,10 @@ const CreateProfilePage: React.FC = () => {
 
             <button
               type="submit"
-              disabled={creationState.status === 'preparing' || creationState.status === 'pending'}
-              className={`btn btn-success ${(creationState.status === 'preparing' || creationState.status === 'pending') ? 'btn-disabled' : ''}`}
+              disabled={creationState.status === 'preparing' || creationState.status === 'pending' || isCheckingQualification}
+              className={`btn btn-success ${(creationState.status === 'preparing' || creationState.status === 'pending' || isCheckingQualification) ? 'btn-disabled' : ''}`}
             >
-              {creationState.status === 'preparing' && 'Preparing Transaction...'}
-              {creationState.status === 'pending' && 'Creating Identity Profile...'}
-              {(creationState.status === 'idle' || creationState.status === 'error') && 'Create Identity Profile (3 FLOW)'}
+              {getButtonText()}
             </button>
 
             {creationState.status === 'error' && (

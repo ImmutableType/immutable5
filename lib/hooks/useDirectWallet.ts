@@ -31,11 +31,36 @@ const FLOW_EVM_MAINNET = {
   }
 }
 
+// Mobile wallet detection helpers
+const isMobile = () => {
+  if (typeof window === 'undefined') return false
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+}
+
+const isMetaMaskMobileApp = () => {
+  if (typeof window === 'undefined') return false
+  return navigator.userAgent.includes('MetaMaskMobile')
+}
+
+const hasMetaMaskProvider = () => {
+  if (typeof window === 'undefined') return false
+  return !!(window.ethereum?.isMetaMask || window.ethereum)
+}
+
+const getMetaMaskDeepLink = () => {
+  return `https://metamask.app.link/dapp/${window.location.host}/profile/create`
+}
+
 export function useDirectWallet() {
   const [address, setAddress] = useState<string | null>(null)
   const [isConnecting, setIsConnecting] = useState(false)
+  const [isMobileDevice, setIsMobileDevice] = useState(false)
+  const [hasWalletProvider, setHasWalletProvider] = useState(false)
 
   useEffect(() => {
+    setIsMobileDevice(isMobile())
+    setHasWalletProvider(hasMetaMaskProvider())
+    
     if (window.ethereum) {
       // Check if already connected
       window.ethereum.request({ method: 'eth_accounts' })
@@ -76,6 +101,31 @@ export function useDirectWallet() {
     try {
       setIsConnecting(true)
       
+      // Mobile-specific logic
+      if (isMobileDevice) {
+        // If we're in MetaMask mobile app, proceed normally
+        if (isMetaMaskMobileApp() && window.ethereum) {
+          await ensureCorrectNetwork()
+          
+          const accounts = await window.ethereum.request({
+            method: 'eth_requestAccounts'
+          }) as string[]
+
+          if (accounts.length > 0) {
+            setAddress(accounts[0])
+          }
+          return
+        }
+        
+        // If on mobile browser without MetaMask, redirect to MetaMask app
+        if (!hasWalletProvider) {
+          const deepLink = getMetaMaskDeepLink()
+          window.location.href = deepLink
+          return
+        }
+      }
+      
+      // Desktop or mobile with provider (your original logic)
       if (!window.ethereum) {
         throw new Error('Please install MetaMask')
       }
@@ -99,7 +149,7 @@ export function useDirectWallet() {
     } finally {
       setIsConnecting(false)
     }
-  }, [])
+  }, [isMobileDevice, hasWalletProvider])
 
   const disconnect = useCallback(() => {
     setAddress(null)
@@ -110,6 +160,9 @@ export function useDirectWallet() {
     isConnected: !!address,
     connectWallet,
     disconnect,
-    isConnecting
+    isConnecting,
+    isMobileDevice,
+    hasWalletProvider,
+    isMetaMaskMobileApp: isMetaMaskMobileApp()
   }
 }
