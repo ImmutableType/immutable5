@@ -145,7 +145,7 @@ contract ProfileNFT is ERC721, AccessControl, ReentrancyGuard {
         
         // Generate W3C compliant DID
         string memory did = string(abi.encodePacked(
-            "did:pkh:eip155:545:",
+            "did:pkh:eip155:747:",
             Strings.toHexString(uint160(msg.sender), 20)
         ));
         

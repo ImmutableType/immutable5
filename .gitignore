@@ -58,3 +58,4 @@ deployments/hardhat/
 # Misc
 *.tgz
 *.tar.gzdesign-inspo/
+.env.mainnet
