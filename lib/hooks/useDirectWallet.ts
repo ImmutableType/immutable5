@@ -31,24 +31,40 @@ const FLOW_EVM_MAINNET = {
   }
 }
 
-// Mobile wallet detection helpers
+// Mobile wallet detection helpers with proper error handling
 const isMobile = () => {
-  if (typeof window === 'undefined') return false
-  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') return false
+  try {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+  } catch {
+    return false
+  }
 }
 
 const isMetaMaskMobileApp = () => {
-  if (typeof window === 'undefined') return false
-  return navigator.userAgent.includes('MetaMaskMobile')
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') return false
+  try {
+    return navigator.userAgent.includes('MetaMaskMobile')
+  } catch {
+    return false
+  }
 }
 
 const hasMetaMaskProvider = () => {
   if (typeof window === 'undefined') return false
-  return !!(window.ethereum?.isMetaMask || window.ethereum)
+  try {
+    return !!(window.ethereum?.isMetaMask || window.ethereum)
+  } catch {
+    return false
+  }
 }
 
 const getMetaMaskDeepLink = () => {
-  return `https://metamask.app.link/dapp/${window.location.host}/profile/create`
+  try {
+    return `https://metamask.app.link/dapp/${window.location.host}/profile/create`
+  } catch {
+    return 'https://metamask.app.link/dapp/app.immutabletype.com/profile/create'
+  }
 }
 
 export function useDirectWallet() {
@@ -58,42 +74,50 @@ export function useDirectWallet() {
   const [hasWalletProvider, setHasWalletProvider] = useState(false)
 
   useEffect(() => {
-    setIsMobileDevice(isMobile())
-    setHasWalletProvider(hasMetaMaskProvider())
-    
-    if (window.ethereum) {
-      // Check if already connected
-      window.ethereum.request({ method: 'eth_accounts' })
-        .then((accounts) => {
-          const accountList = accounts as string[]
-          if (accountList.length > 0) {
-            setAddress(accountList[0])
-          }
-        })
-        .catch(console.error)
+    try {
+      setIsMobileDevice(isMobile())
+      setHasWalletProvider(hasMetaMaskProvider())
+      
+      if (window.ethereum) {
+        // Check if already connected
+        window.ethereum.request({ method: 'eth_accounts' })
+          .then((accounts) => {
+            const accountList = accounts as string[]
+            if (accountList.length > 0) {
+              setAddress(accountList[0])
+            }
+          })
+          .catch(console.error)
+      }
+    } catch (error) {
+      console.error('Error in wallet initialization:', error)
     }
   }, [])
 
   const ensureCorrectNetwork = async () => {
     if (!window.ethereum) return
 
-    const currentChainId = await window.ethereum.request({ method: 'eth_chainId' }) as string
-    
-    if (currentChainId !== FLOW_EVM_MAINNET.chainId) {
-      try {
-        await window.ethereum.request({
-          method: 'wallet_switchEthereumChain',
-          params: [{ chainId: FLOW_EVM_MAINNET.chainId }],
-        })
-      } catch (error: unknown) {
-        const ethError = error as EthereumError
-        if (ethError.code === 4902) {
+    try {
+      const currentChainId = await window.ethereum.request({ method: 'eth_chainId' }) as string
+      
+      if (currentChainId !== FLOW_EVM_MAINNET.chainId) {
+        try {
           await window.ethereum.request({
-            method: 'wallet_addEthereumChain',
-            params: [FLOW_EVM_MAINNET]
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: FLOW_EVM_MAINNET.chainId }],
           })
+        } catch (error: unknown) {
+          const ethError = error as EthereumError
+          if (ethError.code === 4902) {
+            await window.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [FLOW_EVM_MAINNET]
+            })
+          }
         }
       }
+    } catch (error) {
+      console.error('Network switching error:', error)
     }
   }
 
@@ -125,7 +149,7 @@ export function useDirectWallet() {
         }
       }
       
-      // Desktop or mobile with provider (your original logic)
+      // Desktop or mobile with provider (original logic)
       if (!window.ethereum) {
         throw new Error('Please install MetaMask')
       }
