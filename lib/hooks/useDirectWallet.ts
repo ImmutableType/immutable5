@@ -31,30 +31,6 @@ const FLOW_EVM_MAINNET = {
   }
 }
 
-// Provider initialization with timeout for mobile
-const initializeProvider = () => {
-  return new Promise<EthereumProvider>((resolve, reject) => {
-    if (window.ethereum) {
-      resolve(window.ethereum);
-    } else {
-      const handleInit = () => {
-        if (window.ethereum) {
-          resolve(window.ethereum);
-        } else {
-          reject(new Error('Provider not available after initialization'));
-        }
-      };
-      
-      window.addEventListener('ethereum#initialized', handleInit, { once: true });
-      
-      const timeoutId = setTimeout(() => {
-        window.removeEventListener('ethereum#initialized', handleInit);
-        reject(new Error('MetaMask provider not found'));
-      }, 3000);
-    }
-  });
-};
-
 // Error-safe mobile detection helpers
 const isMobile = () => {
   if (typeof window === 'undefined' || typeof navigator === 'undefined') return false
@@ -147,38 +123,20 @@ export function useDirectWallet() {
     try {
       setIsConnecting(true)
       
-      // Wait for provider to be ready (mobile fix)
-      const provider = await initializeProvider();
-      
-      // Mobile-specific logic
-      if (isMobileDevice) {
-        // If we're in MetaMask mobile app, proceed normally
-        if (isMetaMaskMobileApp() && provider) {
-          await ensureCorrectNetwork(provider)
-          
-          const accounts = await provider.request({
-            method: 'eth_requestAccounts'
-          }) as string[]
-
-          if (accounts.length > 0) {
-            setAddress(accounts[0])
-          }
-          return
-        }
-        
-        // If on mobile browser without MetaMask, redirect to MetaMask app
-        if (!hasWalletProvider) {
+      // Simple approach - always try direct connection first
+      if (!window.ethereum) {
+        // If no provider, try MetaMask deep link on mobile
+        if (isMobileDevice) {
           const deepLink = getMetaMaskDeepLink()
           window.location.href = deepLink
           return
+        } else {
+          throw new Error('Please install MetaMask')
         }
       }
-      
-      // Desktop or mobile with provider
-      if (!provider) {
-        throw new Error('Please install MetaMask')
-      }
 
+      // For any device with provider, proceed directly
+      const provider = window.ethereum
       await ensureCorrectNetwork(provider)
 
       const accounts = await provider.request({
@@ -198,7 +156,7 @@ export function useDirectWallet() {
     } finally {
       setIsConnecting(false)
     }
-  }, [isMobileDevice, hasWalletProvider])
+  }, [isMobileDevice])
 
   const disconnect = useCallback(() => {
     setAddress(null)
