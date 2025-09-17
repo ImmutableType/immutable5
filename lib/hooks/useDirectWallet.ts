@@ -120,41 +120,40 @@ export function useDirectWallet() {
   }
 
   const connectWallet = useCallback(async () => {
-    alert('connectWallet called')
     try {
       setIsConnecting(true)
-      alert(`window.ethereum exists: ${!!window.ethereum}`)
       
       if (!window.ethereum) {
-        alert('No ethereum provider')
-        throw new Error('Please install MetaMask or open in MetaMask app')
+        // On mobile browser, redirect to MetaMask app
+        if (isMobileDevice) {
+          const deepLink = `https://metamask.app.link/dapp/${window.location.host}${window.location.pathname}`
+          window.location.href = deepLink
+          return
+        } else {
+          throw new Error('Please install MetaMask')
+        }
       }
 
-      alert('About to request accounts')
       const provider = window.ethereum
-      
+      await ensureCorrectNetwork(provider)
+
       const accounts = await provider.request({
         method: 'eth_requestAccounts'
       }) as string[]
 
-      alert(`Accounts received: ${accounts.length}`)
-
       if (accounts.length > 0) {
         setAddress(accounts[0])
-        alert(`Address set: ${accounts[0]}`)
       }
     } catch (err: unknown) {
-      alert(`Error: ${err}`)
       const ethError = err as EthereumError
       if (ethError.code === 4001) {
-        return // User rejected
+        return
       }
       console.error('Connection failed:', err)
     } finally {
       setIsConnecting(false)
-      alert('setIsConnecting(false) called')
     }
-  }, [])
+  }, [isMobileDevice])
 
   const disconnect = useCallback(() => {
     setAddress(null)
