@@ -9,8 +9,8 @@ interface EthereumError extends Error {
 interface EthereumProvider {
   request(args: { method: string; params?: unknown[] }): Promise<unknown>;
   isMetaMask?: boolean;
-  isFlowWallet?: boolean;
-  isCoinbaseWallet?: boolean;
+  on?: (event: string, handler: (...args: any[]) => void) => void;
+  removeListener?: (event: string, handler: (...args: any[]) => void) => void;
 }
 
 declare global {
@@ -31,93 +31,59 @@ const FLOW_EVM_MAINNET = {
   }
 }
 
-// Error-safe mobile detection helpers
-const isMobile = () => {
-  if (typeof window === 'undefined' || typeof navigator === 'undefined') return false
-  try {
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-  } catch {
-    return false
-  }
-}
-
-const isMetaMaskMobileApp = () => {
-  if (typeof window === 'undefined' || typeof navigator === 'undefined') return false
-  try {
-    return navigator.userAgent.includes('MetaMaskMobile')
-  } catch {
-    return false
-  }
-}
-
-const hasMetaMaskProvider = () => {
-  if (typeof window === 'undefined') return false
-  try {
-    return !!(window.ethereum?.isMetaMask || window.ethereum)
-  } catch {
-    return false
-  }
-}
-
-const getMetaMaskDeepLink = () => {
-  try {
-    // Correct MetaMask deep link format
-    const currentUrl = encodeURIComponent(window.location.href)
-    return `https://metamask.app.link/dapp/${currentUrl}`
-  } catch {
-    return 'https://metamask.app.link/dapp/https%3A//app.immutabletype.com/profile/create'
-  }
-}
-
 export function useDirectWallet() {
   const [address, setAddress] = useState<string | null>(null)
   const [isConnecting, setIsConnecting] = useState(false)
-  const [isMobileDevice, setIsMobileDevice] = useState(false)
-  const [hasWalletProvider, setHasWalletProvider] = useState(false)
 
   useEffect(() => {
-    try {
-      setIsMobileDevice(isMobile())
-      setHasWalletProvider(hasMetaMaskProvider())
-      
-      if (window.ethereum) {
-        // Check if already connected
-        window.ethereum.request({ method: 'eth_accounts' })
-          .then((accounts) => {
-            const accountList = accounts as string[]
-            if (accountList.length > 0) {
-              setAddress(accountList[0])
-            }
-          })
-          .catch(console.error)
+    if (window.ethereum) {
+      const handleAccountsChanged = (accounts: string[]) => {
+        if (accounts.length > 0) {
+          setAddress(accounts[0])
+        } else {
+          setAddress(null)
+        }
       }
-    } catch (error) {
-      console.error('Error in wallet initialization:', error)
+
+      // Check if already connected WITHOUT prompting
+      window.ethereum.request({ method: 'eth_accounts' })
+        .then((accounts) => {
+          handleAccountsChanged(accounts as string[])
+        })
+        .catch(console.error)
+
+      if (window.ethereum.on) {
+        window.ethereum.on('accountsChanged', handleAccountsChanged)
+      }
+
+      return () => {
+        if (window.ethereum?.removeListener) {
+          window.ethereum.removeListener('accountsChanged', handleAccountsChanged)
+        }
+      }
     }
   }, [])
 
-  const ensureCorrectNetwork = async (provider: EthereumProvider) => {
-    try {
-      const currentChainId = await provider.request({ method: 'eth_chainId' }) as string
-      
-      if (currentChainId !== FLOW_EVM_MAINNET.chainId) {
-        try {
-          await provider.request({
-            method: 'wallet_switchEthereumChain',
-            params: [{ chainId: FLOW_EVM_MAINNET.chainId }],
+  const ensureCorrectNetwork = async () => {
+    if (!window.ethereum) return
+
+    const currentChainId = await window.ethereum.request({ method: 'eth_chainId' }) as string
+    
+    if (currentChainId !== FLOW_EVM_MAINNET.chainId) {
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: FLOW_EVM_MAINNET.chainId }],
+        })
+      } catch (error: unknown) {
+        const ethError = error as EthereumError
+        if (ethError.code === 4902) {
+          await window.ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [FLOW_EVM_MAINNET]
           })
-        } catch (error: unknown) {
-          const ethError = error as EthereumError
-          if (ethError.code === 4902) {
-            await provider.request({
-              method: 'wallet_addEthereumChain',
-              params: [FLOW_EVM_MAINNET]
-            })
-          }
         }
       }
-    } catch (error) {
-      console.error('Network switching error:', error)
     }
   }
 
@@ -126,20 +92,13 @@ export function useDirectWallet() {
       setIsConnecting(true)
       
       if (!window.ethereum) {
-        // On mobile browser, redirect to MetaMask app
-        if (isMobileDevice) {
-          const deepLink = `https://metamask.app.link/dapp/${window.location.host}${window.location.pathname}`
-          window.location.href = deepLink
-          return
-        } else {
-          throw new Error('Please install MetaMask')
-        }
+        console.log('No ethereum object found')
+        return
       }
 
-      const provider = window.ethereum
-      await ensureCorrectNetwork(provider)
+      await ensureCorrectNetwork()
 
-      const accounts = await provider.request({
+      const accounts = await window.ethereum.request({
         method: 'eth_requestAccounts'
       }) as string[]
 
@@ -149,13 +108,14 @@ export function useDirectWallet() {
     } catch (err: unknown) {
       const ethError = err as EthereumError
       if (ethError.code === 4001) {
+        // User rejected - normal, don't show error
         return
       }
-      console.error('Connection failed:', err)
+      console.error('Wallet connection error:', err)
     } finally {
       setIsConnecting(false)
     }
-  }, [isMobileDevice])
+  }, [])
 
   const disconnect = useCallback(() => {
     setAddress(null)
@@ -167,8 +127,8 @@ export function useDirectWallet() {
     connectWallet,
     disconnect,
     isConnecting,
-    isMobileDevice,
-    hasWalletProvider,
-    isMetaMaskMobileApp: isMetaMaskMobileApp()
+    isMobileDevice: false, // Simplified - no mobile detection
+    hasWalletProvider: !!window.ethereum,
+    isMetaMaskMobileApp: false
   }
 }
