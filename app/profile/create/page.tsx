@@ -69,7 +69,7 @@ const CreateProfilePage: React.FC = () => {
     };
 
     // Capture unhandled errors
-    window.onerror = (message, source, lineno, colno, error) => {
+    window.onerror = (message, source, lineno) => {
       const errorDiv = document.createElement('div');
       errorDiv.style.cssText = 'position:fixed;top:50px;left:0;width:100%;background:orange;color:black;padding:10px;z-index:9999;font-size:12px;';
       errorDiv.textContent = `JS ERROR: ${message} at line ${lineno}`;
@@ -80,30 +80,6 @@ const CreateProfilePage: React.FC = () => {
       console.error = originalError;
     };
   }, []);
-
-  useEffect(() => {
-    if (creationState.status === 'success') {
-      confetti({
-        particleCount: 200,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ['#2563eb', '#059669', '#f59e0b']
-      })
-    }
-  }, [creationState.status])
-
-  useEffect(() => {
-    if (selectedAuth === 'wallet' && !isConnected && hasWalletProvider) {
-      connectWallet()
-    }
-  }, [selectedAuth, isConnected, hasWalletProvider, connectWallet])
-
-  // Check BUFFAFLOW qualification when wallet connects
-  useEffect(() => {
-    if (isConnected && address && selectedAuth === 'wallet') {
-      checkBuffaflowQualification()
-    }
-  }, [isConnected, address, selectedAuth])
 
   const checkBuffaflowQualification = async () => {
     if (!address) return
@@ -129,6 +105,30 @@ const CreateProfilePage: React.FC = () => {
       setIsCheckingQualification(false)
     }
   }
+
+  useEffect(() => {
+    if (creationState.status === 'success') {
+      confetti({
+        particleCount: 200,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#2563eb', '#059669', '#f59e0b']
+      })
+    }
+  }, [creationState.status])
+
+  useEffect(() => {
+    if (selectedAuth === 'wallet' && !isConnected && hasWalletProvider) {
+      connectWallet()
+    }
+  }, [selectedAuth, isConnected, hasWalletProvider, connectWallet])
+
+  // Check BUFFAFLOW qualification when wallet connects
+  useEffect(() => {
+    if (isConnected && address && selectedAuth === 'wallet') {
+      checkBuffaflowQualification()
+    }
+  }, [isConnected, address, selectedAuth, checkBuffaflowQualification])
 
   const handleInputChange = (field: keyof FormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
