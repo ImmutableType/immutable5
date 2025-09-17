@@ -98,11 +98,21 @@ const CreateProfilePage: React.FC = () => {
   }, [selectedAuth, isConnected, connectWallet])
 
   // Check BUFFAFLOW qualification when wallet connects
-  useEffect(() => {
-    if (isConnected && address && selectedAuth === 'wallet') {
-      checkBuffaflowQualification()
-    }
-  }, [isConnected, address, selectedAuth, checkBuffaflowQualification])
+
+
+  // DISABLED: Check BUFFAFLOW qualification when wallet connects
+// useEffect(() => {
+//   if (isConnected && address && selectedAuth === 'wallet') {
+//     checkBuffaflowQualification()
+//   }
+// }, [isConnected, address, selectedAuth, checkBuffaflowQualification])
+
+
+  //useEffect(() => {
+    //if (isConnected && address && selectedAuth === 'wallet') {
+      //checkBuffaflowQualification()
+    //}
+  //}, [isConnected, address, selectedAuth, checkBuffaflowQualification])
 
   const handleInputChange = (field: keyof FormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
