@@ -54,6 +54,32 @@ const CreateProfilePage: React.FC = () => {
     hasWalletProvider,
   } = useDirectWallet()
 
+  // Error logging for mobile debugging
+  useEffect(() => {
+    // Capture any JavaScript errors and display them
+    const originalError = console.error;
+    console.error = (...args) => {
+      originalError.apply(console, args);
+      // Show error on screen for mobile debugging
+      const errorDiv = document.createElement('div');
+      errorDiv.style.cssText = 'position:fixed;top:0;left:0;width:100%;background:red;color:white;padding:10px;z-index:9999;font-size:12px;';
+      errorDiv.textContent = `ERROR: ${args.join(' ')}`;
+      document.body.appendChild(errorDiv);
+    };
+
+    // Capture unhandled errors
+    window.onerror = (message, source, lineno) => {
+      const errorDiv = document.createElement('div');
+      errorDiv.style.cssText = 'position:fixed;top:50px;left:0;width:100%;background:orange;color:black;padding:10px;z-index:9999;font-size:12px;';
+      errorDiv.textContent = `JS ERROR: ${message} at line ${lineno}`;
+      document.body.appendChild(errorDiv);
+    };
+
+    return () => {
+      console.error = originalError;
+    };
+  }, []);
+
   const checkBuffaflowQualification = useCallback(async () => {
     if (!address) return
     
@@ -90,12 +116,11 @@ const CreateProfilePage: React.FC = () => {
     }
   }, [creationState.status])
 
-  // FIXED: Always attempt connection when auth is selected, regardless of provider detection
   useEffect(() => {
-    if (selectedAuth === 'wallet' && !isConnected) {
+    if (selectedAuth === 'wallet' && !isConnected && hasWalletProvider) {
       connectWallet()
     }
-  }, [selectedAuth, isConnected, connectWallet])
+  }, [selectedAuth, isConnected, hasWalletProvider, connectWallet])
 
   // Check BUFFAFLOW qualification when wallet connects
   useEffect(() => {
@@ -200,62 +225,100 @@ const CreateProfilePage: React.FC = () => {
     )
   }
 
-  // Auth selection
-  if (!selectedAuth) {
+  // Auth selection - with safer mobile wallet detection
+if (!selectedAuth) {
+  return (
+    <div className="profile-container profile-centered">
+      <div className="profile-card">
+        <h1 className="profile-title">Welcome to ImmutableType</h1>
+        <p className="profile-subtitle">
+          Once moveable, now provable. 
+        </p>
+        <p className="profile-subtitle">
+          Get started by creating a profile.
+        </p>
+
+        {/* Always show connect button with appropriate text */}
+        <button
+          onClick={() => setSelectedAuth('wallet')}
+          className="btn btn-primary btn-icon"
+        >
+          <span style={{ fontSize: '1.25rem' }}>🦊</span>
+          {hasWalletProvider ? 'Connect with MetaMask' : 'Open in MetaMask'}
+        </button>
+
+        {/* Mobile-specific guidance below the button */}
+        {isMobileDevice && !hasWalletProvider && (
+          <div style={{ marginTop: '1rem' }}>
+            <p className="install-note">
+              On mobile: Open this page in the MetaMask mobile app, or install MetaMask mobile first
+            </p>
+          </div>
+        )}
+
+        {!isMobileDevice && !hasWalletProvider && (
+          <div style={{ marginTop: '1rem' }}>
+            <p className="install-note">
+              <a 
+                href="https://metamask.io/download/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                style={{ color: 'var(--color-primary-600)' }}
+              >
+                Install MetaMask wallet
+              </a> if not already installed
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+
+  // MetaMask not detected (desktop)
+  if (selectedAuth === 'wallet' && !isMobileDevice && !hasWalletProvider) {
     return (
       <div className="profile-container profile-centered">
         <div className="profile-card">
-          <h1 className="profile-title">Welcome to ImmutableType</h1>
+          <h2 className="profile-title">Wallet Required</h2>
           <p className="profile-subtitle">
-            Once moveable, now provable. 
+            MetaMask wallet is required to create and manage your identity profile
           </p>
-          <p className="profile-subtitle">
-            Get started by creating a profile.
-          </p>
+
+          <a 
+            href="https://metamask.io/download/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="btn btn-primary btn-icon"
+            style={{ marginBottom: '1rem' }}
+          >
+            🦊 Install MetaMask Wallet
+          </a>
+
+          <p className="install-note">After installing, refresh and try again</p>
 
           <button
-            onClick={() => setSelectedAuth('wallet')}
-            className="btn btn-primary btn-icon"
+            onClick={() => setSelectedAuth(null)}
+            className="btn btn-secondary"
+            style={{ marginTop: '1rem' }}
           >
-            <span style={{ fontSize: '1.25rem' }}>🦊</span>
-            {hasWalletProvider ? 'Connect with MetaMask' : 'Open in MetaMask'}
+            ← Back to Options
           </button>
-
-          {isMobileDevice && !hasWalletProvider && (
-            <div style={{ marginTop: '1rem' }}>
-              <p className="install-note">
-                On mobile: Open this page in the MetaMask mobile app, or install MetaMask mobile first
-              </p>
-            </div>
-          )}
-
-          {!isMobileDevice && !hasWalletProvider && (
-            <div style={{ marginTop: '1rem' }}>
-              <p className="install-note">
-                <a 
-                  href="https://metamask.io/download/" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  style={{ color: 'var(--color-primary-600)' }}
-                >
-                  Install MetaMask wallet
-                </a> if not already installed
-              </p>
-            </div>
-          )}
         </div>
       </div>
     )
   }
 
-  // FIXED: Simplified connecting state - no provider check needed
-  if (selectedAuth === 'wallet' && !isConnected) {
+  // Connecting state
+  if (selectedAuth === 'wallet' && hasWalletProvider && !isConnected) {
     return (
       <div className="profile-container profile-centered">
         <div className="profile-card">
           <h2 className="profile-title">Connecting Wallet...</h2>
           <p className="profile-subtitle">
-          Please approve the wallet connection in MetaMask and ensure you&apos;re connected to the Flow EVM network          </p>
+            Please approve the wallet connection in MetaMask and ensure you&apos;re connected to the Flow EVM network
+          </p>
 
           <button
             onClick={() => setSelectedAuth(null)}

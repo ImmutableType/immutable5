@@ -1,7 +1,6 @@
 import { createConfig, http, cookieStorage, createStorage } from 'wagmi'
 import { defineChain } from 'viem'
 import { injected, metaMask } from 'wagmi/connectors'
-import { CONFIG } from './contracts'
 
 // Flow EVM Mainnet chain configuration (mobile-optimized)
 const flowEvm = defineChain({
