@@ -291,7 +291,7 @@ export const EXPECTED_QUALIFIER_FUNCTIONS = [
 ] as const
 
 // Helper functions for mainnet-only configuration
-export const getNetworkConfig = (chainId: number = CONFIG.CHAIN_ID) => {
+export const getNetworkConfig = () => {
   // Always return mainnet configuration
   return {
     chainId: CONFIG.MAINNET_CHAIN_ID,
