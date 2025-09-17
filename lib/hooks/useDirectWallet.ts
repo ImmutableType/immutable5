@@ -61,9 +61,11 @@ const hasMetaMaskProvider = () => {
 
 const getMetaMaskDeepLink = () => {
   try {
-    return `https://metamask.app.link/dapp/${window.location.host}/profile/create`
+    // Correct MetaMask deep link format
+    const currentUrl = encodeURIComponent(window.location.href)
+    return `https://metamask.app.link/dapp/${currentUrl}`
   } catch {
-    return 'https://metamask.app.link/dapp/app.immutabletype.com/profile/create'
+    return 'https://metamask.app.link/dapp/https%3A//app.immutabletype.com/profile/create'
   }
 }
 

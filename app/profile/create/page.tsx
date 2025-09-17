@@ -224,18 +224,18 @@ if (!selectedAuth) {
         </p>
 
         {isMobileDevice ? (
-          <div>
-            <a 
-              href="https://metamask.app.link/dapp/app.immutabletype.com/profile/create"
-              className="btn btn-primary btn-icon"
-            >
-              <span style={{ fontSize: '1.25rem' }}>🦊</span>
-              Open in MetaMask App
-            </a>
-            <p className="install-note" style={{ marginTop: '1rem' }}>
-              Mobile users: Click above to open this page in the MetaMask mobile app
-            </p>
-          </div>
+  <div>
+    <a 
+      href={`https://metamask.app.link/dapp/${encodeURIComponent('https://app.immutabletype.com/profile/create')}`}
+      className="btn btn-primary btn-icon"
+    >
+      <span style={{ fontSize: '1.25rem' }}>🦊</span>
+      Open in MetaMask App
+    </a>
+    <p className="install-note" style={{ marginTop: '1rem' }}>
+      Mobile users: Click above to open this page in the MetaMask mobile app
+    </p>
+  </div>
         ) : (
           <button
             onClick={() => setSelectedAuth('wallet')}
