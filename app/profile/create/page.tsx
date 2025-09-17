@@ -46,8 +46,6 @@ const CreateProfilePage: React.FC = () => {
   const [isCheckingQualification, setIsCheckingQualification] = useState(false)
   const [qualificationError, setQualificationError] = useState<string | null>(null)
 
-  const [isClient, setIsClient] = useState(false)
-
   const { 
     address, 
     isConnected, 
@@ -57,9 +55,6 @@ const CreateProfilePage: React.FC = () => {
     isMetaMaskMobileApp 
   } = useDirectWallet()
 
-  useEffect(() => {
-    setIsClient(true)
-  }, [])
 
   useEffect(() => {
     if (creationState.status === 'success') {
@@ -196,11 +191,11 @@ const CreateProfilePage: React.FC = () => {
     return `Create Identity Profile (${feeText})`
   }
 
-  if (!isClient) {
+  if (typeof window === 'undefined') {
     return (
       <div className="profile-container profile-centered">
         <div className="profile-card">
-          <div className="loading-container">Loading...</div>
+          <h1 className="profile-title">Loading ImmutableType...</h1>
         </div>
       </div>
     )
