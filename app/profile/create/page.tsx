@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useDirectWallet } from '../../../lib/hooks/useDirectWallet'
 import { tokenQualifierService } from '../../../lib/services/profile/TokenQualifier'
 import confetti from 'canvas-confetti'
@@ -51,8 +51,7 @@ const CreateProfilePage: React.FC = () => {
     isConnected, 
     connectWallet, 
     isMobileDevice, 
-    hasWalletProvider, 
-    isMetaMaskMobileApp 
+    hasWalletProvider,
   } = useDirectWallet()
 
   // Error logging for mobile debugging
@@ -81,7 +80,7 @@ const CreateProfilePage: React.FC = () => {
     };
   }, []);
 
-  const checkBuffaflowQualification = async () => {
+  const checkBuffaflowQualification = useCallback(async () => {
     if (!address) return
     
     setIsCheckingQualification(true)
@@ -104,7 +103,7 @@ const CreateProfilePage: React.FC = () => {
     } finally {
       setIsCheckingQualification(false)
     }
-  }
+  }, [address])
 
   useEffect(() => {
     if (creationState.status === 'success') {

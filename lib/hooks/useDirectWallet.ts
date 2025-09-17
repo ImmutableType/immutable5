@@ -37,10 +37,7 @@ const initializeProvider = () => {
     if (window.ethereum) {
       resolve(window.ethereum);
     } else {
-      let timeoutId: NodeJS.Timeout;
-      
       const handleInit = () => {
-        clearTimeout(timeoutId);
         if (window.ethereum) {
           resolve(window.ethereum);
         } else {
@@ -50,7 +47,7 @@ const initializeProvider = () => {
       
       window.addEventListener('ethereum#initialized', handleInit, { once: true });
       
-      timeoutId = setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         window.removeEventListener('ethereum#initialized', handleInit);
         reject(new Error('MetaMask provider not found'));
       }, 3000);
