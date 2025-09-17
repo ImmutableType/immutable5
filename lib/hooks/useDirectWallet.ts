@@ -123,19 +123,10 @@ export function useDirectWallet() {
     try {
       setIsConnecting(true)
       
-      // On mobile without provider, redirect to MetaMask
-      if (isMobileDevice && !window.ethereum) {
-        const deepLink = getMetaMaskDeepLink()
-        window.location.href = deepLink
-        return
-      }
-      
-      // If no provider at all, show install message
       if (!window.ethereum) {
-        throw new Error('Please install MetaMask')
+        throw new Error('Please install MetaMask or open in MetaMask app')
       }
 
-      // Proceed with connection
       const provider = window.ethereum
       await ensureCorrectNetwork(provider)
 
@@ -149,14 +140,13 @@ export function useDirectWallet() {
     } catch (err: unknown) {
       const ethError = err as EthereumError
       if (ethError.code === 4001) {
-        // User rejected - don't show error
-        return
+        return // User rejected
       }
       console.error('Connection failed:', err)
     } finally {
       setIsConnecting(false)
     }
-  }, [isMobileDevice])
+  }, [])
 
   const disconnect = useCallback(() => {
     setAddress(null)
