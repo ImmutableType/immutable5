@@ -55,6 +55,31 @@ const CreateProfilePage: React.FC = () => {
     isMetaMaskMobileApp 
   } = useDirectWallet()
 
+  // Error logging for mobile debugging
+  useEffect(() => {
+    // Capture any JavaScript errors and display them
+    const originalError = console.error;
+    console.error = (...args) => {
+      originalError.apply(console, args);
+      // Show error on screen for mobile debugging
+      const errorDiv = document.createElement('div');
+      errorDiv.style.cssText = 'position:fixed;top:0;left:0;width:100%;background:red;color:white;padding:10px;z-index:9999;font-size:12px;';
+      errorDiv.textContent = `ERROR: ${args.join(' ')}`;
+      document.body.appendChild(errorDiv);
+    };
+
+    // Capture unhandled errors
+    window.onerror = (message, source, lineno, colno, error) => {
+      const errorDiv = document.createElement('div');
+      errorDiv.style.cssText = 'position:fixed;top:50px;left:0;width:100%;background:orange;color:black;padding:10px;z-index:9999;font-size:12px;';
+      errorDiv.textContent = `JS ERROR: ${message} at line ${lineno}`;
+      document.body.appendChild(errorDiv);
+    };
+
+    return () => {
+      console.error = originalError;
+    };
+  }, []);
 
   useEffect(() => {
     if (creationState.status === 'success') {
