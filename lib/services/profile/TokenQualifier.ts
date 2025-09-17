@@ -17,7 +17,8 @@ export class TokenQualifierService {
   async checkQualification(userAddress: Address): Promise<QualificationStatus> {
     try {
       // If BUFFAFLOW bypass is disabled, return not qualified
-      if (!CONFIG.ENABLE_BUFFAFLOW_BYPASS) {
+      if (true) { // Force disable
+
         return {
           isQualified: false,
           tokenBalance: '0',
