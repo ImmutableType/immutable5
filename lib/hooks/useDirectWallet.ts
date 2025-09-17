@@ -120,14 +120,19 @@ export function useDirectWallet() {
   }
 
   const connectWallet = useCallback(async () => {
+    // TEMPORARY DEBUG - Remove after testing
+    alert(`Debug: connectWallet called. Mobile: ${isMobileDevice}, HasProvider: ${!!window.ethereum}`)
+    
     try {
       setIsConnecting(true)
       
       // Simple approach - always try direct connection first
       if (!window.ethereum) {
+        alert('No ethereum provider found')
         // If no provider, try MetaMask deep link on mobile
         if (isMobileDevice) {
           const deepLink = getMetaMaskDeepLink()
+          alert(`Redirecting to: ${deepLink}`)
           window.location.href = deepLink
           return
         } else {
@@ -135,6 +140,8 @@ export function useDirectWallet() {
         }
       }
 
+      alert('Provider found, attempting connection...')
+      
       // For any device with provider, proceed directly
       const provider = window.ethereum
       await ensureCorrectNetwork(provider)
@@ -143,10 +150,13 @@ export function useDirectWallet() {
         method: 'eth_requestAccounts'
       }) as string[]
 
+      alert(`Accounts received: ${accounts.length}`)
+
       if (accounts.length > 0) {
         setAddress(accounts[0])
       }
     } catch (err: unknown) {
+      alert(`Error caught: ${err}`)
       const ethError = err as EthereumError
       if (ethError.code === 4001) {
         // User rejected - don't show error
