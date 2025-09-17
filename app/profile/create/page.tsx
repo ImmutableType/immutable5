@@ -210,53 +210,45 @@ const CreateProfilePage: React.FC = () => {
     )
   }
 
-  // Auth selection
-  if (!selectedAuth) {
-    return (
-      <div className="profile-container profile-centered">
-        <div className="profile-card">
-          <h1 className="profile-title">Welcome to ImmutableType</h1>
-          <p className="profile-subtitle">
-            Once moveable, now provable. 
-          </p>
-          <p className="profile-subtitle">
-            Get started by creating a profile.
-          </p>
+// Auth selection
+if (!selectedAuth) {
+  return (
+    <div className="profile-container profile-centered">
+      <div className="profile-card">
+        <h1 className="profile-title">Welcome to ImmutableType</h1>
+        <p className="profile-subtitle">
+          Once moveable, now provable. 
+        </p>
+        <p className="profile-subtitle">
+          Get started by creating a profile.
+        </p>
 
+        {isMobileDevice ? (
+          <div>
+            <a 
+              href="https://metamask.app.link/dapp/app.immutabletype.com/profile/create"
+              className="btn btn-primary btn-icon"
+            >
+              <span style={{ fontSize: '1.25rem' }}>🦊</span>
+              Open in MetaMask App
+            </a>
+            <p className="install-note" style={{ marginTop: '1rem' }}>
+              Mobile users: Click above to open this page in the MetaMask mobile app
+            </p>
+          </div>
+        ) : (
           <button
             onClick={() => setSelectedAuth('wallet')}
             className="btn btn-primary btn-icon"
           >
             <span style={{ fontSize: '1.25rem' }}>🦊</span>
-            {hasWalletProvider ? 'Connect with MetaMask' : 'Open in MetaMask'}
+            Connect with MetaMask
           </button>
-
-          {isMobileDevice && !hasWalletProvider && (
-            <div style={{ marginTop: '1rem' }}>
-              <p className="install-note">
-                On mobile: Open this page in the MetaMask mobile app, or install MetaMask mobile first
-              </p>
-            </div>
-          )}
-
-          {!isMobileDevice && !hasWalletProvider && (
-            <div style={{ marginTop: '1rem' }}>
-              <p className="install-note">
-                <a 
-                  href="https://metamask.io/download/" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  style={{ color: 'var(--color-primary-600)' }}
-                >
-                  Install MetaMask wallet
-                </a> if not already installed
-              </p>
-            </div>
-          )}
-        </div>
+        )}
       </div>
-    )
-  }
+    </div>
+  )
+}
 
   // FIXED: Simplified connecting state - no provider check needed
   if (selectedAuth === 'wallet' && !isConnected) {
