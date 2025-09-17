@@ -34,36 +34,41 @@ const FLOW_EVM_MAINNET = {
 export function useDirectWallet() {
   const [address, setAddress] = useState<string | null>(null)
   const [isConnecting, setIsConnecting] = useState(false)
+  const [isClient, setIsClient] = useState(false)
 
   useEffect(() => {
-    if (window.ethereum) {
-      const handleAccountsChanged = (...args: unknown[]) => {
-        const accounts = args[0] as string[]
-        if (accounts.length > 0) {
-          setAddress(accounts[0])
-        } else {
-          setAddress(null)
-        }
-      }
+    setIsClient(true)
+  }, [])
 
-      // Check if already connected WITHOUT prompting
-      window.ethereum.request({ method: 'eth_accounts' })
-        .then((accounts) => {
-          handleAccountsChanged(accounts as string[])
-        })
-        .catch(console.error)
+  useEffect(() => {
+    if (!isClient || !window.ethereum) return
 
-      if (window.ethereum.on) {
-        window.ethereum.on('accountsChanged', handleAccountsChanged)
-      }
-
-      return () => {
-        if (window.ethereum?.removeListener) {
-          window.ethereum.removeListener('accountsChanged', handleAccountsChanged)
-        }
+    const handleAccountsChanged = (...args: unknown[]) => {
+      const accounts = args[0] as string[]
+      if (accounts.length > 0) {
+        setAddress(accounts[0])
+      } else {
+        setAddress(null)
       }
     }
-  }, [])
+
+    // Check if already connected WITHOUT prompting
+    window.ethereum.request({ method: 'eth_accounts' })
+      .then((accounts) => {
+        handleAccountsChanged(accounts as string[])
+      })
+      .catch(console.error)
+
+    if (window.ethereum.on) {
+      window.ethereum.on('accountsChanged', handleAccountsChanged)
+    }
+
+    return () => {
+      if (window.ethereum?.removeListener) {
+        window.ethereum.removeListener('accountsChanged', handleAccountsChanged)
+      }
+    }
+  }, [isClient])
 
   const ensureCorrectNetwork = async () => {
     if (!window.ethereum) return
@@ -89,6 +94,8 @@ export function useDirectWallet() {
   }
 
   const connectWallet = useCallback(async () => {
+    if (!isClient) return
+
     try {
       setIsConnecting(true)
       
@@ -109,14 +116,13 @@ export function useDirectWallet() {
     } catch (err: unknown) {
       const ethError = err as EthereumError
       if (ethError.code === 4001) {
-        // User rejected - normal, don't show error
         return
       }
       console.error('Wallet connection error:', err)
     } finally {
       setIsConnecting(false)
     }
-  }, [])
+  }, [isClient])
 
   const disconnect = useCallback(() => {
     setAddress(null)
@@ -128,8 +134,8 @@ export function useDirectWallet() {
     connectWallet,
     disconnect,
     isConnecting,
-    isMobileDevice: false, // Simplified - no mobile detection
-    hasWalletProvider: !!window.ethereum,
+    isMobileDevice: isClient ? /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) : false,
+    hasWalletProvider: isClient ? !!window.ethereum : false,
     isMetaMaskMobileApp: false
   }
 }
