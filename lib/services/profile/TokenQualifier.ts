@@ -17,8 +17,7 @@ export class TokenQualifierService {
   async checkQualification(userAddress: Address): Promise<QualificationStatus> {
     try {
       // If BUFFAFLOW bypass is disabled, return not qualified
-      if (true) { // Force disable
-
+      if (true) { // Force disable for debugging
         return {
           isQualified: false,
           tokenBalance: '0',
@@ -54,10 +53,19 @@ export class TokenQualifierService {
   }
 
   /**
-   * Check TokenQualifier contract
+   * Check TokenQualifier contract with mobile-safe provider checks
    */
   private async checkTokenQualifierContract(userAddress: Address): Promise<boolean> {
     try {
+      // Add provider ready check for mobile
+      if (typeof window !== 'undefined' && !window.ethereum) {
+        console.warn('Provider not available for contract check');
+        return false;
+      }
+      
+      // Add small delay for mobile timing
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       const isQualified = await readContract(wagmiConfig, {
         address: this.qualifierAddress,
         abi: TOKEN_QUALIFIER_ABI,
@@ -77,6 +85,14 @@ export class TokenQualifierService {
    */
   private async checkBuffaflowBalance(userAddress: Address, buffaflowAddress: Address): Promise<QualificationStatus> {
     try {
+      // Provider readiness check
+      if (typeof window !== 'undefined' && !window.ethereum) {
+        throw new Error('Provider not available');
+      }
+      
+      // Add timing delay for mobile
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       // Check ERC20 token balance
       const tokenBalance = await readContract(wagmiConfig, {
         address: buffaflowAddress,

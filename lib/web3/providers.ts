@@ -1,42 +1,55 @@
-import { createConfig, http } from 'wagmi'
+import { createConfig, http, cookieStorage, createStorage } from 'wagmi'
+import { defineChain } from 'viem'
 import { injected, metaMask } from 'wagmi/connectors'
 import { CONFIG } from './contracts'
 
-// Flow EVM Testnet chain configuration (custom definition)
-export const flowEvmTestnetChain = {
-  id: CONFIG.CHAIN_ID,
-  name: 'Flow EVM Testnet',
-  network: 'flow-evm-testnet',
+// Flow EVM Mainnet chain configuration (mobile-optimized)
+const flowEvm = defineChain({
+  id: 747, // Mainnet ID
+  name: 'Flow EVM Mainnet',
+  network: 'flow-evm',
   nativeCurrency: {
     decimals: 18,
-    name: 'FLOW',
+    name: 'Flow',
     symbol: 'FLOW',
   },
   rpcUrls: {
-    default: { http: [CONFIG.RPC_URL] },
-    public: { http: [CONFIG.RPC_URL] },
-  },
-  blockExplorers: {
-    default: { 
-      name: 'FlowScan',
-      url: 'https://evm-testnet.flowscan.io',
+    default: {
+      http: ['https://mainnet.evm.nodes.onflow.org'],
+    },
+    public: {
+      http: ['https://mainnet.evm.nodes.onflow.org'],
     },
   },
-  testnet: true,
-} as const
-
-// Wagmi configuration
-export const wagmiConfig = createConfig({
-  chains: [flowEvmTestnetChain],
-  connectors: [
-    injected(),
-    metaMask(),
-  ],
-  transports: {
-    [CONFIG.CHAIN_ID]: http(CONFIG.RPC_URL),
+  blockExplorers: {
+    default: {
+      name: 'Flow EVM Explorer',
+      url: 'https://evm.flowscan.io',
+    },
   },
 })
 
-// Type exports
-export type FlowEvmTestnetChain = typeof flowEvmTestnetChain
+// Mobile-optimized Wagmi configuration
+export const wagmiConfig = createConfig({
+  chains: [flowEvm],
+  ssr: true, // Critical for Next.js mobile compatibility
+  storage: createStorage({
+    storage: cookieStorage, // Use cookies instead of localStorage for mobile
+  }),
+  connectors: [
+    injected(),
+    metaMask({
+      dappMetadata: {
+        name: 'ImmutableType',
+      },
+    }),
+  ],
+  transports: {
+    [flowEvm.id]: http('https://mainnet.evm.nodes.onflow.org'),
+  },
+})
+
+// Legacy exports for compatibility
+export const flowEvmTestnetChain = flowEvm // Renamed but same export
+export type FlowEvmTestnetChain = typeof flowEvm
 export type WagmiConfig = typeof wagmiConfig

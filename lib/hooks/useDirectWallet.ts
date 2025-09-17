@@ -31,7 +31,34 @@ const FLOW_EVM_MAINNET = {
   }
 }
 
-// Mobile wallet detection helpers with proper error handling
+// Provider initialization with timeout for mobile
+const initializeProvider = () => {
+  return new Promise<EthereumProvider>((resolve, reject) => {
+    if (window.ethereum) {
+      resolve(window.ethereum);
+    } else {
+      let timeoutId: NodeJS.Timeout;
+      
+      const handleInit = () => {
+        clearTimeout(timeoutId);
+        if (window.ethereum) {
+          resolve(window.ethereum);
+        } else {
+          reject(new Error('Provider not available after initialization'));
+        }
+      };
+      
+      window.addEventListener('ethereum#initialized', handleInit, { once: true });
+      
+      timeoutId = setTimeout(() => {
+        window.removeEventListener('ethereum#initialized', handleInit);
+        reject(new Error('MetaMask provider not found'));
+      }, 3000);
+    }
+  });
+};
+
+// Error-safe mobile detection helpers
 const isMobile = () => {
   if (typeof window === 'undefined' || typeof navigator === 'undefined') return false
   try {
@@ -94,22 +121,20 @@ export function useDirectWallet() {
     }
   }, [])
 
-  const ensureCorrectNetwork = async () => {
-    if (!window.ethereum) return
-
+  const ensureCorrectNetwork = async (provider: EthereumProvider) => {
     try {
-      const currentChainId = await window.ethereum.request({ method: 'eth_chainId' }) as string
+      const currentChainId = await provider.request({ method: 'eth_chainId' }) as string
       
       if (currentChainId !== FLOW_EVM_MAINNET.chainId) {
         try {
-          await window.ethereum.request({
+          await provider.request({
             method: 'wallet_switchEthereumChain',
             params: [{ chainId: FLOW_EVM_MAINNET.chainId }],
           })
         } catch (error: unknown) {
           const ethError = error as EthereumError
           if (ethError.code === 4902) {
-            await window.ethereum.request({
+            await provider.request({
               method: 'wallet_addEthereumChain',
               params: [FLOW_EVM_MAINNET]
             })
@@ -125,13 +150,16 @@ export function useDirectWallet() {
     try {
       setIsConnecting(true)
       
+      // Wait for provider to be ready (mobile fix)
+      const provider = await initializeProvider();
+      
       // Mobile-specific logic
       if (isMobileDevice) {
         // If we're in MetaMask mobile app, proceed normally
-        if (isMetaMaskMobileApp() && window.ethereum) {
-          await ensureCorrectNetwork()
+        if (isMetaMaskMobileApp() && provider) {
+          await ensureCorrectNetwork(provider)
           
-          const accounts = await window.ethereum.request({
+          const accounts = await provider.request({
             method: 'eth_requestAccounts'
           }) as string[]
 
@@ -149,14 +177,14 @@ export function useDirectWallet() {
         }
       }
       
-      // Desktop or mobile with provider (original logic)
-      if (!window.ethereum) {
+      // Desktop or mobile with provider
+      if (!provider) {
         throw new Error('Please install MetaMask')
       }
 
-      await ensureCorrectNetwork()
+      await ensureCorrectNetwork(provider)
 
-      const accounts = await window.ethereum.request({
+      const accounts = await provider.request({
         method: 'eth_requestAccounts'
       }) as string[]
 
