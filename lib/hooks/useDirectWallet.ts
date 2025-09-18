@@ -34,6 +34,7 @@ export function useDirectWallet() {
   const ensureCorrectNetwork = async (provider: SDKProvider) => {
     try {
       const currentChainId = await provider.request({ method: 'eth_chainId' }) as string
+      console.log('Current chain ID:', currentChainId, 'Target:', FLOW_EVM_MAINNET.chainId)
       
       if (currentChainId !== FLOW_EVM_MAINNET.chainId) {
         console.log(`Switching from chain ${currentChainId} to Flow EVM Mainnet ${FLOW_EVM_MAINNET.chainId}`)
@@ -43,6 +44,7 @@ export function useDirectWallet() {
             method: 'wallet_switchEthereumChain',
             params: [{ chainId: FLOW_EVM_MAINNET.chainId }],
           })
+          console.log('Network switch successful')
         } catch (error: unknown) {
           const err = error as { code?: number; message?: string }
           if (err.code === 4902) {
@@ -51,10 +53,16 @@ export function useDirectWallet() {
               method: 'wallet_addEthereumChain',
               params: [FLOW_EVM_MAINNET]
             })
+            console.log('Network added successfully')
+          } else {
+            console.error('Network switch failed:', err.message)
+            throw error
           }
         }
-        // Add delay after network switch for mobile stability
-        await new Promise(resolve => setTimeout(resolve, 1000))
+        // Longer delay for network stabilization
+        await new Promise(resolve => setTimeout(resolve, 2000))
+      } else {
+        console.log('Already on correct network')
       }
     } catch (error) {
       console.error('Network switching error:', error)
@@ -68,48 +76,85 @@ export function useDirectWallet() {
     setIsConnecting(true)
     
     try {
-      console.log('Connecting to MetaMask using SDK...')
+      console.log('=== WALLET CONNECTION START ===')
+      console.log('1. Initiating MetaMask SDK connection...')
       
-      // Use SDK connect method instead of getProvider + requestAccounts
+      // First attempt: Use SDK connect method
       const accounts = await MMSDK.connect()
+      console.log('2. SDK connect result:', accounts)
       
       if (accounts && accounts.length > 0) {
-        console.log('Connected to account:', accounts[0])
+        console.log('3. Got accounts:', accounts[0])
         
         // Get provider after successful connection
         const provider = MMSDK.getProvider()
+        console.log('4. Provider available:', !!provider)
+        
         if (provider) {
-          // Ensure we're on Flow EVM Mainnet
-          await ensureCorrectNetwork(provider)
-          setAddress(accounts[0])
-          
-          // Set up account change listener
-          if (provider.on) {
-            provider.on('accountsChanged', (...args: unknown[]) => {
-              const newAccounts = args[0] as string[]
-              if (newAccounts.length > 0) {
-                setAddress(newAccounts[0])
-              } else {
-                setAddress(null)
+          // Check and switch network BEFORE setting address
+          try {
+            await ensureCorrectNetwork(provider)
+            console.log('5. Network check completed')
+            
+            // Verify connection is still active after network switch
+            const finalAccounts = await provider.request({ method: 'eth_accounts' }) as string[]
+            console.log('6. Final account verification:', finalAccounts)
+            
+            if (finalAccounts.length > 0) {
+              setAddress(finalAccounts[0])
+              console.log('7. Address set successfully:', finalAccounts[0])
+              
+              // Set up account change listener
+              if (provider.on) {
+                provider.on('accountsChanged', (...args: unknown[]) => {
+                  console.log('Account changed event:', args)
+                  const newAccounts = args[0] as string[]
+                  if (newAccounts.length > 0) {
+                    setAddress(newAccounts[0])
+                  } else {
+                    setAddress(null)
+                  }
+                })
+                
+                provider.on('chainChanged', (...args: unknown[]) => {
+                  const chainId = args[0] as string
+                  console.log('Chain changed event:', chainId)
+                })
               }
-            })
+            } else {
+              throw new Error('No accounts available after network switch')
+            }
+          } catch (networkError) {
+            console.error('Network setup failed:', networkError)
+            throw new Error('Failed to connect to Flow EVM Mainnet. Please switch networks manually in MetaMask.')
           }
+        } else {
+          throw new Error('Provider not available after connection')
         }
+      } else {
+        throw new Error('No accounts returned from MetaMask')
       }
+      
+      console.log('=== WALLET CONNECTION SUCCESS ===')
     } catch (error: unknown) {
-      console.error('Wallet connection error:', error)
+      console.error('=== WALLET CONNECTION FAILED ===')
+      console.error('Error details:', error)
+      
       const err = error as { code?: number; message?: string }
       if (err.code === 4001) {
-        // User rejected connection
+        console.log('User rejected connection')
         return
       }
-      throw error
+      
+      // Don't throw - just log and let UI handle the failure
+      console.error('Connection error:', err.message)
     } finally {
       setIsConnecting(false)
     }
   }, [isClient])
 
   const disconnect = useCallback(() => {
+    console.log('Disconnecting wallet...')
     setAddress(null)
   }, [])
 
@@ -119,16 +164,27 @@ export function useDirectWallet() {
 
     const checkExistingConnection = async () => {
       try {
+        console.log('Checking for existing wallet connection...')
         const provider = MMSDK.getProvider()
         
-        if (!provider) return
+        if (!provider) {
+          console.log('No provider available')
+          return
+        }
         
         const accounts = await provider.request({ method: 'eth_accounts' }) as string[]
+        console.log('Existing accounts found:', accounts)
+        
         if (accounts.length > 0) {
           // Verify we're on correct network
           const currentChainId = await provider.request({ method: 'eth_chainId' }) as string
+          console.log('Current network:', currentChainId, 'Expected:', FLOW_EVM_MAINNET.chainId)
+          
           if (currentChainId === FLOW_EVM_MAINNET.chainId) {
+            console.log('Restoring connection to:', accounts[0])
             setAddress(accounts[0])
+          } else {
+            console.log('Wrong network, connection not restored')
           }
         }
       } catch (error) {
@@ -136,7 +192,8 @@ export function useDirectWallet() {
       }
     }
 
-    checkExistingConnection()
+    // Small delay to ensure SDK is ready
+    setTimeout(checkExistingConnection, 500)
   }, [isClient])
 
   return {

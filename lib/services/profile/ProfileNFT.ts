@@ -20,11 +20,26 @@ export class ProfileNFTService {
   private contract: Contract | null = null
 
   async initialize(): Promise<void> {
-    // Use shared MetaMask SDK instance
+    console.log('ProfileNFT: Initializing service...')
+    
     const sdkProvider = MMSDK.getProvider()
+    console.log('ProfileNFT: SDK provider available:', !!sdkProvider)
     
     if (!sdkProvider) {
       throw new Error('MetaMask provider not available - please connect wallet first')
+    }
+    
+    // Test if provider is actually functional
+    try {
+      const accounts = await sdkProvider.request({ method: 'eth_accounts' }) as string[]
+      console.log('ProfileNFT: Provider accounts check:', accounts)
+      
+      if (accounts.length === 0) {
+        throw new Error('No accounts connected - please reconnect wallet')
+      }
+    } catch (error) {
+      console.error('ProfileNFT: Provider test failed:', error)
+      throw new Error('Provider connection test failed - please reconnect wallet')
     }
     
     this.provider = new ethers.BrowserProvider(sdkProvider)
@@ -33,6 +48,8 @@ export class ProfileNFTService {
       PROFILE_NFT_ABI,
       this.provider
     )
+    
+    console.log('ProfileNFT: Service initialized successfully')
   }
 
   async getProfile(profileId: string): Promise<ProfileDisplayData> {
@@ -100,79 +117,70 @@ export class ProfileNFTService {
 
   async createBasicProfile(profileData: ProfileData, address: string): Promise<ProfileCreationResult> {
     try {
-      // Check provider status and return user-friendly errors
-      const sdkProvider = MMSDK.getProvider()
-      if (!sdkProvider) {
+      console.log('=== PROFILE CREATION DEBUG START ===')
+      console.log('1. Profile data received:', profileData)
+      console.log('2. Expected user address:', address)
+
+      // Force re-initialization to ensure fresh provider
+      console.log('3. Forcing provider re-initialization...')
+      this.provider = null
+      this.contract = null
+      
+      await this.initialize()
+      
+      console.log('4. Testing network connection...')
+      const network = await this.provider!.getNetwork()
+      console.log('5. Connected to network:', network.chainId, network.name)
+      
+      if (network.chainId !== BigInt(747)) {
         return {
           success: false,
-          error: 'Wallet connection lost - please reconnect MetaMask'
+          error: `Wrong network: ${network.chainId}. Please switch to Flow EVM Mainnet (747).`
         }
       }
 
-      if (!this.provider || !this.contract) {
-        await this.initialize()
-      }
-
-      // Test if we can get network info
-      try {
-        const network = await this.provider!.getNetwork()
-        if (network.chainId !== BigInt(747)) {
-          return {
-            success: false,
-            error: `Wrong network detected (${network.chainId}). Please switch to Flow EVM Mainnet.`
-          }
-        }
-      } catch (networkError) {
-        return {
-          success: false,
-          error: 'Network connection failed - please reconnect wallet and ensure you are on Flow EVM Mainnet'
-        }
-      }
-
+      console.log('6. Getting signer...')
       const signer = await this.provider!.getSigner()
       const userAddress = await signer.getAddress()
-      const contractWithSigner = this.contract!.connect(signer)
+      console.log('7. Signer address:', userAddress)
 
-      // Add explicit wallet check before transaction
       if (userAddress.toLowerCase() !== address.toLowerCase()) {
         return {
           success: false,
-          error: 'Wallet address mismatch - please reconnect your wallet'
+          error: `Address mismatch: expected ${address}, got ${userAddress}`
         }
       }
 
-      console.log('Creating profile with data:', profileData)
-      console.log('User address:', userAddress)
+      const contractWithSigner = this.contract!.connect(signer)
+      console.log('8. Contract connected to signer')
 
-      // Try without fee first (BUFFAFLOW bypass), then with fee
+      // Try transaction without fee first
       try {
-        console.log('Attempting profile creation without fee...')
-        const tx = await (contractWithSigner as Contract).createBasicProfile(
+        console.log('9. Attempting transaction WITHOUT fee...')
+        const tx = await (contractWithSigner as any).createBasicProfile(
           profileData.displayName || '',
           profileData.bio || '',
           profileData.location || '',
           profileData.avatarUrl || ''
         ) as ContractTransactionResponse
         
-        console.log('Transaction sent (no fee):', tx.hash)
+        console.log('10. Transaction sent (no fee):', tx.hash)
         const receipt = await tx.wait() as TransactionReceipt
-        console.log('Transaction confirmed:', receipt.hash)
-        
-        const profileId = this.extractProfileIdFromReceipt(receipt)
+        console.log('11. Transaction confirmed:', receipt.hash)
         
         return {
           success: true,
-          profileId,
+          profileId: this.extractProfileIdFromReceipt(receipt),
           did: `did:pkh:eip155:747:${userAddress.toLowerCase()}`,
           transactionHash: receipt.hash
         }
         
       } catch (error: unknown) {
         const err = error as Error
-        console.log('No-fee transaction failed, trying with 3 FLOW fee:', err.message)
+        console.log('12. No-fee transaction failed:', err.message)
+        console.log('13. Attempting transaction WITH 3 FLOW fee...')
         
-        // Try with 3 FLOW fee
-        const txWithFee = await (contractWithSigner as Contract).createBasicProfile(
+        const txWithFee = await (contractWithSigner as any).createBasicProfile(
           profileData.displayName || '',
           profileData.bio || '',
           profileData.location || '',
@@ -180,15 +188,13 @@ export class ProfileNFTService {
           { value: ethers.parseEther('3') }
         ) as ContractTransactionResponse
         
-        console.log('Transaction sent (with fee):', txWithFee.hash)
+        console.log('14. Transaction sent (with fee):', txWithFee.hash)
         const receiptWithFee = await txWithFee.wait() as TransactionReceipt
-        console.log('Transaction confirmed:', receiptWithFee.hash)
-        
-        const profileId = this.extractProfileIdFromReceipt(receiptWithFee)
+        console.log('15. Transaction confirmed:', receiptWithFee.hash)
         
         return {
           success: true,
-          profileId,
+          profileId: this.extractProfileIdFromReceipt(receiptWithFee),
           did: `did:pkh:eip155:747:${userAddress.toLowerCase()}`,
           transactionHash: receiptWithFee.hash
         }
@@ -196,9 +202,9 @@ export class ProfileNFTService {
 
     } catch (error: unknown) {
       const err = error as Error
-      console.error('Profile creation failed:', error)
+      console.error('=== PROFILE CREATION FAILED ===')
+      console.error('Error details:', err)
       
-      // Return specific error messages for mobile users
       if (err.message.includes('user rejected')) {
         return {
           success: false,
