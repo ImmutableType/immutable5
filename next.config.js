@@ -1,9 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  env: {
-    // Load .env.mainnet for mainnet configuration
-    ...require('dotenv').config({ path: '.env.mainnet' }).parsed,
-  },
+  // Fix the lockfile warning
+  outputFileTracingRoot: process.cwd(),
+  
+  // Remove custom dotenv loading - Railway handles this differently
   eslint: {
     ignoreDuringBuilds: true
   }
