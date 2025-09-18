@@ -233,7 +233,7 @@ const CreateProfilePage: React.FC = () => {
         <div className="profile-card">
           <h2 className="profile-title">Connecting Wallet...</h2>
           <p className="profile-subtitle">
-            Please approve the wallet connection in MetaMask and ensure you're connected to the Flow EVM network
+          Please approve the wallet connection in MetaMask and ensure you&apos;re connected to the Flow EVM network
           </p>
 
           <button

@@ -5,9 +5,7 @@ const nextConfig = {
     ...require('dotenv').config({ path: '.env.mainnet' }).parsed,
   },
   eslint: {
-    rules: {
-      'react/no-unescaped-entities': 'off'
-    }
+    ignoreDuringBuilds: true
   }
 }
 

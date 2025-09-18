@@ -3,12 +3,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { MetaMaskSDK, SDKProvider } from '@metamask/sdk'
 
-interface EthereumProvider {
-  request(args: { method: string; params?: unknown[] }): Promise<unknown>;
-  on?: (event: string, handler: (...args: unknown[]) => void) => void;
-  removeListener?: (event: string, handler: (...args: unknown[]) => void) => void;
-}
-
 // Use environment variables for Flow EVM configuration
 const FLOW_EVM_MAINNET = {
   chainId: `0x${parseInt(process.env.NEXT_PUBLIC_FLOW_EVM_CHAIN_ID || '747').toString(16)}`, // Convert to hex
@@ -59,8 +53,9 @@ export function useDirectWallet() {
             method: 'wallet_switchEthereumChain',
             params: [{ chainId: FLOW_EVM_MAINNET.chainId }],
           })
-        } catch (error: any) {
-          if (error.code === 4902) {
+        } catch (error: unknown) {
+          const err = error as { code?: number; message?: string }
+          if (err.code === 4902) {
             console.log('Adding Flow EVM Mainnet to wallet...')
             await provider.request({
               method: 'wallet_addEthereumChain',
@@ -116,9 +111,10 @@ export function useDirectWallet() {
           })
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Wallet connection error:', error)
-      if (error.code === 4001) {
+      const err = error as { code?: number; message?: string }
+      if (err.code === 4001) {
         // User rejected connection
         return
       }
