@@ -62,3 +62,10 @@ export interface ProfileData {
     LOCATION: { max: 100 },
     AVATAR_URL: { max: 500 }
   } as const
+
+  export interface QualificationStatus {
+    isQualified: boolean
+    tokenBalance: string
+    nftCount: number
+    canBypassFee: boolean
+  }

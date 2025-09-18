@@ -1,26 +1,17 @@
 import { ethers, Contract, BrowserProvider } from 'ethers'
-import { MetaMaskSDK } from '@metamask/sdk'
+import { MMSDK } from '../../web3/metamask'
 import { CONTRACTS, TOKEN_QUALIFIER_ABI, BUFFAFLOW_ABI } from '../../web3/contracts'
 import type { QualificationStatus } from '../../types/profile'
-
-// Use the same SDK instance
-const MMSDK = new MetaMaskSDK({
-  dappMetadata: {
-    name: "ImmutableType",
-    url: typeof window !== 'undefined' ? window.location.href : 'https://app.immutabletype.com'
-  },
-  useDeeplink: true,
-  preferDesktop: false
-})
 
 export class TokenQualifierService {
   private provider: BrowserProvider | null = null
 
   async initialize(): Promise<void> {
+    // Use shared MetaMask SDK instance
     const sdkProvider = MMSDK.getProvider()
     
     if (!sdkProvider) {
-      throw new Error('MetaMask provider not available')
+      throw new Error('MetaMask provider not available - please connect wallet first')
     }
     
     this.provider = new ethers.BrowserProvider(sdkProvider)

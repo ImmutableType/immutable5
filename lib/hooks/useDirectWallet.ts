@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { MetaMaskSDK, SDKProvider } from '@metamask/sdk'
+import { SDKProvider } from '@metamask/sdk'
+import { MMSDK } from '../web3/metamask'
 
 // Use environment variables for Flow EVM configuration
 const FLOW_EVM_MAINNET = {
@@ -15,17 +16,6 @@ const FLOW_EVM_MAINNET = {
     decimals: 18
   }
 }
-
-// Initialize MetaMask SDK with mobile-first configuration
-const MMSDK = new MetaMaskSDK({
-  dappMetadata: {
-    name: "ImmutableType",
-    url: typeof window !== 'undefined' ? window.location.href : 'https://app.immutabletype.com'
-  },
-  useDeeplink: true,
-  preferDesktop: false,
-  checkInstallationImmediately: false
-})
 
 export function useDirectWallet() {
   const [address, setAddress] = useState<string | null>(null)
@@ -80,7 +70,7 @@ export function useDirectWallet() {
     try {
       console.log('Connecting to MetaMask...')
       
-      // Use MetaMask SDK for all connections (mobile and desktop)
+      // Use shared MetaMask SDK instance
       const provider = MMSDK.getProvider()
       
       if (!provider) {

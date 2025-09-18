@@ -1,5 +1,5 @@
 import { ethers, Contract, BrowserProvider, TransactionReceipt, ContractTransactionResponse } from 'ethers'
-import { MetaMaskSDK } from '@metamask/sdk'
+import { MMSDK } from '../../web3/metamask'
 import type { ProfileData, ProfileCreationResult } from '../../types/profile'
 import { CONTRACTS, PROFILE_NFT_ABI } from '../../web3/contracts'
 
@@ -14,27 +14,17 @@ interface ProfileDisplayData {
   isActive: boolean
 }
 
-// Use the same SDK instance
-const MMSDK = new MetaMaskSDK({
-  dappMetadata: {
-    name: "ImmutableType",
-    url: typeof window !== 'undefined' ? window.location.href : 'https://app.immutabletype.com'
-  },
-  useDeeplink: true,
-  preferDesktop: false
-})
-
 export class ProfileNFTService {
   private contractAddress = CONTRACTS.PROFILE_NFT
   private provider: BrowserProvider | null = null
   private contract: Contract | null = null
 
   async initialize(): Promise<void> {
-    // Use MetaMask SDK provider instead of window.ethereum
+    // Use shared MetaMask SDK instance
     const sdkProvider = MMSDK.getProvider()
     
     if (!sdkProvider) {
-      throw new Error('MetaMask provider not available')
+      throw new Error('MetaMask provider not available - please connect wallet first')
     }
     
     this.provider = new ethers.BrowserProvider(sdkProvider)
