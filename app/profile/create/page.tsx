@@ -44,6 +44,7 @@ const CreateProfilePage: React.FC = () => {
   const [formErrors, setFormErrors] = useState<Partial<FormData>>({})
   const [qualificationStatus, setQualificationStatus] = useState<QualificationStatus | null>(null)
   const [isCheckingQualification, setIsCheckingQualification] = useState(false)
+  const [showReturnInstructions, setShowReturnInstructions] = useState(false)
 
   const { 
     address, 
@@ -59,6 +60,7 @@ const CreateProfilePage: React.FC = () => {
     setIsCheckingQualification(true)
     
     try {
+      console.log('Starting qualification check...')
       const status = await tokenQualifierService.checkQualification(address)
       setQualificationStatus(status)
       
@@ -73,7 +75,7 @@ const CreateProfilePage: React.FC = () => {
       console.error('Error checking BUFFAFLOW qualification:', error)
       setQualificationStatus({
         isQualified: false,
-        tokenBalance: '0',
+        tokenBalance: 'Check failed',
         nftCount: 0,
         canBypassFee: false
       })
@@ -96,8 +98,22 @@ const CreateProfilePage: React.FC = () => {
   useEffect(() => {
     if (selectedAuth === 'wallet' && !isConnected && !isConnecting) {
       connectWallet()
+      
+      // Show return instructions after 3 seconds on mobile
+      if (typeof window !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+        setTimeout(() => {
+          setShowReturnInstructions(true)
+        }, 3000)
+      }
     }
   }, [selectedAuth, isConnected, isConnecting, connectWallet])
+
+  // Hide return instructions when connected
+  useEffect(() => {
+    if (isConnected) {
+      setShowReturnInstructions(false)
+    }
+  }, [isConnected])
 
   useEffect(() => {
     if (isConnected && address && selectedAuth === 'wallet') {
@@ -226,15 +242,30 @@ const CreateProfilePage: React.FC = () => {
     )
   }
 
-  // Connecting state
+  // Connecting state with improved mobile instructions
   if (selectedAuth === 'wallet' && !isConnected) {
     return (
       <div className="profile-container profile-centered">
         <div className="profile-card">
           <h2 className="profile-title">Connecting Wallet...</h2>
-          <p className="profile-subtitle">
-          Please approve the wallet connection in MetaMask and ensure you&apos;re connected to the Flow EVM network
-          </p>
+          
+          {!showReturnInstructions ? (
+            <p className="profile-subtitle">
+              Please approve the wallet connection in MetaMask and ensure you&apos;re connected to the Flow EVM network
+            </p>
+          ) : (
+            <>
+              <p className="profile-subtitle">
+                Connected to MetaMask? Please return to this app to continue creating your profile.
+              </p>
+              <div className="alert alert-info" style={{ marginTop: '1rem' }}>
+                <div className="alert-title">📱 On Mobile?</div>
+                <div className="alert-subtitle">
+                  After connecting in MetaMask app, manually return to this browser tab to continue.
+                </div>
+              </div>
+            </>
+          )}
 
           <button
             onClick={() => setSelectedAuth(null)}
@@ -304,7 +335,7 @@ const CreateProfilePage: React.FC = () => {
               <div className="alert-subtitle">
                 Profile creation is FREE with your BUFFAFLOW tokens
                 {qualificationStatus.nftCount > 0 && ` (${qualificationStatus.nftCount} NFTs)`}
-                {qualificationStatus.tokenBalance !== '0' && qualificationStatus.tokenBalance !== 'N/A' && 
+                {qualificationStatus.tokenBalance !== '0' && qualificationStatus.tokenBalance !== 'N/A' && qualificationStatus.tokenBalance !== 'Check failed' &&
                   ` (${parseFloat(qualificationStatus.tokenBalance).toFixed(2)} tokens)`}
               </div>
             </div>

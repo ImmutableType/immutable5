@@ -17,38 +17,70 @@ export class TokenQualifierService {
     this.provider = new ethers.BrowserProvider(sdkProvider)
   }
 
+  // Add timeout wrapper for contract calls
+  private async withTimeout<T>(promise: Promise<T>, timeoutMs: number = 10000): Promise<T> {
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error(`Contract call timeout after ${timeoutMs}ms`))
+      }, timeoutMs)
+
+      promise
+        .then(resolve)
+        .catch(reject)
+        .finally(() => clearTimeout(timeout))
+    })
+  }
+
   async checkQualification(userAddress: string): Promise<QualificationStatus> {
     try {
       if (!this.provider) {
         await this.initialize()
       }
 
-      // Check BUFFAFLOW balance (ERC20 + ERC404 NFTs)
+      console.log('Checking BUFFAFLOW qualification for:', userAddress)
+
+      // Check BUFFAFLOW balance (ERC20 + ERC404 NFTs) with timeout
       const buffaflowContract = new ethers.Contract(
         CONTRACTS.BUFFAFLOW,
         BUFFAFLOW_ABI,
         this.provider
       )
 
-      // Check token balance
-      const tokenBalance = await buffaflowContract.balanceOf(userAddress)
+      // Check token balance with 8-second timeout
+      console.log('Checking token balance...')
+      const tokenBalance = await this.withTimeout(
+        buffaflowContract.balanceOf(userAddress),
+        8000
+      )
       const formattedBalance = ethers.formatEther(tokenBalance)
+      console.log('Token balance:', formattedBalance)
       
       // Check if balance >= 100 tokens
       const threshold = ethers.parseEther('100')
       const hasEnoughTokens = tokenBalance >= threshold
 
-      // Try to check NFT balance (ERC404 pattern)
+      // Try to check NFT balance (ERC404 pattern) with timeout
       let nftCount = 0
       try {
-        const nftBalance = await buffaflowContract.erc721BalanceOf(userAddress)
+        console.log('Checking NFT balance...')
+        const nftBalance = await this.withTimeout(
+          buffaflowContract.erc721BalanceOf(userAddress),
+          5000 // Shorter timeout for NFT check
+        )
         nftCount = Number(nftBalance)
-      } catch {
-        // NFT function might not exist or might fail
+        console.log('NFT count:', nftCount)
+      } catch (error) {
+        console.log('NFT balance check failed (expected for some tokens):', error)
         nftCount = 0
       }
 
       const canBypassFee = hasEnoughTokens || nftCount > 0
+
+      console.log('Qualification result:', {
+        hasEnoughTokens,
+        nftCount,
+        canBypassFee
+      })
 
       return {
         isQualified: canBypassFee,
@@ -59,9 +91,11 @@ export class TokenQualifierService {
 
     } catch (error) {
       console.error('Error checking BUFFAFLOW qualification:', error)
+      
+      // Return safe fallback - user will pay fee
       return {
         isQualified: false,
-        tokenBalance: '0',
+        tokenBalance: 'Check failed',
         nftCount: 0,
         canBypassFee: false
       }
