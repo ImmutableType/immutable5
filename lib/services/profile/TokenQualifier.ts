@@ -1,143 +1,73 @@
-import { Address, formatEther } from 'viem'
-import { readContract } from 'wagmi/actions'
-import { wagmiConfig } from '../../web3/providers'
-import { CONTRACTS, CONFIG, TOKEN_QUALIFIER_ABI, BUFFAFLOW_ABI, getNetworkConfig } from '../../web3/contracts'
+import { ethers, Contract, BrowserProvider } from 'ethers'
+import { MetaMaskSDK } from '@metamask/sdk'
+import { CONTRACTS, TOKEN_QUALIFIER_ABI, BUFFAFLOW_ABI } from '../../web3/contracts'
 import type { QualificationStatus } from '../../types/profile'
 
+// Use the same SDK instance
+const MMSDK = new MetaMaskSDK({
+  dappMetadata: {
+    name: "ImmutableType",
+    url: typeof window !== 'undefined' ? window.location.href : 'https://app.immutabletype.com'
+  },
+  useDeeplink: true,
+  preferDesktop: false
+})
+
 export class TokenQualifierService {
-  private qualifierAddress: Address = CONTRACTS.TOKEN_QUALIFIER
-  
-  // Real BUFFAFLOW address (mainnet)
-  private readonly BUFFAFLOW_MAINNET = CONTRACTS.BUFFAFLOW
+  private provider: BrowserProvider | null = null
 
-  /**
-   * Check if user qualifies for fee bypass
-   * Real implementation - no mocks
-   */
-  async checkQualification(userAddress: Address): Promise<QualificationStatus> {
-    try {
-      // If BUFFAFLOW bypass is disabled, return not qualified
-      if (true) { // Force disable for debugging
-        return {
-          isQualified: false,
-          tokenBalance: '0',
-          nftCount: 0,
-          canBypassFee: false
-        }
-      }
-
-      // Check TokenQualifier contract first
-      const isQualifiedFromContract = await this.checkTokenQualifierContract(userAddress)
-      
-      if (isQualifiedFromContract) {
-        return {
-          isQualified: true,
-          tokenBalance: 'N/A', // TokenQualifier handles the logic
-          nftCount: 0,
-          canBypassFee: true
-        }
-      }
-
-      // Check real BUFFAFLOW balance (mainnet address is always configured)
-      return await this.checkBuffaflowBalance(userAddress, this.BUFFAFLOW_MAINNET)
-
-    } catch (error) {
-      console.error('Error checking qualification:', error)
-      return {
-        isQualified: false,
-        tokenBalance: '0',
-        nftCount: 0,
-        canBypassFee: false
-      }
+  async initialize(): Promise<void> {
+    const sdkProvider = MMSDK.getProvider()
+    
+    if (!sdkProvider) {
+      throw new Error('MetaMask provider not available')
     }
+    
+    this.provider = new ethers.BrowserProvider(sdkProvider)
   }
 
-  /**
-   * Check TokenQualifier contract with mobile-safe provider checks
-   */
-  private async checkTokenQualifierContract(userAddress: Address): Promise<boolean> {
+  async checkQualification(userAddress: string): Promise<QualificationStatus> {
     try {
-      // Add provider ready check for mobile
-      if (typeof window !== 'undefined' && !window.ethereum) {
-        console.warn('Provider not available for contract check');
-        return false;
+      if (!this.provider) {
+        await this.initialize()
       }
-      
-      // Add small delay for mobile timing
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      const isQualified = await readContract(wagmiConfig, {
-        address: this.qualifierAddress,
-        abi: TOKEN_QUALIFIER_ABI,
-        functionName: 'isQualified',
-        args: [userAddress]
-      })
-      
-      return Boolean(isQualified)
-    } catch (error) {
-      console.error('Error checking token qualifier:', error)
-      return false
-    }
-  }
 
-  /**
-   * Check real BUFFAFLOW balance (404 contract with tokens + NFTs)
-   */
-  private async checkBuffaflowBalance(userAddress: Address, buffaflowAddress: Address): Promise<QualificationStatus> {
-    try {
-      // Provider readiness check
-      if (typeof window !== 'undefined' && !window.ethereum) {
-        throw new Error('Provider not available');
-      }
-      
-      // Add timing delay for mobile
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // Check ERC20 token balance
-      const tokenBalance = await readContract(wagmiConfig, {
-        address: buffaflowAddress,
-        abi: BUFFAFLOW_ABI,
-        functionName: 'balanceOf',
-        args: [userAddress]
-      }) as bigint
+      // Check BUFFAFLOW balance (ERC20 + ERC404 NFTs)
+      const buffaflowContract = new ethers.Contract(
+        CONTRACTS.BUFFAFLOW,
+        BUFFAFLOW_ABI,
+        this.provider
+      )
 
-      // Check ERC721 NFT balance (404 contracts typically have separate balanceOf for NFTs)
+      // Check token balance
+      const tokenBalance = await buffaflowContract.balanceOf(userAddress)
+      const formattedBalance = ethers.formatEther(tokenBalance)
+      
+      // Check if balance >= 100 tokens
+      const threshold = ethers.parseEther('100')
+      const hasEnoughTokens = tokenBalance >= threshold
+
+      // Try to check NFT balance (ERC404 pattern)
       let nftCount = 0
       try {
-        // 404 contracts may have different function names for NFT balance
-        const nftBalance = await readContract(wagmiConfig, {
-          address: buffaflowAddress,
-          abi: [
-            {
-              "inputs": [{"name": "owner", "type": "address"}],
-              "name": "erc721BalanceOf", // Common 404 pattern
-              "outputs": [{"name": "", "type": "uint256"}],
-              "stateMutability": "view",
-              "type": "function"
-            }
-          ],
-          functionName: 'erc721BalanceOf',
-          args: [userAddress]
-        }) as bigint
-        
+        const nftBalance = await buffaflowContract.erc721BalanceOf(userAddress)
         nftCount = Number(nftBalance)
       } catch {
-        // If erc721BalanceOf doesn't exist, try standard balanceOf with different context
-        // 404 contracts handle this automatically
+        // NFT function might not exist or might fail
+        nftCount = 0
       }
 
-      const threshold = BigInt(CONFIG.BUFFAFLOW_THRESHOLD)
-      const canBypassFee = tokenBalance >= threshold || nftCount > 0
-      
+      const canBypassFee = hasEnoughTokens || nftCount > 0
+
       return {
         isQualified: canBypassFee,
-        tokenBalance: formatEther(tokenBalance),
+        tokenBalance: formattedBalance,
         nftCount,
         canBypassFee
       }
 
     } catch (error) {
-      console.error('Error checking BUFFAFLOW balance:', error)
+      console.error('Error checking BUFFAFLOW qualification:', error)
       return {
         isQualified: false,
         tokenBalance: '0',
@@ -147,45 +77,17 @@ export class TokenQualifierService {
     }
   }
 
-  /**
-   * Get qualification threshold for display
-   */
   getQualificationThreshold(): string {
-    return formatEther(BigInt(CONFIG.BUFFAFLOW_THRESHOLD))
+    return '100'
   }
 
-  /**
-   * Get qualification requirements text
-   */
   getQualificationRequirements(): string {
-    if (!CONFIG.ENABLE_BUFFAFLOW_BYPASS) {
-      return 'BUFFAFLOW bypass disabled'
-    }
-    
-    const threshold = this.getQualificationThreshold()
-    return `Hold ${threshold}+ $BUFFAFLOW tokens OR any $BUFFAFLOW NFT`
+    return 'Hold 100+ $BUFFAFLOW tokens OR any $BUFFAFLOW NFT'
   }
 
-  /**
-   * Check if BUFFAFLOW bypass is available (always true on mainnet)
-   */
   isBuffaflowBypassAvailable(): boolean {
-    return CONFIG.ENABLE_BUFFAFLOW_BYPASS
-  }
-
-  /**
-   * Get current network info for BUFFAFLOW (always mainnet)
-   */
-  getNetworkInfo(): { hasBuffaflow: boolean; networkName: string; buffaflowAddress: Address } {
-    const networkConfig = getNetworkConfig()
-    
-    return {
-      hasBuffaflow: true,
-      networkName: networkConfig.networkName,
-      buffaflowAddress: this.BUFFAFLOW_MAINNET
-    }
+    return true
   }
 }
 
-// Export singleton instance  
 export const tokenQualifierService = new TokenQualifierService()

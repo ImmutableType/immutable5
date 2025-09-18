@@ -1,4 +1,5 @@
-import { ethers, Contract, BrowserProvider, TransactionReceipt, ContractTransactionResponse, FunctionFragment } from 'ethers'
+import { ethers, Contract, BrowserProvider, TransactionReceipt, ContractTransactionResponse } from 'ethers'
+import { MetaMaskSDK } from '@metamask/sdk'
 import type { ProfileData, ProfileCreationResult } from '../../types/profile'
 import { CONTRACTS, PROFILE_NFT_ABI } from '../../web3/contracts'
 
@@ -13,17 +14,30 @@ interface ProfileDisplayData {
   isActive: boolean
 }
 
+// Use the same SDK instance
+const MMSDK = new MetaMaskSDK({
+  dappMetadata: {
+    name: "ImmutableType",
+    url: typeof window !== 'undefined' ? window.location.href : 'https://app.immutabletype.com'
+  },
+  useDeeplink: true,
+  preferDesktop: false
+})
+
 export class ProfileNFTService {
   private contractAddress = CONTRACTS.PROFILE_NFT
   private provider: BrowserProvider | null = null
   private contract: Contract | null = null
 
   async initialize(): Promise<void> {
-    if (!window.ethereum) {
-      throw new Error('MetaMask not found')
+    // Use MetaMask SDK provider instead of window.ethereum
+    const sdkProvider = MMSDK.getProvider()
+    
+    if (!sdkProvider) {
+      throw new Error('MetaMask provider not available')
     }
-
-    this.provider = new ethers.BrowserProvider(window.ethereum)
+    
+    this.provider = new ethers.BrowserProvider(sdkProvider)
     this.contract = new ethers.Contract(
       this.contractAddress,
       PROFILE_NFT_ABI,
@@ -56,9 +70,7 @@ export class ProfileNFTService {
 
   private extractProfileIdFromReceipt(receipt: TransactionReceipt): string {
     try {
-      // Try multiple approaches to find the profile ID
-      
-      // Method 1: Look for ProfileCreated event in logs
+      // Look for ProfileCreated event in logs
       for (const log of receipt.logs || []) {
         try {
           const parsedLog = this.contract!.interface.parseLog({
@@ -73,63 +85,26 @@ export class ProfileNFTService {
             }
           }
         } catch {
-          // Continue to next method if parsing fails
+          continue
         }
       }
       
-      // Method 2: Extract from Transfer event (ERC721 standard)
+      // Fallback: Extract from Transfer event
       for (const log of receipt.logs || []) {
-        if (log.topics.length >= 4 && log.topics[0].includes('ddf252ad')) { // Transfer event signature
+        if (log.topics.length >= 4 && log.topics[0].includes('ddf252ad')) {
           const tokenId = log.topics[3]
           if (tokenId) {
-            return this.parseHexToDecimal(tokenId)
+            return BigInt(tokenId).toString()
           }
         }
       }
       
-      // Method 3: Look in topics[3] of first log (original approach)
-      const firstLog = receipt.logs?.[0]
-      if (firstLog && firstLog.topics && firstLog.topics[3]) {
-        return this.parseHexToDecimal(firstLog.topics[3])
-      }
-      
-      // Method 4: Generate timestamp-based fallback ID
-      const fallbackId = Date.now().toString()
-      console.warn('Could not extract profile ID from receipt, using timestamp fallback:', fallbackId)
-      return fallbackId
+      // Final fallback
+      return Date.now().toString()
       
     } catch (error) {
       console.error('Profile ID extraction failed:', error)
       return Date.now().toString()
-    }
-  }
-
-  private parseHexToDecimal(hexValue: string): string {
-    try {
-      if (!hexValue || typeof hexValue !== 'string') {
-        throw new Error('Invalid hex value')
-      }
-      
-      // Clean and validate hex string
-      const cleanHex = hexValue.trim()
-      if (!cleanHex.startsWith('0x')) {
-        return cleanHex // Already a decimal string
-      }
-      
-      // Use BigInt for safe conversion of large numbers
-      const decimalValue = BigInt(cleanHex).toString()
-      
-      // Validate result is reasonable
-      if (decimalValue === '0') {
-        throw new Error('Converted to zero, likely invalid')
-      }
-      
-      return decimalValue
-      
-    } catch (error) {
-      console.warn('Hex to decimal conversion failed:', hexValue, error)
-      // Return original value or fallback
-      return hexValue.startsWith('0x') ? '1' : hexValue
     }
   }
 
@@ -143,52 +118,22 @@ export class ProfileNFTService {
       const userAddress = await signer.getAddress()
       const contractWithSigner = this.contract!.connect(signer)
 
-      console.log("=== CONTRACT DEBUG INFO ===")
-      console.log("Contract address:", this.contractAddress)
-      console.log("User address:", userAddress)
-      console.log("Passed address:", address)
-      
-      try {
-        const tokenQualifierAddr = await this.contract!.tokenQualifier()
-        console.log("TokenQualifier address:", tokenQualifierAddr)
-      } catch (e: unknown) {
-        const error = e as Error
-        console.log("Error getting TokenQualifier:", error.message)
-      }
-      
-      try {
-        const profileCount = await this.contract!.balanceOf(userAddress)
-        console.log("User profile count:", profileCount.toString())
-      } catch (e: unknown) {
-        const error = e as Error
-        console.log("Error getting profile count:", error.message)
-      }
+      console.log('Creating profile with data:', profileData)
+      console.log('User address:', userAddress)
 
-      console.log("Available contract functions:")
-      const contractInterface = this.contract!.interface
-      const fragments = contractInterface.fragments
-      fragments.forEach((fragment) => {
-        if (fragment.type === 'function') {
-          const funcFragment = fragment as FunctionFragment
-          console.log("  -", funcFragment.name)
-        }
-      })
-
-      console.log("=== END DEBUG INFO ===")
-
-      // Try without fee payment first (BUFFAFLOW bypass)
-      console.log("=== ATTEMPTING TRANSACTION WITHOUT FEE ===")
+      // Try without fee first (BUFFAFLOW bypass), then with fee
       try {
+        console.log('Attempting profile creation without fee...')
         const tx = await (contractWithSigner as Contract).createBasicProfile(
           profileData.displayName || '',
           profileData.bio || '',
           profileData.location || '',
           profileData.avatarUrl || ''
         ) as ContractTransactionResponse
-        console.log("Transaction sent (no fee):", tx.hash)
         
+        console.log('Transaction sent (no fee):', tx.hash)
         const receipt = await tx.wait() as TransactionReceipt
-        console.log("Transaction confirmed:", receipt.hash)
+        console.log('Transaction confirmed:', receipt.hash)
         
         const profileId = this.extractProfileIdFromReceipt(receipt)
         
@@ -201,47 +146,34 @@ export class ProfileNFTService {
         
       } catch (error: unknown) {
         const err = error as Error
-        console.log("Transaction failed without fee:", err.message)
+        console.log('No-fee transaction failed, trying with 3 FLOW fee:', err.message)
         
-        // Try with fee payment
-        console.log("=== ATTEMPTING TRANSACTION WITH 3 FLOW FEE ===")
-        try {
-          const txWithFee = await (contractWithSigner as Contract).createBasicProfile(
-            profileData.displayName || '',
-            profileData.bio || '',
-            profileData.location || '',
-            profileData.avatarUrl || '',
-            { value: ethers.parseEther('3') }
-          ) as ContractTransactionResponse
-          console.log("Transaction sent (with fee):", txWithFee.hash)
-          
-          const receiptWithFee = await txWithFee.wait() as TransactionReceipt
-          console.log("Transaction confirmed:", receiptWithFee.hash)
-          
-          const profileId = this.extractProfileIdFromReceipt(receiptWithFee)
-          
-          return {
-            success: true,
-            profileId,
-            did: `did:pkh:eip155:747:${userAddress.toLowerCase()}`,
-            transactionHash: receiptWithFee.hash
-          }
-          
-        } catch (feeError: unknown) {
-          const feeErr = feeError as Error
-          console.error("Transaction failed with fee:", feeErr.message)
-          return {
-            success: false,
-            error: feeErr.message
-          }
+        // Try with 3 FLOW fee
+        const txWithFee = await (contractWithSigner as Contract).createBasicProfile(
+          profileData.displayName || '',
+          profileData.bio || '',
+          profileData.location || '',
+          profileData.avatarUrl || '',
+          { value: ethers.parseEther('3') }
+        ) as ContractTransactionResponse
+        
+        console.log('Transaction sent (with fee):', txWithFee.hash)
+        const receiptWithFee = await txWithFee.wait() as TransactionReceipt
+        console.log('Transaction confirmed:', receiptWithFee.hash)
+        
+        const profileId = this.extractProfileIdFromReceipt(receiptWithFee)
+        
+        return {
+          success: true,
+          profileId,
+          did: `did:pkh:eip155:747:${userAddress.toLowerCase()}`,
+          transactionHash: receiptWithFee.hash
         }
       }
 
     } catch (error: unknown) {
       const err = error as Error
-      console.error("=== DETAILED TRANSACTION ERROR ===")
-      console.error("Full error:", error)
-      console.error("Error message:", err.message)
+      console.error('Profile creation failed:', error)
       
       return {
         success: false,

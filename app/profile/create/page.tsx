@@ -44,24 +44,22 @@ const CreateProfilePage: React.FC = () => {
   const [formErrors, setFormErrors] = useState<Partial<FormData>>({})
   const [qualificationStatus, setQualificationStatus] = useState<QualificationStatus | null>(null)
   const [isCheckingQualification, setIsCheckingQualification] = useState(false)
-  const [qualificationError, setQualificationError] = useState<string | null>(null)
 
   const { 
     address, 
     isConnected, 
     connectWallet, 
     isMobileDevice, 
-    hasWalletProvider,
+    isConnecting
   } = useDirectWallet()
 
   const checkBuffaflowQualification = useCallback(async () => {
     if (!address) return
     
     setIsCheckingQualification(true)
-    setQualificationError(null)
     
     try {
-      const status = await tokenQualifierService.checkQualification(address as `0x${string}`)
+      const status = await tokenQualifierService.checkQualification(address)
       setQualificationStatus(status)
       
       console.log('BUFFAFLOW Qualification Status:', {
@@ -72,8 +70,13 @@ const CreateProfilePage: React.FC = () => {
       })
     } catch (error: unknown) {
       const err = error as Error
-      setQualificationError(err.message)
       console.error('Error checking BUFFAFLOW qualification:', error)
+      setQualificationStatus({
+        isQualified: false,
+        tokenBalance: '0',
+        nftCount: 0,
+        canBypassFee: false
+      })
     } finally {
       setIsCheckingQualification(false)
     }
@@ -90,29 +93,17 @@ const CreateProfilePage: React.FC = () => {
     }
   }, [creationState.status])
 
-  // FIXED: Always attempt connection when auth is selected, regardless of provider detection
   useEffect(() => {
-    if (selectedAuth === 'wallet' && !isConnected) {
+    if (selectedAuth === 'wallet' && !isConnected && !isConnecting) {
       connectWallet()
     }
-  }, [selectedAuth, isConnected, connectWallet])
+  }, [selectedAuth, isConnected, isConnecting, connectWallet])
 
-  // Check BUFFAFLOW qualification when wallet connects
-
-
-  // DISABLED: Check BUFFAFLOW qualification when wallet connects
-// useEffect(() => {
-//   if (isConnected && address && selectedAuth === 'wallet') {
-//     checkBuffaflowQualification()
-//   }
-// }, [isConnected, address, selectedAuth, checkBuffaflowQualification])
-
-
-  //useEffect(() => {
-    //if (isConnected && address && selectedAuth === 'wallet') {
-      //checkBuffaflowQualification()
-    //}
-  //}, [isConnected, address, selectedAuth, checkBuffaflowQualification])
+  useEffect(() => {
+    if (isConnected && address && selectedAuth === 'wallet') {
+      checkBuffaflowQualification()
+    }
+  }, [isConnected, address, selectedAuth, checkBuffaflowQualification])
 
   const handleInputChange = (field: keyof FormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -210,33 +201,19 @@ const CreateProfilePage: React.FC = () => {
     )
   }
 
-// Auth selection
-if (!selectedAuth) {
-  return (
-    <div className="profile-container profile-centered">
-      <div className="profile-card">
-        <h1 className="profile-title">Welcome to ImmutableType</h1>
-        <p className="profile-subtitle">
-          Once moveable, now provable. 
-        </p>
-        <p className="profile-subtitle">
-          Get started by creating a profile.
-        </p>
+  // Auth selection
+  if (!selectedAuth) {
+    return (
+      <div className="profile-container profile-centered">
+        <div className="profile-card">
+          <h1 className="profile-title">Welcome to ImmutableType</h1>
+          <p className="profile-subtitle">
+            Once moveable, now provable. 
+          </p>
+          <p className="profile-subtitle">
+            Get started by creating a profile.
+          </p>
 
-        {isMobileDevice ? (
-  <div>
-    <a 
-      href={`https://metamask.app.link/dapp/${encodeURIComponent('https://app.immutabletype.com/profile/create')}`}
-      className="btn btn-primary btn-icon"
-    >
-      <span style={{ fontSize: '1.25rem' }}>🦊</span>
-      Open in MetaMask App
-    </a>
-    <p className="install-note" style={{ marginTop: '1rem' }}>
-      Mobile users: Click above to open this page in the MetaMask mobile app
-    </p>
-  </div>
-        ) : (
           <button
             onClick={() => setSelectedAuth('wallet')}
             className="btn btn-primary btn-icon"
@@ -244,20 +221,20 @@ if (!selectedAuth) {
             <span style={{ fontSize: '1.25rem' }}>🦊</span>
             Connect with MetaMask
           </button>
-        )}
+        </div>
       </div>
-    </div>
-  )
-}
+    )
+  }
 
-  // FIXED: Simplified connecting state - no provider check needed
+  // Connecting state
   if (selectedAuth === 'wallet' && !isConnected) {
     return (
       <div className="profile-container profile-centered">
         <div className="profile-card">
           <h2 className="profile-title">Connecting Wallet...</h2>
           <p className="profile-subtitle">
-          Please approve the wallet connection in MetaMask and ensure you&apos;re connected to the Flow EVM network          </p>
+            Please approve the wallet connection in MetaMask and ensure you're connected to the Flow EVM network
+          </p>
 
           <button
             onClick={() => setSelectedAuth(null)}
@@ -320,11 +297,6 @@ if (!selectedAuth) {
             <div className="alert alert-info">
               <div className="alert-title">⏳ Checking BUFFAFLOW Qualification...</div>
               <div className="alert-subtitle">Verifying your token balance for fee bypass</div>
-            </div>
-          ) : qualificationError ? (
-            <div className="alert alert-warning">
-              <div className="alert-title">⚠️ Profile Creation Fee: 3 FLOW</div>
-              <div className="alert-subtitle">Unable to check BUFFAFLOW qualification: {qualificationError}</div>
             </div>
           ) : qualificationStatus?.canBypassFee ? (
             <div className="alert alert-success">
