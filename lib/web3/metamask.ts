@@ -1,6 +1,6 @@
 import { MetaMaskSDK } from '@metamask/sdk'
 
-// Single shared SDK instance for the entire application
+// Single shared SDK instance with proper configuration
 export const MMSDK = new MetaMaskSDK({
   dappMetadata: {
     name: "ImmutableType",
@@ -8,5 +8,9 @@ export const MMSDK = new MetaMaskSDK({
   },
   useDeeplink: true,
   preferDesktop: false,
-  checkInstallationImmediately: false
+  checkInstallationImmediately: false,
+  // Enable logging to see connection issues
+  logging: {
+    developerMode: true
+  }
 })

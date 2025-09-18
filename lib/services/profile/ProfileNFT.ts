@@ -100,13 +100,46 @@ export class ProfileNFTService {
 
   async createBasicProfile(profileData: ProfileData, address: string): Promise<ProfileCreationResult> {
     try {
+      // Check provider status and return user-friendly errors
+      const sdkProvider = MMSDK.getProvider()
+      if (!sdkProvider) {
+        return {
+          success: false,
+          error: 'Wallet connection lost - please reconnect MetaMask'
+        }
+      }
+
       if (!this.provider || !this.contract) {
         await this.initialize()
+      }
+
+      // Test if we can get network info
+      try {
+        const network = await this.provider!.getNetwork()
+        if (network.chainId !== BigInt(747)) {
+          return {
+            success: false,
+            error: `Wrong network detected (${network.chainId}). Please switch to Flow EVM Mainnet.`
+          }
+        }
+      } catch (networkError) {
+        return {
+          success: false,
+          error: 'Network connection failed - please reconnect wallet and ensure you are on Flow EVM Mainnet'
+        }
       }
 
       const signer = await this.provider!.getSigner()
       const userAddress = await signer.getAddress()
       const contractWithSigner = this.contract!.connect(signer)
+
+      // Add explicit wallet check before transaction
+      if (userAddress.toLowerCase() !== address.toLowerCase()) {
+        return {
+          success: false,
+          error: 'Wallet address mismatch - please reconnect your wallet'
+        }
+      }
 
       console.log('Creating profile with data:', profileData)
       console.log('User address:', userAddress)
@@ -165,9 +198,24 @@ export class ProfileNFTService {
       const err = error as Error
       console.error('Profile creation failed:', error)
       
+      // Return specific error messages for mobile users
+      if (err.message.includes('user rejected')) {
+        return {
+          success: false,
+          error: 'Transaction cancelled by user'
+        }
+      }
+      
+      if (err.message.includes('insufficient funds')) {
+        return {
+          success: false,
+          error: 'Insufficient FLOW tokens for transaction fee'
+        }
+      }
+      
       return {
         success: false,
-        error: err.message || 'Unknown error occurred'
+        error: `Transaction failed: ${err.message}`
       }
     }
   }

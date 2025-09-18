@@ -6,7 +6,7 @@ import { MMSDK } from '../web3/metamask'
 
 // Use environment variables for Flow EVM configuration
 const FLOW_EVM_MAINNET = {
-  chainId: `0x${parseInt(process.env.NEXT_PUBLIC_FLOW_EVM_CHAIN_ID || '747').toString(16)}`, // Convert to hex
+  chainId: `0x${parseInt(process.env.NEXT_PUBLIC_FLOW_EVM_CHAIN_ID || '747').toString(16)}`,
   chainName: 'Flow EVM Mainnet',
   rpcUrls: [process.env.NEXT_PUBLIC_FLOW_EVM_RPC_URL || 'https://mainnet.evm.nodes.onflow.org'],
   blockExplorerUrls: ['https://evm.flowscan.io'],
@@ -68,37 +68,32 @@ export function useDirectWallet() {
     setIsConnecting(true)
     
     try {
-      console.log('Connecting to MetaMask...')
+      console.log('Connecting to MetaMask using SDK...')
       
-      // Use shared MetaMask SDK instance
-      const provider = MMSDK.getProvider()
+      // Use SDK connect method instead of getProvider + requestAccounts
+      const accounts = await MMSDK.connect()
       
-      if (!provider) {
-        throw new Error('MetaMask provider not available')
-      }
-      
-      // Request account access
-      const accounts = await provider.request({
-        method: 'eth_requestAccounts'
-      }) as string[]
-
-      if (accounts.length > 0) {
+      if (accounts && accounts.length > 0) {
         console.log('Connected to account:', accounts[0])
         
-        // Ensure we're on Flow EVM Mainnet
-        await ensureCorrectNetwork(provider)
-        setAddress(accounts[0])
-        
-        // Set up account change listener
-        if (provider.on) {
-          provider.on('accountsChanged', (...args: unknown[]) => {
-            const newAccounts = args[0] as string[]
-            if (newAccounts.length > 0) {
-              setAddress(newAccounts[0])
-            } else {
-              setAddress(null)
-            }
-          })
+        // Get provider after successful connection
+        const provider = MMSDK.getProvider()
+        if (provider) {
+          // Ensure we're on Flow EVM Mainnet
+          await ensureCorrectNetwork(provider)
+          setAddress(accounts[0])
+          
+          // Set up account change listener
+          if (provider.on) {
+            provider.on('accountsChanged', (...args: unknown[]) => {
+              const newAccounts = args[0] as string[]
+              if (newAccounts.length > 0) {
+                setAddress(newAccounts[0])
+              } else {
+                setAddress(null)
+              }
+            })
+          }
         }
       }
     } catch (error: unknown) {
@@ -151,7 +146,7 @@ export function useDirectWallet() {
     disconnect,
     isConnecting,
     isMobileDevice: isMobile(),
-    hasWalletProvider: true, // SDK handles provider detection
-    isMetaMaskMobileApp: false // Not needed with SDK
+    hasWalletProvider: true,
+    isMetaMaskMobileApp: false
   }
 }
