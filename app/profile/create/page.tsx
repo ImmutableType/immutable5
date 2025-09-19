@@ -222,17 +222,17 @@ const CreateProfilePage: React.FC = () => {
     return (
       <div className="profile-container profile-centered">
         <div className="profile-card">
-          <h1 className="profile-title">Desktop Required</h1>
+          <h1 className="profile-title">ImmutableType</h1>
           <div className="alert alert-info">
-            <div className="alert-title">📱 Mobile Browser Not Supported</div>
+            <div className="alert-title">📱 Hey, guys.  Damon here...</div>
             <div className="alert-subtitle">
-              Profile creation with BUFFAFLOW token integration requires a desktop browser for optimal blockchain connectivity. Please visit app.immutabletype.com on your desktop or laptop computer.
+              Please visit app.immutabletype.com on your desktop or laptop computer.  Today is Sept 19, 2025, and I am unable to get the mobile UI to work without critical bugs crashing the vibe.  Please head to a pc or laptop to use the app for now.
             </div>
           </div>
           
           <p className="profile-subtitle" style={{ marginTop: '1.5rem' }}>
-            <strong>Why desktop?</strong><br />
-            Mobile browsers have limitations with Web3 wallet integrations that can prevent proper token qualification detection and transaction processing.
+            <strong>Why desktop or laptop?</strong><br />
+            Because the app works well in those browsers.  I realize it is annoying.  Apologies for now. Thanks for understanding. 
           </p>
         </div>
       </div>
