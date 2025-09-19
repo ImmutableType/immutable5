@@ -234,7 +234,7 @@ const CreateProfilePage: React.FC = () => {
             onClick={() => setSelectedAuth('wallet')}
             className="btn btn-primary btn-icon"
           >
-            <span style={{ fontSize: '1.25rem' }}>🦊</span>
+            <span style={{ fontSize: '1.25rem' }}>ðŸ¦Š</span>
             Connect with MetaMask
           </button>
         </div>
@@ -259,7 +259,7 @@ const CreateProfilePage: React.FC = () => {
                 Connected to MetaMask? Please return to this app to continue creating your profile.
               </p>
               <div className="alert alert-info" style={{ marginTop: '1rem' }}>
-                <div className="alert-title">📱 On Mobile?</div>
+                <div className="alert-title">ðŸ"± On Mobile?</div>
                 <div className="alert-subtitle">
                   After connecting in MetaMask app, manually return to this browser tab to continue.
                 </div>
@@ -271,7 +271,7 @@ const CreateProfilePage: React.FC = () => {
             onClick={() => setSelectedAuth(null)}
             className="btn btn-secondary"
           >
-            ← Back to Options
+            â† Back to Options
           </button>
         </div>
       </div>
@@ -283,7 +283,7 @@ const CreateProfilePage: React.FC = () => {
     return (
       <div className="profile-container profile-centered">
         <div className="profile-card">
-          <div className="success-icon">🎉</div>
+          <div className="success-icon">ðŸŽ‰</div>
           <h2 className="success-title">Identity Profile Created Successfully</h2>
 
           <div className="success-did">
@@ -293,7 +293,7 @@ const CreateProfilePage: React.FC = () => {
 
           {qualificationStatus?.canBypassFee && (
             <div className="alert alert-success" style={{ marginTop: '1rem' }}>
-              <div className="alert-title">🎁 BUFFAFLOW Qualification Applied</div>
+              <div className="alert-title">ðŸŽ BUFFAFLOW Qualification Applied</div>
               <div className="alert-subtitle">Profile created for free using your BUFFAFLOW tokens</div>
             </div>
           )}
@@ -309,6 +309,39 @@ const CreateProfilePage: React.FC = () => {
     )
   }
 
+  // Mobile limitation notice
+  if (selectedAuth === 'wallet' && isConnected && isMobileDevice && !qualificationStatus?.canBypassFee && !isCheckingQualification) {
+    return (
+      <div className="profile-container profile-centered">
+        <div className="profile-card">
+          <div className="alert alert-info">
+            <div className="alert-title">📱 Mobile Browser Limitation</div>
+            <div className="alert-subtitle">
+              Token qualification detection may not work reliably on mobile browsers. 
+              For the best experience with BUFFAFLOW token bypass, please visit 
+              app.immutabletype.com on a desktop computer.
+            </div>
+          </div>
+          
+          <button
+            onClick={() => window.location.href = window.location.href + '?force=mobile'}
+            className="btn btn-secondary"
+            style={{ marginBottom: '1rem' }}
+          >
+            Continue on Mobile (May Require Fee Payment)
+          </button>
+          
+          <button
+            onClick={() => setSelectedAuth(null)}
+            className="btn btn-secondary"
+          >
+            Back to Wallet Selection
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   // Profile creation form
   if (selectedAuth === 'wallet' && isConnected) {
     return (
@@ -318,7 +351,7 @@ const CreateProfilePage: React.FC = () => {
             <h1 className="profile-title">Create Your On-chain Profile</h1>
             <div className="profile-wallet-info">
               <span>{address?.substring(0, 8)}...{address?.substring(address.length - 6)}</span>
-              <span>•</span>
+              <span>â€¢</span>
               <span>Flow EVM Mainnet</span>
             </div>
           </div>
@@ -326,12 +359,12 @@ const CreateProfilePage: React.FC = () => {
           {/* Dynamic Fee Alert based on BUFFAFLOW qualification */}
           {isCheckingQualification ? (
             <div className="alert alert-info">
-              <div className="alert-title">⏳ Checking BUFFAFLOW Qualification...</div>
+              <div className="alert-title">â³ Checking BUFFAFLOW Qualification...</div>
               <div className="alert-subtitle">Verifying your token balance for fee bypass</div>
             </div>
           ) : qualificationStatus?.canBypassFee ? (
             <div className="alert alert-success">
-              <div className="alert-title">🎁 BUFFAFLOW Qualification Detected!</div>
+              <div className="alert-title">ðŸŽ BUFFAFLOW Qualification Detected!</div>
               <div className="alert-subtitle">
                 Profile creation is FREE with your BUFFAFLOW tokens
                 {qualificationStatus.nftCount > 0 && ` (${qualificationStatus.nftCount} NFTs)`}
@@ -341,7 +374,7 @@ const CreateProfilePage: React.FC = () => {
             </div>
           ) : (
             <div className="alert alert-warning">
-              <div className="alert-title">💎 Profile Creation Fee: 3 FLOW</div>
+              <div className="alert-title">ðŸ'Ž Profile Creation Fee: 3 FLOW</div>
               <div className="alert-subtitle">Or hold 100+ $BUFFAFLOW tokens to create for free</div>
             </div>
           )}
