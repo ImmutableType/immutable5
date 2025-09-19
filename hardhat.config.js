@@ -12,7 +12,7 @@ module.exports = {
     }
   },
   networks: {
-    flowEvmMainnet: {
+    flowMainnet: {
       url: "https://mainnet.evm.nodes.onflow.org",
       chainId: 747,
       accounts: [process.env.PRIVATE_KEY]

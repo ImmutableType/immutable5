@@ -3,13 +3,13 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "../interfaces/ITokenQualifier.sol";
+import "./interfaces/ITokenQualifier.sol";
 
 /**
- * @title TokenQualifier
- * @dev Determines fee requirements and token qualifications for tier advancement
+ * @title TokenQualifierFixed
+ * @dev Complete token qualification system with all original features + critical fixes
  */
-contract TokenQualifier is ITokenQualifier, Ownable {
+contract TokenQualifierFixed is ITokenQualifier, Ownable {
     
     // Fee structure
     mapping(uint256 => uint256) public tierFees;
@@ -19,13 +19,14 @@ contract TokenQualifier is ITokenQualifier, Ownable {
     mapping(uint256 => address[]) public qualifyingTokensByTier;
     
     constructor() Ownable(msg.sender) {
-        // Set default fees (can be updated by owner)
+        // CRITICAL FIX: Set proper fees including Tier 0 = 3 FLOW
+        tierFees[0] = 3 ether;      // Tier 0: 3 FLOW (FIXED)
         tierFees[1] = 0.001 ether;  // Tier 1: 0.001 FLOW
         tierFees[2] = 0.01 ether;   // Tier 2: 0.01 FLOW
         tierFees[3] = 0.1 ether;    // Tier 3: 0.1 FLOW
     }
     
-    function hasQualifyingTokens(address user, uint256 tierLevel) external view returns (bool) {
+    function hasQualifyingTokens(address user, uint256 tierLevel) public view returns (bool) {
         address[] memory tokens = qualifyingTokensByTier[tierLevel];
         
         for (uint i = 0; i < tokens.length; i++) {
@@ -43,6 +44,10 @@ contract TokenQualifier is ITokenQualifier, Ownable {
         return false;
     }
     
+    function isQualified(address user) external view returns (bool) {
+        return hasQualifyingTokens(user, 0);
+    }
+    
     function getRequiredFee(uint256 tierLevel) external view returns (uint256) {
         return tierFees[tierLevel];
     }
@@ -55,7 +60,6 @@ contract TokenQualifier is ITokenQualifier, Ownable {
         return tokenRequirements[tierLevel][tokenAddress];
     }
     
-    // Admin functions
     function setTierFee(uint256 tierLevel, uint256 fee) external onlyOwner {
         tierFees[tierLevel] = fee;
     }
@@ -85,7 +89,6 @@ contract TokenQualifier is ITokenQualifier, Ownable {
         
         delete tokenRequirements[tierLevel][tokenAddress];
         
-        // Remove from array
         address[] storage tokens = qualifyingTokensByTier[tierLevel];
         for (uint i = 0; i < tokens.length; i++) {
             if (tokens[i] == tokenAddress) {
