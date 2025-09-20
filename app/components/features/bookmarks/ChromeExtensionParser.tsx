@@ -4,9 +4,9 @@ import { useState } from 'react'
 import { ParsedExtensionData, BookmarkItem } from '../../../../lib/types/bookmark'
 
 interface ChromeExtensionParserProps {
-    onParsed: (data: ParsedExtensionData) => void
-    onError: (error: string) => void
-  }
+  onParsed: (data: ParsedExtensionData) => void
+  onError: (error: string) => void
+}
 
 export default function ChromeExtensionParser({ onParsed, onError }: ChromeExtensionParserProps) {
   const [inputText, setInputText] = useState('')
@@ -28,12 +28,22 @@ export default function ChromeExtensionParser({ onParsed, onError }: ChromeExten
       throw new Error('Invalid format: Title line should be in format "Title - Date"')
     }
 
-    const title = titleMatch[1].trim()
+    const extensionTitle = titleMatch[1].trim() // Keep for reference but don't use
     const date = titleMatch[2].trim()
 
     // Parse bookmark items
     const items: BookmarkItem[] = []
     let currentItem: Partial<BookmarkItem> = {}
+    
+    // Common patterns to skip (cookie messages, privacy policies, etc.)
+    const skipPatterns = [
+      /we use cookies/i,
+      /privacy policy/i,
+      /best experience/i,
+      /find out more/i,
+      /accept cookies/i,
+      /cookie policy/i
+    ]
     
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i]
@@ -45,32 +55,50 @@ export default function ChromeExtensionParser({ onParsed, onError }: ChromeExten
           items.push(currentItem as BookmarkItem)
         }
         
-        // Parse new item title and source
-        const titleText = line.replace(/^[•·*\-]\s*/, '')
-        const titleMatch = titleText.match(/^(.+?)\s*-\s*(.+)$/)
+        // Parse new item - the full line after bullet is the title
+        const fullTitle = line.replace(/^[•·*\-]\s*/, '').trim()
         
-        if (titleMatch) {
+        // Try to extract source from title if it has " - domain" pattern
+        const titleSourceMatch = fullTitle.match(/^(.+?)\s*-\s*([^-\s]+\.[a-zA-Z]{2,})$/)
+        
+        if (titleSourceMatch) {
           currentItem = {
-            title: titleMatch[1].trim(),
-            source: titleMatch[2].trim()
+            title: titleSourceMatch[1].trim(),
+            source: titleSourceMatch[2].trim()
           }
         } else {
+          // No clear source pattern, use full title
           currentItem = {
-            title: titleText,
+            title: fullTitle,
             source: 'Unknown'
           }
         }
       }
-      // Check if line is a description (quoted text)
+      // Check if line is a description (quoted text) - but skip common cookie/privacy messages
       else if (line.match(/^[""].*[""]$/)) {
-        if (currentItem.title) {
-          currentItem.description = line.replace(/^[""]|[""]$/g, '').trim()
+        const description = line.replace(/^[""]|[""]$/g, '').trim()
+        
+        // Skip if it matches common cookie/privacy patterns
+        const shouldSkip = skipPatterns.some(pattern => pattern.test(description))
+        
+        if (!shouldSkip && currentItem.title) {
+          currentItem.description = description
         }
       }
       // Check if line is a URL
       else if (line.match(/^https?:\/\//)) {
         if (currentItem.title) {
           currentItem.url = line
+          
+          // If no source was extracted from title, try to get it from URL
+          if (currentItem.source === 'Unknown') {
+            try {
+              const urlObj = new URL(line)
+              currentItem.source = urlObj.hostname.replace('www.', '')
+            } catch {
+              // Keep as 'Unknown' if URL parsing fails
+            }
+          }
         }
       }
     }
@@ -84,7 +112,16 @@ export default function ChromeExtensionParser({ onParsed, onError }: ChromeExten
       throw new Error('No valid bookmarks found')
     }
 
-    return { title, date, items }
+    // Generate proper title for preview (same logic as BookmarkCollection)
+    const previewTitle = items.length === 1 
+      ? `${items[0].title} - ${date}`
+      : `Bookmark Collection - ${date}`
+
+    return { 
+      title: previewTitle, // Use generated title instead of extension metadata
+      date, 
+      items 
+    }
   }
 
   const handleParse = async () => {

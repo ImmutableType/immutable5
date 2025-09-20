@@ -53,15 +53,20 @@ export default function BookmarkCollectionComponent({ profileId }: BookmarkColle
   }
 
   const handleExtensionParsed = (data: ParsedExtensionData) => {
+    // Generate a better collection title based on the content
+    const collectionTitle = data.items.length === 1 
+      ? `${data.items[0].title} - ${data.date}`
+      : `Bookmark Collection - ${data.date}`
+
     const newCollection: BookmarkCollection = {
       id: generateCollectionId(),
-      title: data.title,
+      title: collectionTitle,
       date: data.date,
       items: data.items,
       createdAt: Date.now()
     }
 
-    setCollections(prev => [newCollection, ...prev].slice(0, 5)) // Keep only 5 most recent
+    setCollections(prev => [newCollection, ...prev].slice(0, 5))
     setError(null)
   }
 
@@ -91,25 +96,42 @@ export default function BookmarkCollectionComponent({ profileId }: BookmarkColle
       createdAt: now.getTime()
     }
 
-    setCollections(prev => [newCollection, ...prev].slice(0, 5)) // Keep only 5 most recent
+    setCollections(prev => [newCollection, ...prev].slice(0, 5))
     setTempBookmarks([])
     setError(null)
   }
 
-  const handleViewCollection = (collection: BookmarkCollection) => {
-    // TODO: Implement collection detail view
-    console.log('View collection:', collection)
-  }
-
-  const handleEditCollection = (collection: BookmarkCollection) => {
-    // TODO: Implement collection editing
-    console.log('Edit collection:', collection)
+  const handleMintCollection = (collection: BookmarkCollection) => {
+    console.log('Mint collection:', collection)
+    // TODO: Implement blockchain minting
+    alert(`Minting "${collection.title}" to blockchain...`)
   }
 
   const handleDeleteCollection = (collection: BookmarkCollection) => {
     if (confirm(`Delete "${collection.title}"?`)) {
       setCollections(prev => prev.filter(c => c.id !== collection.id))
     }
+  }
+
+  const handleDeleteBookmark = (collectionId: string, bookmarkIndex: number) => {
+    setCollections(prev => {
+      return prev.map(collection => {
+        if (collection.id === collectionId) {
+          const updatedItems = collection.items.filter((_, index) => index !== bookmarkIndex)
+          
+          // If no items left, remove the entire collection
+          if (updatedItems.length === 0) {
+            return null
+          }
+          
+          return {
+            ...collection,
+            items: updatedItems
+          }
+        }
+        return collection
+      }).filter(Boolean) as BookmarkCollection[]
+    })
   }
 
   const removeTempBookmark = (index: number) => {
@@ -352,7 +374,7 @@ export default function BookmarkCollectionComponent({ profileId }: BookmarkColle
         )}
       </div>
 
-      {/* Collections Display */}
+      {/* Collections Display - Stacked Layout */}
       <div>
         <div style={{
           display: 'flex',
@@ -410,17 +432,17 @@ export default function BookmarkCollectionComponent({ profileId }: BookmarkColle
           </div>
         ) : (
           <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+            display: 'flex',
+            flexDirection: 'column',
             gap: '1.5rem'
           }}>
             {collections.map((collection) => (
               <BookmarkCard
                 key={collection.id}
                 collection={collection}
-                onView={handleViewCollection}
-                onEdit={handleEditCollection}
+                onMint={handleMintCollection}
                 onDelete={handleDeleteCollection}
+                onDeleteBookmark={handleDeleteBookmark}
               />
             ))}
           </div>
