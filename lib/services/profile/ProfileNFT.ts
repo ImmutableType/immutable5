@@ -1,4 +1,4 @@
-import { ethers, Contract, BrowserProvider, TransactionReceipt, ContractTransactionResponse } from 'ethers'
+import { ethers, Contract, BrowserProvider, TransactionReceipt, ContractTransactionResponse, JsonRpcProvider } from 'ethers'
 import { MMSDK } from '../../web3/metamask'
 import type { ProfileData, ProfileCreationResult } from '../../types/profile'
 import { CONTRACTS, PROFILE_NFT_ABI } from '../../web3/contracts'
@@ -16,9 +16,27 @@ interface ProfileDisplayData {
 
 export class ProfileNFTService {
   private contractAddress = CONTRACTS.PROFILE_NFT
-  private provider: BrowserProvider | null = null
+  private provider: BrowserProvider | JsonRpcProvider | null = null
   private contract: Contract | null = null
+  private isReadOnly = false
 
+  // Read-only initialization for public profile viewing
+  async initializeReadOnly(): Promise<void> {
+    console.log('ProfileNFT: Initializing read-only service...')
+    
+    // Use public RPC for read-only operations
+    this.provider = new ethers.JsonRpcProvider('https://mainnet.evm.nodes.onflow.org')
+    this.contract = new ethers.Contract(
+      this.contractAddress,
+      PROFILE_NFT_ABI,
+      this.provider
+    )
+    this.isReadOnly = true
+    
+    console.log('ProfileNFT: Read-only service initialized successfully')
+  }
+
+  // Wallet-connected initialization for profile management
   async initialize(): Promise<void> {
     console.log('ProfileNFT: Initializing service...')
     
@@ -48,13 +66,15 @@ export class ProfileNFTService {
       PROFILE_NFT_ABI,
       this.provider
     )
+    this.isReadOnly = false
     
     console.log('ProfileNFT: Service initialized successfully')
   }
 
   async getProfile(profileId: string): Promise<ProfileDisplayData> {
     if (!this.contract) {
-      await this.initialize()
+      // Default to read-only mode for profile viewing
+      await this.initializeReadOnly()
     }
 
     try {
@@ -72,6 +92,37 @@ export class ProfileNFTService {
     } catch (error: unknown) {
       const err = error as Error
       throw new Error(`Failed to get profile: ${err.message}`)
+    }
+  }
+
+  // Get current connected wallet address (only works if wallet-connected)
+  async getCurrentAddress(): Promise<string | null> {
+    if (this.isReadOnly || !this.provider || this.provider instanceof JsonRpcProvider) {
+      return null
+    }
+    
+    try {
+      const signer = await (this.provider as BrowserProvider).getSigner()
+      return await signer.getAddress()
+    } catch {
+      return null
+    }
+  }
+
+  // Check if current user owns a specific profile
+  async isProfileOwner(profileId: string): Promise<boolean> {
+    if (this.isReadOnly || !this.contract || !this.provider || this.provider instanceof JsonRpcProvider) {
+      return false
+    }
+
+    try {
+      const currentAddress = await this.getCurrentAddress()
+      if (!currentAddress) return false
+
+      const ownerAddress = await this.contract.ownerOf(profileId)
+      return currentAddress.toLowerCase() === ownerAddress.toLowerCase()
+    } catch {
+      return false
     }
   }
 
@@ -140,7 +191,7 @@ export class ProfileNFTService {
       }
 
       console.log('6. Getting signer...')
-      const signer = await this.provider!.getSigner()
+      const signer = await (this.provider as unknown as BrowserProvider).getSigner()
       const userAddress = await signer.getAddress()
       console.log('7. Signer address:', userAddress)
 
