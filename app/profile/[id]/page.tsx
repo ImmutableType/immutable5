@@ -5,6 +5,8 @@ import { useParams } from 'next/navigation'
 import { profileNFTService } from '../../../lib/services/profile/ProfileNFT'
 import ProfileTabSystem from '../../../app/components/ui/tabs/ProfileTabSystem'
 import BookmarkCollectionComponent from '../../../app/components/features/bookmarks/BookmarkCollection'
+import MintedBookmarks from '../../../app/components/features/bookmarks/MintedBookmarks'
+
 
 interface ProfileDisplayData {
   tier: number
@@ -305,22 +307,28 @@ export default function ProfilePage() {
     <BookmarkCollectionComponent profileId={profileId} />
   )
 
-  // Tab configuration - Only show bookmarks tab if user owns this profile
-  const tabs = [
-    {
-      id: 'overview',
-      label: 'Overview',
-      icon: '👤',
-      content: overviewContent
-    },
-    // Security: Only show bookmark creation tab to profile owner
-    ...(isOwner ? [{
-      id: 'bookmarks',
-      label: 'Bookmark URLs',
-      icon: '🔗',
-      content: bookmarkContent
-    }] : [])
-  ]
+  // In the tabs configuration section, add the new tab:
+const tabs = [
+  {
+    id: 'overview',
+    label: 'Overview',
+    icon: '👤',
+    content: overviewContent
+  },
+  {
+    id: 'minted',
+    label: 'Minted Bookmarks',
+    icon: '📚',
+    content: <MintedBookmarks profileId={profileId} />
+  },
+  // Security: Only show bookmark creation tab to profile owner
+  ...(isOwner ? [{
+    id: 'bookmarks',
+    label: 'Bookmark URLs',
+    icon: '🔗',
+    content: bookmarkContent
+  }] : [])
+]
 
   return (
     <div className="profile-container">
