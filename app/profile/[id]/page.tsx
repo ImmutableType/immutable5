@@ -388,19 +388,22 @@ const tabs = [
         <ProfileTabSystem tabs={tabs} defaultTab="overview" />
 
         {/* Actions - Unchanged */}
-        <div style={{ 
-          borderTop: '1px solid var(--color-border)', 
-          paddingTop: '2rem',
-          textAlign: 'center'
-        }}>
-          <button
-            onClick={() => window.history.back()}
-            className="btn btn-secondary"
-            style={{ minWidth: '140px' }}
-          >
-            ← Back
-          </button>
-        </div>
+        {/* Actions - Link to main website */}
+<div style={{ 
+  borderTop: '1px solid var(--color-border)', 
+  paddingTop: '2rem',
+  textAlign: 'center'
+}}>
+  
+    <a href="https://immutabletype.com"
+      target="_blank"
+      rel="noopener noreferrer"
+    className="btn btn-secondary"
+    style={{ minWidth: '140px', textDecoration: 'none' }}
+  >
+    ← ImmutableType
+  </a>
+</div>
       </div>
     </div>
   )
