@@ -6,6 +6,8 @@ import { profileNFTService } from '../../../lib/services/profile/ProfileNFT'
 import ProfileTabSystem from '../../../app/components/ui/tabs/ProfileTabSystem'
 import BookmarkCollectionComponent from '../../../app/components/features/bookmarks/BookmarkCollection'
 import MintedBookmarks from '../../../app/components/features/bookmarks/MintedBookmarks'
+import BuyBuffaflow from '../../../app/components/features/buffaflow/BuyBuffaflow'
+
 
 
 interface ProfileDisplayData {
@@ -308,27 +310,33 @@ export default function ProfilePage() {
   )
 
   // In the tabs configuration section, add the new tab:
-const tabs = [
-  {
-    id: 'overview',
-    label: 'Overview',
-    icon: '👤',
-    content: overviewContent
-  },
-  {
-    id: 'minted',
-    label: 'Minted Bookmarks',
-    icon: '📚',
-    content: <MintedBookmarks profileId={profileId} />
-  },
-  // Security: Only show bookmark creation tab to profile owner
-  ...(isOwner ? [{
-    id: 'bookmarks',
-    label: 'Bookmark URLs',
-    icon: '🔗',
-    content: bookmarkContent
-  }] : [])
-]
+  const tabs = [
+    {
+      id: 'overview',
+      label: 'Overview',
+      icon: '👤',
+      content: overviewContent
+    },
+    {
+      id: 'minted',
+      label: 'Minted Bookmarks',
+      icon: '📚',
+      content: <MintedBookmarks profileId={profileId} />
+    },
+    {
+      id: 'buffaflow',
+      label: 'Buy BUFFAFLOW', 
+      icon: '💰',
+      content: <BuyBuffaflow />
+    },
+    // Security: Only show bookmark creation tab to profile owner
+    ...(isOwner ? [{
+      id: 'bookmarks',
+      label: 'Bookmark URLs',
+      icon: '🔗',
+      content: bookmarkContent
+    }] : [])
+  ]
 
   return (
     <div className="profile-container">
