@@ -15,10 +15,9 @@ export const CONTRACTS = {
   BUFFAFLOW: (process.env.NEXT_PUBLIC_BUFFAFLOW_ADDRESS as Address) || 
             ('0xc8654a7a4bd671d4ceac6096a92a3170fa3b4798' as Address),
 
-            // BookmarkNFT - newly deployed contract
-BOOKMARK_NFT: (process.env.NEXT_PUBLIC_BOOKMARK_NFT_ADDRESS as Address) || 
-('0x6652801B89f9E3B4a8847Fd0C4F17e7dCd32dFF5' as Address),
-
+  // BookmarkNFT - newly deployed contract
+  BOOKMARK_NFT: (process.env.NEXT_PUBLIC_BOOKMARK_NFT_ADDRESS as Address) || 
+               ('0x6652801B89f9E3B4a8847Fd0C4F17e7dCd32dFF5' as Address),
 } as const
 
 export const CONFIG = {
@@ -267,6 +266,71 @@ export const BUFFAFLOW_ABI = [
   {
     "inputs": [{"name": "id", "type": "uint256"}],
     "name": "erc721TokensBankedInQueue",
+    "outputs": [{"name": "", "type": "uint256"}],
+    "stateMutability": "view",
+    "type": "function"
+  }
+] as const
+
+export const BOOKMARK_NFT_ABI = [
+  // Minting function
+  {
+    "inputs": [
+      {"name": "titles", "type": "string[]"},
+      {"name": "urls", "type": "string[]"},
+      {"name": "descriptions", "type": "string[]"}
+    ],
+    "name": "mintBookmarks",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  // View functions
+  {
+    "inputs": [{"name": "user", "type": "address"}],
+    "name": "getUserBookmarks",
+    "outputs": [{"name": "", "type": "uint256[]"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{"name": "tokenId", "type": "uint256"}],
+    "name": "getBookmark",
+    "outputs": [{"name": "", "type": "tuple", "components": [
+      {"name": "title", "type": "string"},
+      {"name": "url", "type": "string"},
+      {"name": "description", "type": "string"},
+      {"name": "creator", "type": "address"},
+      {"name": "createdAt", "type": "uint256"}
+    ]}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{"name": "user", "type": "address"}],
+    "name": "isQualified",
+    "outputs": [{"name": "", "type": "bool"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{"name": "user", "type": "address"}],
+    "name": "getRemainingDailyMints",
+    "outputs": [{"name": "", "type": "uint256"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "totalBookmarks",
+    "outputs": [{"name": "", "type": "uint256"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  // Constants
+  {
+    "inputs": [],
+    "name": "MINT_FEE",
     "outputs": [{"name": "", "type": "uint256"}],
     "stateMutability": "view",
     "type": "function"
