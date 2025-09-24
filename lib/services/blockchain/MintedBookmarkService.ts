@@ -1,79 +1,101 @@
-import { ethers, Contract, JsonRpcProvider } from 'ethers'
-import { CONTRACTS, PROFILE_NFT_ABI } from '../../web3/contracts'
-import type { MintedBookmarkCollection, MintedBookmarkDisplayData } from '../../types/mintedBookmark'
+import { BookmarkNFTService, BookmarkNFT } from '../bookmark/BookmarkNFTService';
 
-export class MintedBookmarkService {
-  private contractAddress = CONTRACTS.PROFILE_NFT
-  private provider: JsonRpcProvider | null = null
-  private contract: Contract | null = null
-
-  async initialize(): Promise<void> {
-    // Use public RPC for reading minted bookmark data
-    this.provider = new ethers.JsonRpcProvider('https://mainnet.evm.nodes.onflow.org')
-    this.contract = new ethers.Contract(
-      this.contractAddress,
-      PROFILE_NFT_ABI,
-      this.provider
-    )
-  }
-
-  async getMintedBookmarksByProfile(profileId: string): Promise<MintedBookmarkDisplayData> {
-    if (!this.contract) {
-      await this.initialize()
-    }
-
-    try {
-      // Get profile owner address from the ProfileNFT contract
-      const profileOwner = await this.contract!.ownerOf(profileId)
-      
-      // For now, return empty collections since we haven't implemented bookmark collection contracts yet
-      // This provides the data structure for the UI components
-      const collections: MintedBookmarkCollection[] = []
-      
-      // TODO: Query bookmark collection events from blockchain
-      // TODO: Parse IPFS metadata for bookmark collections
-      // TODO: Filter by profile owner address
-      
-      return {
-        collections,
-        totalCount: collections.length,
-        profileOwner: profileOwner.toLowerCase()
-      }
-      
-    } catch (error: unknown) {
-      const err = error as Error
-      console.error('Error fetching minted bookmarks:', err)
-      throw new Error(`Failed to get minted bookmarks: ${err.message}`)
-    }
-  }
-
-  async getMintedBookmarkById(collectionId: string): Promise<MintedBookmarkCollection | null> {
-    if (!this.contract) {
-      await this.initialize()
-    }
-
-    try {
-      // TODO: Implement single collection retrieval
-      // TODO: Query specific collection metadata from IPFS
-      return null
-      
-    } catch (error: unknown) {
-      console.error('Error fetching minted bookmark collection:', error)
-      return null
-    }
-  }
-
-  formatMintDate(timestamp: number): string {
-    return new Date(timestamp * 1000).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
-  }
-
-  generateCollectionUrl(collectionId: string): string {
-    return `/collections/${collectionId}`
-  }
+export interface MintedBookmarkCollection {
+  id: string;
+  tokenId: string;
+  title: string;
+  bookmarks: MintedBookmark[];
+  mintedAt: number;
+  mintedBy: string;
+  transactionHash: string;
+  ipfsHash?: string;
 }
 
-export const mintedBookmarkService = new MintedBookmarkService()
+export interface MintedBookmark {
+  tokenId: string;
+  title: string;
+  url: string;
+  description: string;
+  creator: string;
+  mintedAt: number;
+}
+
+export class MintedBookmarkService {
+  private bookmarkNFTService: BookmarkNFTService;
+
+  constructor() {
+    this.bookmarkNFTService = new BookmarkNFTService();
+  }
+
+  async initialize(): Promise<void> {
+    await this.bookmarkNFTService.initialize();
+  }
+
+  async getUserMintedBookmarks(userAddress: string): Promise<MintedBookmark[]> {
+    try {
+      const tokenIds = await this.bookmarkNFTService.getUserBookmarks(userAddress);
+      const mintedBookmarks: MintedBookmark[] = [];
+
+      for (const tokenId of tokenIds) {
+        const bookmark = await this.bookmarkNFTService.getBookmark(tokenId);
+        mintedBookmarks.push({
+          tokenId: bookmark.tokenId,
+          title: bookmark.title,
+          url: bookmark.url,
+          description: bookmark.description,
+          creator: bookmark.creator,
+          mintedAt: bookmark.createdAt
+        });
+      }
+
+      return mintedBookmarks.sort((a, b) => b.mintedAt - a.mintedAt);
+    } catch (error) {
+      console.error('Error fetching user minted bookmarks:', error);
+      return [];
+    }
+  }
+
+  async getTotalBookmarksCount(): Promise<number> {
+    try {
+      return await this.bookmarkNFTService.totalBookmarks();
+    } catch (error) {
+      console.error('Error fetching total bookmarks count:', error);
+      return 0;
+    }
+  }
+
+  async isUserQualified(userAddress: string): Promise<boolean> {
+    try {
+      return await this.bookmarkNFTService.isQualified(userAddress);
+    } catch (error) {
+      console.error('Error checking user qualification:', error);
+      return false;
+    }
+  }
+
+  async getUserRemainingMints(userAddress: string): Promise<number> {
+    try {
+      return await this.bookmarkNFTService.getRemainingDailyMints(userAddress);
+    } catch (error) {
+      console.error('Error fetching remaining mints:', error);
+      return 0;
+    }
+  }
+
+  async getBookmarkByTokenId(tokenId: string): Promise<MintedBookmark | null> {
+    try {
+      const bookmark = await this.bookmarkNFTService.getBookmark(tokenId);
+      return {
+        tokenId: bookmark.tokenId,
+        title: bookmark.title,
+        url: bookmark.url,
+        description: bookmark.description,
+        creator: bookmark.creator,
+        mintedAt: bookmark.createdAt
+      };
+    } catch (error) {
+      console.error('Error fetching bookmark by token ID:', error);
+      return null;
+    }
+  }
+}
