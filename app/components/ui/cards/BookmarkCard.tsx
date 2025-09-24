@@ -17,17 +17,25 @@ export function BookmarkCard({ collection, onDelete, onEdit, userAddress }: Book
   const [mintSuccess, setMintSuccess] = useState<string | null>(null);
 
   const handleMint = async () => {
+    console.log('Mint button clicked');
+    
     if (!userAddress) {
+      console.log('No user address');
       setMintError('Please connect your wallet first');
       return;
     }
 
+    console.log('User address:', userAddress);
+    console.log('Collection items:', collection.items);
+
     if (collection.items.length === 0) {
+      console.log('No bookmarks to mint');
       setMintError('No bookmarks to mint');
       return;
     }
 
     if (collection.items.length > 5) {
+      console.log('Too many bookmarks:', collection.items.length);
       setMintError('Maximum 5 bookmarks per mint transaction');
       return;
     }
@@ -37,30 +45,44 @@ export function BookmarkCard({ collection, onDelete, onEdit, userAddress }: Book
     setMintSuccess(null);
 
     try {
+      console.log('Creating BookmarkNFTService...');
       const bookmarkService = new BookmarkNFTService();
+      
+      console.log('Initializing service...');
       await bookmarkService.initialize();
+      console.log('Service initialized successfully');
 
       // Check if user is qualified
+      console.log('Checking user qualification...');
       const isQualified = await bookmarkService.isQualified(userAddress);
+      console.log('User qualified:', isQualified);
+      
       if (!isQualified) {
         throw new Error('Not qualified to mint. Need ProfileNFT + 100+ BUFFAFLOW tokens or MoonBuffaflow NFT');
       }
 
       // Check remaining daily mints
+      console.log('Checking daily limits...');
       const remainingMints = await bookmarkService.getRemainingDailyMints(userAddress);
+      console.log('Remaining mints:', remainingMints);
+      
       if (remainingMints < collection.items.length) {
         throw new Error(`Daily limit exceeded. ${remainingMints} mints remaining today`);
       }
 
       // Prepare bookmark data
+      console.log('Preparing bookmark data...');
       const bookmarkData: BookmarkData[] = collection.items.map((item: BookmarkItem) => ({
         title: item.title,
         url: item.url,
         description: item.description || ''
       }));
+      console.log('Bookmark data prepared:', bookmarkData);
 
       // Mint the bookmarks
+      console.log('Starting mint transaction...');
       const transactionHash = await bookmarkService.mintBookmarks(bookmarkData);
+      console.log('Transaction hash received:', transactionHash);
       
       setMintSuccess(`Successfully minted ${collection.items.length} bookmark NFTs! Transaction: ${transactionHash.slice(0, 10)}...`);
       
@@ -71,6 +93,11 @@ export function BookmarkCard({ collection, onDelete, onEdit, userAddress }: Book
 
     } catch (error: any) {
       console.error('Minting error:', error);
+      console.error('Error details:', {
+        message: error.message,
+        code: error.code,
+        stack: error.stack
+      });
       setMintError(error.message || 'Failed to mint bookmarks');
     } finally {
       setIsMinting(false);
