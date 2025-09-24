@@ -62,3 +62,4 @@ design-inspo/
 # Misc
 *.tgz
 *.tar.gz
+.env.production

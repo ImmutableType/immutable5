@@ -3,7 +3,7 @@ const nextConfig = {
   // Fix the lockfile warning
   outputFileTracingRoot: process.cwd(),
   
-  // Remove custom dotenv loading - Railway handles this differently
+  // Railway handles .env.production automatically
   eslint: {
     ignoreDuringBuilds: true
   }
