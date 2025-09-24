@@ -30,6 +30,7 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null)
   const [isOwner, setIsOwner] = useState(false)
   const [checkingOwnership, setCheckingOwnership] = useState(true)
+  const [walletAddress, setWalletAddress] = useState<string | null>(null)
 
   const loadProfile = useCallback(async () => {
     try {
@@ -61,10 +62,20 @@ export default function ProfilePage() {
       const ownershipResult = await profileNFTService.isProfileOwner(profileId)
       setIsOwner(ownershipResult)
       
+      // Capture the wallet address for use in MintedBookmarks
+      try {
+        const currentAddress = await profileNFTService.getCurrentAddress()
+        setWalletAddress(currentAddress)
+      } catch (error) {
+        console.log('Could not get wallet address')
+        setWalletAddress(null)
+      }
+      
     } catch (error) {
       // If wallet connection fails, user is not the owner
       console.log('Wallet not connected, viewing in public mode')
       setIsOwner(false)
+      setWalletAddress(null)
     } finally {
       setCheckingOwnership(false)
     }
@@ -306,7 +317,7 @@ export default function ProfilePage() {
 
   // Bookmark URLs Tab Content (only for profile owners)
   const bookmarkContent = (
-    <BookmarkCollectionManager isOwner={isOwner} userAddress={undefined} />
+    <BookmarkCollectionManager isOwner={isOwner} userAddress={walletAddress || undefined} />
   )
 
   // In the tabs configuration section, add the new tab:
@@ -317,13 +328,13 @@ export default function ProfilePage() {
       icon: '👤',
       content: overviewContent
     },
-    {
-      id: 'minted',
-      label: 'Minted Bookmarks',
-      icon: '📚',
-      content: <MintedBookmarks userAddress={undefined} />
-
-    },
+  
+      {
+        id: 'minted',
+        label: 'Minted Bookmarks',
+        icon: '📚',
+        content: <MintedBookmarks userAddress={walletAddress || undefined} profileId={profileId} />
+      },
     {
       id: 'buffaflow',
       label: 'Buy BUFFAFLOW', 
