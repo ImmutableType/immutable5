@@ -14,6 +14,11 @@ export const CONTRACTS = {
   // BUFFAFLOW - mainnet address
   BUFFAFLOW: (process.env.NEXT_PUBLIC_BUFFAFLOW_ADDRESS as Address) || 
             ('0xc8654a7a4bd671d4ceac6096a92a3170fa3b4798' as Address),
+
+            // BookmarkNFT - newly deployed contract
+BOOKMARK_NFT: (process.env.NEXT_PUBLIC_BOOKMARK_NFT_ADDRESS as Address) || 
+('0x6652801B89f9E3B4a8847Fd0C4F17e7dCd32dFF5' as Address),
+
 } as const
 
 export const CONFIG = {
