@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { BookmarkCollection, BookmarkItem } from '../../../../lib/types/bookmark';
 import { BookmarkNFTService, BookmarkData } from '../../../../lib/services/bookmark/BookmarkNFTService';
+import { profileNFTService } from '../../../../lib/services/profile/ProfileNFT';
 
 interface BookmarkCardProps {
   collection: BookmarkCollection;
@@ -19,13 +20,17 @@ export function BookmarkCard({ collection, onDelete, onEdit, userAddress }: Book
   const handleMint = async () => {
     console.log('Mint button clicked');
     
-    if (!userAddress) {
-      console.log('No user address');
+    // Get wallet address from ProfileNFT service instead of props
+    const currentAddress = await profileNFTService.getCurrentAddress();
+    console.log('Wallet address from service:', currentAddress);
+    
+    if (!currentAddress) {
+      console.log('No wallet connected');
       setMintError('Please connect your wallet first');
       return;
     }
 
-    console.log('User address:', userAddress);
+    console.log('Using address:', currentAddress);
     console.log('Collection items:', collection.items);
 
     if (collection.items.length === 0) {
@@ -54,7 +59,7 @@ export function BookmarkCard({ collection, onDelete, onEdit, userAddress }: Book
 
       // Check if user is qualified
       console.log('Checking user qualification...');
-      const isQualified = await bookmarkService.isQualified(userAddress);
+      const isQualified = await bookmarkService.isQualified(currentAddress);
       console.log('User qualified:', isQualified);
       
       if (!isQualified) {
@@ -63,7 +68,7 @@ export function BookmarkCard({ collection, onDelete, onEdit, userAddress }: Book
 
       // Check remaining daily mints
       console.log('Checking daily limits...');
-      const remainingMints = await bookmarkService.getRemainingDailyMints(userAddress);
+      const remainingMints = await bookmarkService.getRemainingDailyMints(currentAddress);
       console.log('Remaining mints:', remainingMints);
       
       if (remainingMints < collection.items.length) {
