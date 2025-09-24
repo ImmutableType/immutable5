@@ -4,8 +4,8 @@ import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import { profileNFTService } from '../../../lib/services/profile/ProfileNFT'
 import ProfileTabSystem from '../../../app/components/ui/tabs/ProfileTabSystem'
-import BookmarkCollectionComponent from '../../../app/components/features/bookmarks/BookmarkCollection'
-import MintedBookmarks from '../../../app/components/features/bookmarks/MintedBookmarks'
+import { BookmarkCollectionManager } from '../../../app/components/features/bookmarks/BookmarkCollection'
+import { MintedBookmarks } from '../../../app/components/features/bookmarks/MintedBookmarks'
 import BuyBuffaflow from '../../../app/components/features/buffaflow/BuyBuffaflow'
 
 
@@ -306,7 +306,7 @@ export default function ProfilePage() {
 
   // Bookmark URLs Tab Content (only for profile owners)
   const bookmarkContent = (
-    <BookmarkCollectionComponent profileId={profileId} />
+    <BookmarkCollectionManager isOwner={isOwner} userAddress={undefined} />
   )
 
   // In the tabs configuration section, add the new tab:
@@ -321,7 +321,8 @@ export default function ProfilePage() {
       id: 'minted',
       label: 'Minted Bookmarks',
       icon: '📚',
-      content: <MintedBookmarks profileId={profileId} />
+      content: <MintedBookmarks userAddress={undefined} />
+
     },
     {
       id: 'buffaflow',
