@@ -2,10 +2,11 @@
 import { Address } from 'viem'
 
 export const CONTRACTS = {
+  // CORRECTED: Current mainnet deployment addresses
   PROFILE_NFT: (process.env.NEXT_PUBLIC_PROFILE_NFT_ADDRESS as Address) || 
-              ('0x35A314B550959B5Cd8821727bAC11C0c5D9c880F' as Address),
+              ('0xDb742cD47D09Cf7e6f22F24289449C672Ef77934' as Address),
   TOKEN_QUALIFIER: (process.env.NEXT_PUBLIC_TOKEN_QUALIFIER_ADDRESS as Address) || 
-                   ('0xf034a7802427695acCE47878Da898bff1D09f06B' as Address),
+                   ('0xa27e2A0280127cf827876a4795d551865F930687' as Address),
   
   // Treasury - your controlled wallet
   TREASURY: (process.env.NEXT_PUBLIC_TREASURY_ADDRESS as Address) || 
@@ -146,7 +147,7 @@ export const PROFILE_NFT_ABI = [
     "inputs": [],
     "name": "getBasicProfileFee",
     "outputs": [{"name": "", "type": "uint256"}],
-    "stateMutability": "pure",
+    "stateMutability": "view",
     "type": "function"
   },
   // Tier advancement functions
