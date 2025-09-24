@@ -1,479 +1,509 @@
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react'
-import { BookmarkCollection, BookmarkItem, ParsedExtensionData } from '../../../../lib/types/bookmark'
-import ChromeExtensionParser from './ChromeExtensionParser'
-import ManualUrlEntry from './ManualUrlEntry'
-import BookmarkCard from '../../ui/cards/BookmarkCard'
+import { useState, useEffect } from 'react';
+import { BookmarkCollection, BookmarkItem, ParsedExtensionData } from '../../../../lib/types/bookmark';
+import { BookmarkCard } from '../../ui/cards/BookmarkCard';
+import ChromeExtensionParser from './ChromeExtensionParser';
+import { MintedBookmarkService } from '../../../../lib/services/blockchain/MintedBookmarkService';
 
 interface BookmarkCollectionProps {
-  profileId: string
+  userAddress?: string;
+  isOwner: boolean;
 }
 
-export default function BookmarkCollectionComponent({ profileId }: BookmarkCollectionProps) {
-  const [collections, setCollections] = useState<BookmarkCollection[]>([])
-  const [inputMethod, setInputMethod] = useState<'manual' | 'extension'>('manual')
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [tempBookmarks, setTempBookmarks] = useState<BookmarkItem[]>([])
+export function BookmarkCollectionManager({ userAddress, isOwner }: BookmarkCollectionProps) {
+  const [collections, setCollections] = useState<BookmarkCollection[]>([]);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showImportForm, setShowImportForm] = useState(false);
+  const [editingCollection, setEditingCollection] = useState<BookmarkCollection | null>(null);
+  const [newCollectionTitle, setNewCollectionTitle] = useState('');
+  const [userQualified, setUserQualified] = useState(false);
+  const [remainingMints, setRemainingMints] = useState(0);
+  const [loading, setLoading] = useState(false);
 
-  // Storage key for this profile's bookmark collections
-  const storageKey = `immutable_bookmarks_${profileId}`
+  // Form states for manual bookmark entry
+  const [newBookmark, setNewBookmark] = useState<BookmarkItem>({
+    title: '',
+    url: '',
+    source: 'manual',
+    description: ''
+  });
 
-  // Load collections from localStorage on mount
+  const mintedBookmarkService = new MintedBookmarkService();
+
   useEffect(() => {
+    loadCollections();
+    if (userAddress) {
+      checkUserStatus();
+    }
+  }, [userAddress]);
+
+  const loadCollections = () => {
+    const stored = localStorage.getItem('bookmarkCollections');
+    if (stored) {
+      setCollections(JSON.parse(stored));
+    }
+  };
+
+  const saveCollections = (updatedCollections: BookmarkCollection[]) => {
+    localStorage.setItem('bookmarkCollections', JSON.stringify(updatedCollections));
+    setCollections(updatedCollections);
+  };
+
+  const checkUserStatus = async () => {
+    if (!userAddress) return;
+
+    setLoading(true);
     try {
-      const stored = localStorage.getItem(storageKey)
-      if (stored) {
-        const parsedCollections = JSON.parse(stored)
-        setCollections(parsedCollections)
-      }
-    } catch (err) {
-      console.error('Failed to load bookmark collections:', err)
-      setError('Failed to load saved bookmarks')
+      await mintedBookmarkService.initialize();
+      const qualified = await mintedBookmarkService.isUserQualified(userAddress);
+      const remaining = await mintedBookmarkService.getUserRemainingMints(userAddress);
+      
+      setUserQualified(qualified);
+      setRemainingMints(remaining);
+    } catch (error) {
+      console.error('Error checking user status:', error);
     } finally {
-      setIsLoading(false)
+      setLoading(false);
     }
-  }, [storageKey])
+  };
 
-  // Save collections to localStorage whenever collections change
-  useEffect(() => {
-    if (!isLoading) {
-      try {
-        localStorage.setItem(storageKey, JSON.stringify(collections))
-      } catch (err) {
-        console.error('Failed to save bookmark collections:', err)
-        setError('Failed to save bookmarks')
-      }
-    }
-  }, [collections, storageKey, isLoading])
-
-  const generateCollectionId = (): string => {
-    return `collection_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-  }
-
-  const handleExtensionParsed = (data: ParsedExtensionData) => {
-    // Generate a better collection title based on the content
-    const collectionTitle = data.items.length === 1 
-      ? `${data.items[0].title} - ${data.date}`
-      : `Bookmark Collection - ${data.date}`
+  const createCollection = () => {
+    if (!newCollectionTitle.trim()) return;
 
     const newCollection: BookmarkCollection = {
-      id: generateCollectionId(),
-      title: collectionTitle,
-      date: data.date,
-      items: data.items,
-      createdAt: Date.now()
+      id: Date.now().toString(),
+      title: newCollectionTitle,
+      items: [],
+      createdAt: Date.now(),
+      date: new Date().toLocaleDateString()
+    };
+
+    const updatedCollections = [...collections, newCollection];
+    saveCollections(updatedCollections);
+    setNewCollectionTitle('');
+    setShowCreateForm(false);
+  };
+
+  const deleteCollection = (id: string) => {
+    const updatedCollections = collections.filter(c => c.id !== id);
+    saveCollections(updatedCollections);
+  };
+
+  const editCollection = (collection: BookmarkCollection) => {
+    setEditingCollection(collection);
+    setNewCollectionTitle(collection.title);
+    setShowCreateForm(true);
+  };
+
+  const saveEditedCollection = () => {
+    if (!editingCollection || !newCollectionTitle.trim()) return;
+
+    const updatedCollections = collections.map(c => 
+      c.id === editingCollection.id 
+        ? { ...c, title: newCollectionTitle }
+        : c
+    );
+    
+    saveCollections(updatedCollections);
+    setEditingCollection(null);
+    setNewCollectionTitle('');
+    setShowCreateForm(false);
+  };
+
+  const addBookmarkToCollection = (collectionId: string, bookmark: BookmarkItem) => {
+    const updatedCollections = collections.map(collection => 
+      collection.id === collectionId 
+        ? { ...collection, items: [...collection.items, bookmark] }
+        : collection
+    );
+    saveCollections(updatedCollections);
+  };
+
+  const addManualBookmark = () => {
+    if (!newBookmark.title || !newBookmark.url) return;
+
+    if (collections.length === 0) {
+      // Create a new collection if none exist
+      const newCollection: BookmarkCollection = {
+        id: Date.now().toString(),
+        title: 'My Bookmarks',
+        items: [newBookmark],
+        createdAt: Date.now(),
+        date: new Date().toLocaleDateString()
+      };
+      saveCollections([newCollection]);
+    } else {
+      // Add to the first collection
+      addBookmarkToCollection(collections[0].id, newBookmark);
     }
 
-    setCollections(prev => [newCollection, ...prev].slice(0, 5))
-    setError(null)
-  }
+    // Reset form
+    setNewBookmark({
+      title: '',
+      url: '',
+      source: 'manual',
+      description: ''
+    });
+  };
 
-  const handleManualBookmarkAdd = (item: BookmarkItem) => {
-    setTempBookmarks(prev => [...prev, item])
-    setError(null)
-  }
-
-  const createManualCollection = () => {
-    if (tempBookmarks.length === 0) {
-      setError('No bookmarks to save')
-      return
-    }
-
-    const now = new Date()
-    const dateString = now.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
+  const handleImportedBookmarks = (bookmarks: BookmarkItem[]) => {
+    if (bookmarks.length === 0) return;
 
     const newCollection: BookmarkCollection = {
-      id: generateCollectionId(),
-      title: `Manual Collection - ${dateString}`,
-      date: dateString,
-      items: [...tempBookmarks],
-      createdAt: now.getTime()
-    }
+      id: Date.now().toString(),
+      title: `Imported Bookmarks - ${new Date().toLocaleDateString()}`,
+      items: bookmarks,
+      createdAt: Date.now(),
+      date: new Date().toLocaleDateString()
+    };
 
-    setCollections(prev => [newCollection, ...prev].slice(0, 5))
-    setTempBookmarks([])
-    setError(null)
-  }
+    const updatedCollections = [...collections, newCollection];
+    saveCollections(updatedCollections);
+    setShowImportForm(false);
+  };
 
-  const handleMintCollection = (collection: BookmarkCollection) => {
-    console.log('Mint collection:', collection)
-    // TODO: Implement blockchain minting
-    alert(`Minting "${collection.title}" to blockchain...`)
-  }
-
-  const handleDeleteCollection = (collection: BookmarkCollection) => {
-    if (confirm(`Delete "${collection.title}"?`)) {
-      setCollections(prev => prev.filter(c => c.id !== collection.id))
-    }
-  }
-
-  const handleDeleteBookmark = (collectionId: string, bookmarkIndex: number) => {
-    setCollections(prev => {
-      return prev.map(collection => {
-        if (collection.id === collectionId) {
-          const updatedItems = collection.items.filter((_, index) => index !== bookmarkIndex)
-          
-          // If no items left, remove the entire collection
-          if (updatedItems.length === 0) {
-            return null
-          }
-          
-          return {
-            ...collection,
-            items: updatedItems
-          }
-        }
-        return collection
-      }).filter(Boolean) as BookmarkCollection[]
-    })
-  }
-
-  const removeTempBookmark = (index: number) => {
-    setTempBookmarks(prev => prev.filter((_, i) => i !== index))
-  }
-
-  const clearTempBookmarks = () => {
-    setTempBookmarks([])
-  }
-
-  const clearError = () => {
-    setError(null)
-  }
-
-  if (isLoading) {
+  if (!isOwner) {
     return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '300px',
-        color: 'var(--color-text-secondary)'
-      }}>
-        Loading bookmark collections...
+      <div className="bookmark-collection-container">
+        <div className="access-message">
+          Only the profile owner can manage bookmark collections.
+        </div>
       </div>
-    )
+    );
   }
 
   return (
-    <div style={{ width: '100%' }}>
-      
-      {/* Error Display */}
-      {error && (
-        <div style={{
-          background: 'var(--color-red-50)',
-          border: '1px solid var(--color-red-200)',
-          borderRadius: '8px',
-          padding: '1rem',
-          marginBottom: '2rem',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <div>
-            <div style={{
-              fontWeight: '500',
-              color: 'var(--color-red-700)',
-              marginBottom: '0.25rem'
-            }}>
-              Error
+    <div className="bookmark-collection-container">
+      <div className="bookmark-collection-header">
+        <h2>Bookmark Collections</h2>
+        <div className="user-status">
+          {loading && <span>Checking qualification...</span>}
+          {userAddress && !loading && (
+            <div className="qualification-status">
+              <div className={`status-indicator ${userQualified ? 'qualified' : 'not-qualified'}`}>
+                {userQualified ? 'Qualified to Mint' : 'Not Qualified'}
+              </div>
+              <div className="remaining-mints">
+                Daily mints remaining: {remainingMints}
+              </div>
             </div>
-            <div style={{
-              fontSize: 'var(--text-sm)',
-              color: 'var(--color-red-600)'
-            }}>
-              {error}
-            </div>
-          </div>
-          <button
-            onClick={clearError}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--color-red-600)',
-              cursor: 'pointer',
-              padding: '0.25rem',
-              borderRadius: '4px'
-            }}
-          >
-            ✕
-          </button>
+          )}
+        </div>
+      </div>
+
+      <div className="action-buttons">
+        <button 
+          onClick={() => setShowCreateForm(true)}
+          className="create-button"
+        >
+          Create Collection
+        </button>
+        <button 
+          onClick={() => setShowImportForm(true)}
+          className="import-button"
+        >
+          Import from Chrome
+        </button>
+      </div>
+
+      {!userQualified && userAddress && (
+        <div className="qualification-warning">
+          To mint bookmark NFTs, you need:
+          <ul>
+            <li>A ProfileNFT (create at profile creation)</li>
+            <li>100+ BUFFAFLOW tokens OR 1+ MoonBuffaflow NFT</li>
+          </ul>
         </div>
       )}
 
-      {/* Input Method Toggle */}
-      <div style={{
-        display: 'flex',
-        background: 'var(--color-slate-100)',
-        borderRadius: '8px',
-        padding: '0.25rem',
-        marginBottom: '2rem',
-        gap: '0.25rem'
-      }}>
-        <button
-          onClick={() => setInputMethod('manual')}
-          style={{
-            flex: '1',
-            minHeight: '44px',
-            padding: '0.75rem 1rem',
-            border: 'none',
-            borderRadius: '6px',
-            fontSize: 'var(--text-sm)',
-            fontWeight: '500',
-            background: inputMethod === 'manual' ? 'var(--color-white)' : 'transparent',
-            color: inputMethod === 'manual' ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            boxShadow: inputMethod === 'manual' ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none'
-          }}
-        >
-          📝 Manual Entry
-        </button>
-        <button
-          onClick={() => setInputMethod('extension')}
-          style={{
-            flex: '1',
-            minHeight: '44px',
-            padding: '0.75rem 1rem',
-            border: 'none',
-            borderRadius: '6px',
-            fontSize: 'var(--text-sm)',
-            fontWeight: '500',
-            background: inputMethod === 'extension' ? 'var(--color-white)' : 'transparent',
-            color: inputMethod === 'extension' ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            boxShadow: inputMethod === 'extension' ? '0 1px 3px rgba(0, 0, 0, 0.1)' : 'none'
-          }}
-        >
-          🔌 Chrome Extension
-        </button>
-      </div>
-
-      {/* Input Method Content */}
-      <div style={{ marginBottom: '3rem' }}>
-        {inputMethod === 'manual' ? (
-          <div>
-            <ManualUrlEntry
-              onAdd={handleManualBookmarkAdd}
-              onError={setError}
-            />
-
-            {/* Temporary Bookmarks */}
-            {tempBookmarks.length > 0 && (
-              <div style={{
-                marginTop: '2rem',
-                padding: '1.5rem',
-                background: 'var(--color-amber-50)',
-                border: '1px solid var(--color-amber-200)',
-                borderRadius: '12px'
-              }}>
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: '1rem'
-                }}>
-                  <h3 style={{
-                    fontSize: 'var(--text-lg)',
-                    fontWeight: '600',
-                    color: 'var(--color-amber-700)'
-                  }}>
-                    📋 Pending Bookmarks ({tempBookmarks.length})
-                  </h3>
-                  <button
-                    onClick={clearTempBookmarks}
-                    style={{
-                      padding: '0.5rem 1rem',
-                      fontSize: 'var(--text-sm)',
-                      color: 'var(--color-amber-700)',
-                      background: 'var(--color-amber-100)',
-                      border: '1px solid var(--color-amber-300)',
-                      borderRadius: '6px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Clear All
-                  </button>
-                </div>
-
-                <div style={{ marginBottom: '1.5rem' }}>
-                  {tempBookmarks.map((bookmark, index) => (
-                    <div key={index} style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'flex-start',
-                      padding: '0.75rem 0',
-                      borderBottom: index < tempBookmarks.length - 1 ? '1px solid var(--color-amber-200)' : 'none'
-                    }}>
-                      <div style={{ flex: '1' }}>
-                        <div style={{
-                          fontWeight: '500',
-                          color: 'var(--color-text-primary)',
-                          marginBottom: '0.25rem'
-                        }}>
-                          {bookmark.title}
-                        </div>
-                        <div style={{
-                          fontSize: 'var(--text-sm)',
-                          color: 'var(--color-text-secondary)'
-                        }}>
-                          🌐 {bookmark.source}
-                        </div>
-                        {bookmark.description && (
-                          <div style={{
-                            fontSize: 'var(--text-sm)',
-                            color: 'var(--color-text-tertiary)',
-                            fontStyle: 'italic',
-                            marginTop: '0.25rem'
-                          }}>
-                            "{bookmark.description}"
-                          </div>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => removeTempBookmark(index)}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: 'var(--color-red-600)',
-                          cursor: 'pointer',
-                          padding: '0.25rem',
-                          marginLeft: '1rem'
-                        }}
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
-                </div>
-
-                <button
-                  onClick={createManualCollection}
-                  className="btn btn-primary"
-                  style={{
-                    width: '100%',
-                    minHeight: '44px'
-                  }}
-                >
-                  💾 Save as Collection
-                </button>
-              </div>
-            )}
-          </div>
-        ) : (
-          <ChromeExtensionParser
-            onParsed={handleExtensionParsed}
-            onError={setError}
+      {showCreateForm && (
+        <div className="create-form">
+          <h3>{editingCollection ? 'Edit Collection' : 'Create New Collection'}</h3>
+          <input
+            type="text"
+            placeholder="Collection title"
+            value={newCollectionTitle}
+            onChange={(e) => setNewCollectionTitle(e.target.value)}
+            className="title-input"
           />
-        )}
+          <div className="form-actions">
+            <button 
+              onClick={editingCollection ? saveEditedCollection : createCollection}
+              className="save-button"
+            >
+              {editingCollection ? 'Save Changes' : 'Create'}
+            </button>
+            <button 
+              onClick={() => {
+                setShowCreateForm(false);
+                setEditingCollection(null);
+                setNewCollectionTitle('');
+              }}
+              className="cancel-button"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showImportForm && (
+        <div className="import-form">
+          <ChromeExtensionParser
+  onParsed={(data) => {
+    handleImportedBookmarks(data.items);
+    setShowImportForm(false);
+  }}
+  onError={(error) => {
+    console.error('Import error:', error);
+    // Could add state to show error to user
+  }}
+/>
+        </div>
+      )}
+
+      <div className="manual-entry-form">
+        <h3>Add Individual Bookmark</h3>
+        <div className="bookmark-form">
+          <input
+            type="text"
+            placeholder="Bookmark title"
+            value={newBookmark.title}
+            onChange={(e) => setNewBookmark({ ...newBookmark, title: e.target.value })}
+            className="form-input"
+          />
+          <input
+            type="url"
+            placeholder="URL (https://example.com)"
+            value={newBookmark.url}
+            onChange={(e) => setNewBookmark({ ...newBookmark, url: e.target.value })}
+            className="form-input"
+          />
+          <input
+            type="text"
+            placeholder="Description (optional)"
+            value={newBookmark.description}
+            onChange={(e) => setNewBookmark({ ...newBookmark, description: e.target.value })}
+            className="form-input"
+          />
+          <button 
+            onClick={addManualBookmark}
+            disabled={!newBookmark.title || !newBookmark.url}
+            className="add-bookmark-button"
+          >
+            Add Bookmark
+          </button>
+        </div>
       </div>
 
-      {/* Collections Display - Stacked Layout */}
-      <div>
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '1.5rem'
-        }}>
-          <h2 style={{
-            fontSize: 'var(--text-xl)',
-            fontWeight: '600',
-            color: 'var(--color-text-primary)'
-          }}>
-            📚 Bookmark Collections
-          </h2>
-          {collections.length > 0 && (
-            <span style={{
-              fontSize: 'var(--text-sm)',
-              color: 'var(--color-text-tertiary)'
-            }}>
-              Showing {collections.length} of 5 max
-            </span>
-          )}
-        </div>
-
+      <div className="collections-list">
         {collections.length === 0 ? (
-          <div style={{
-            textAlign: 'center',
-            padding: '3rem 1rem',
-            background: 'var(--color-slate-50)',
-            borderRadius: '12px',
-            border: '1px solid var(--color-border)'
-          }}>
-            <div style={{
-              fontSize: '3rem',
-              marginBottom: '1rem'
-            }}>
-              📂
-            </div>
-            <h3 style={{
-              fontSize: 'var(--text-lg)',
-              fontWeight: '500',
-              color: 'var(--color-text-primary)',
-              marginBottom: '0.5rem'
-            }}>
-              No Bookmark Collections Yet
-            </h3>
-            <p style={{
-              fontSize: 'var(--text-base)',
-              color: 'var(--color-text-secondary)',
-              maxWidth: '400px',
-              margin: '0 auto'
-            }}>
-              Start by adding bookmarks manually or import them from your Chrome extension export.
-            </p>
+          <div className="empty-state">
+            <p>No bookmark collections yet.</p>
+            <p>Create a collection or import bookmarks to get started.</p>
           </div>
         ) : (
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '1.5rem'
-          }}>
-            {collections.map((collection) => (
-              <BookmarkCard
-                key={collection.id}
-                collection={collection}
-                onMint={handleMintCollection}
-                onDelete={handleDeleteCollection}
-                onDeleteBookmark={handleDeleteBookmark}
-              />
-            ))}
-          </div>
-        )}
-
-        {collections.length >= 5 && (
-          <div style={{
-            marginTop: '2rem',
-            padding: '1rem',
-            background: 'var(--color-primary-50)',
-            border: '1px solid var(--color-primary-200)',
-            borderRadius: '8px',
-            textAlign: 'center'
-          }}>
-            <div style={{
-              fontSize: 'var(--text-sm)',
-              color: 'var(--color-primary-700)',
-              fontWeight: '500'
-            }}>
-              📊 Collection Limit Reached
-            </div>
-            <div style={{
-              fontSize: 'var(--text-sm)',
-              color: 'var(--color-primary-600)',
-              marginTop: '0.25rem'
-            }}>
-              Showing 5 most recent collections. Older collections are automatically archived.
-            </div>
-          </div>
+          collections.map(collection => (
+            <BookmarkCard
+              key={collection.id}
+              collection={collection}
+              onDelete={deleteCollection}
+              onEdit={editCollection}
+              userAddress={userAddress}
+            />
+          ))
         )}
       </div>
+
+      <style jsx>{`
+        .bookmark-collection-container {
+          max-width: 800px;
+          margin: 0 auto;
+          padding: 20px;
+        }
+
+        .bookmark-collection-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 24px;
+        }
+
+        .bookmark-collection-header h2 {
+          margin: 0;
+          font-size: 24px;
+          font-weight: 600;
+        }
+
+        .user-status {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 4px;
+        }
+
+        .qualification-status {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 4px;
+        }
+
+        .status-indicator {
+          padding: 4px 12px;
+          border-radius: 4px;
+          font-size: 12px;
+          font-weight: 500;
+        }
+
+        .status-indicator.qualified {
+          background: #dcfce7;
+          color: #15803d;
+        }
+
+        .status-indicator.not-qualified {
+          background: #fef2f2;
+          color: #dc2626;
+        }
+
+        .remaining-mints {
+          font-size: 12px;
+          color: #6b7280;
+        }
+
+        .action-buttons {
+          display: flex;
+          gap: 12px;
+          margin-bottom: 24px;
+        }
+
+        .create-button, .import-button {
+          padding: 10px 16px;
+          border: 1px solid #d1d5db;
+          background: white;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 500;
+        }
+
+        .create-button:hover, .import-button:hover {
+          background: #f9fafb;
+        }
+
+        .qualification-warning {
+          background: #fef3c7;
+          border: 1px solid #f59e0b;
+          padding: 16px;
+          border-radius: 6px;
+          margin-bottom: 24px;
+          color: #92400e;
+        }
+
+        .qualification-warning ul {
+          margin: 8px 0 0 0;
+          padding-left: 20px;
+        }
+
+        .create-form, .import-form {
+          background: #f9fafb;
+          padding: 20px;
+          border-radius: 6px;
+          margin-bottom: 24px;
+        }
+
+        .create-form h3 {
+          margin: 0 0 16px 0;
+          font-size: 18px;
+          font-weight: 600;
+        }
+
+        .title-input {
+          width: 100%;
+          padding: 10px 12px;
+          border: 1px solid #d1d5db;
+          border-radius: 4px;
+          font-size: 16px;
+          margin-bottom: 16px;
+        }
+
+        .form-actions {
+          display: flex;
+          gap: 8px;
+        }
+
+        .save-button, .cancel-button {
+          padding: 8px 16px;
+          border: 1px solid #d1d5db;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 14px;
+        }
+
+        .save-button {
+          background: #0066cc;
+          color: white;
+          border-color: #0066cc;
+        }
+
+        .cancel-button {
+          background: white;
+        }
+
+        .manual-entry-form {
+          background: #f9fafb;
+          padding: 20px;
+          border-radius: 6px;
+          margin-bottom: 24px;
+        }
+
+        .manual-entry-form h3 {
+          margin: 0 0 16px 0;
+          font-size: 18px;
+          font-weight: 600;
+        }
+
+        .bookmark-form {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .form-input {
+          padding: 10px 12px;
+          border: 1px solid #d1d5db;
+          border-radius: 4px;
+          font-size: 16px;
+        }
+
+        .add-bookmark-button {
+          padding: 10px 16px;
+          background: #0066cc;
+          color: white;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 16px;
+        }
+
+        .add-bookmark-button:disabled {
+          background: #9ca3af;
+          cursor: not-allowed;
+        }
+
+        .empty-state {
+          text-align: center;
+          padding: 40px 20px;
+          color: #6b7280;
+        }
+
+        .access-message {
+          text-align: center;
+          padding: 40px 20px;
+          color: #6b7280;
+        }
+      `}</style>
     </div>
-  )
+  );
 }
