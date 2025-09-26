@@ -31,6 +31,11 @@ export class MintedBookmarkService {
     await this.bookmarkNFTService.initialize();
   }
 
+    // ADD THIS METHOD HERE:
+    async initializeReadOnly(): Promise<void> {
+      await this.bookmarkNFTService.initializeReadOnly();
+    }
+
   async getUserMintedBookmarks(userAddress: string): Promise<MintedBookmark[]> {
     try {
       const tokenIds = await this.bookmarkNFTService.getUserBookmarks(userAddress);

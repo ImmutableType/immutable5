@@ -8,6 +8,8 @@ import { BookmarkCollectionManager } from '../../../app/components/features/book
 import { MintedBookmarks } from '../../../app/components/features/bookmarks/MintedBookmarks'
 import BuyBuffaflow from '../../../app/components/features/buffaflow/BuyBuffaflow'
 
+
+
 interface ProfileDisplayData {
   tier: number
   did: string
@@ -55,24 +57,22 @@ export default function ProfilePage() {
     try {
       setCheckingOwnership(true)
       
-      // Check if accounts are already connected, don't request new ones
-      const accounts = await window.ethereum?.request({ method: 'eth_accounts' }) || []
+      // Try to initialize wallet connection to check ownership
+      await profileNFTService.initialize()
+      const ownershipResult = await profileNFTService.isProfileOwner(profileId)
+      setIsOwner(ownershipResult)
       
-      if (accounts.length > 0) {
-        // Only initialize if already connected
-        await profileNFTService.initialize()
-        const ownershipResult = await profileNFTService.isProfileOwner(profileId)
-        setIsOwner(ownershipResult)
-        
+      // Capture the wallet address for use in MintedBookmarks
+      try {
         const currentAddress = await profileNFTService.getCurrentAddress()
         setWalletAddress(currentAddress)
-      } else {
-        // Not connected - don't trigger connection modal
-        setIsOwner(false)
+      } catch (error) {
+        console.log('Could not get wallet address')
         setWalletAddress(null)
       }
       
     } catch (error) {
+      // If wallet connection fails, user is not the owner
       console.log('Wallet not connected, viewing in public mode')
       setIsOwner(false)
       setWalletAddress(null)
@@ -333,11 +333,7 @@ export default function ProfilePage() {
         id: 'minted',
         label: 'Minted Bookmarks',
         icon: '📚',
-        content: <MintedBookmarks 
-  userAddress={walletAddress || undefined} 
-  profileId={profileId}
-  profileOwnerAddress={profile.did.split(':')[4]} // Extract address from DID
-/>
+        content: <MintedBookmarks userAddress={walletAddress || undefined} profileId={profileId} />
       },
     {
       id: 'buffaflow',

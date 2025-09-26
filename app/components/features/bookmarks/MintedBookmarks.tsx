@@ -6,33 +6,39 @@ import { MintedBookmark, MintedBookmarkService } from '../../../../lib/services/
 interface MintedBookmarksProps {
   userAddress?: string;
   profileId?: string;
+  profileOwnerAddress?: string; // NEW: The actual profile owner
 }
 
-export function MintedBookmarks({ userAddress, profileId }: MintedBookmarksProps) {
+export function MintedBookmarks({ userAddress, profileId, profileOwnerAddress }: MintedBookmarksProps) {
   const [mintedBookmarks, setMintedBookmarks] = useState<MintedBookmark[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [totalBookmarksCount, setTotalBookmarksCount] = useState(0);
+  const [displayCount, setDisplayCount] = useState(5); // NEW: Pagination
+  const [hasMore, setHasMore] = useState(false); // NEW: Track if more bookmarks exist
+  const [connecting, setConnecting] = useState(false); // NEW: Connection loading state
 
   const mintedBookmarkService = new MintedBookmarkService();
 
   useEffect(() => {
-    if (userAddress) {
+    // Load bookmarks for profile owner, regardless of connected wallet
+    if (profileOwnerAddress) {
       loadMintedBookmarks();
       loadTotalCount();
     }
-  }, [userAddress]);
+  }, [profileOwnerAddress]);
 
   const loadMintedBookmarks = async () => {
-    if (!userAddress) return;
-
+    if (!profileOwnerAddress) return;
+  
     setLoading(true);
     setError(null);
-
+  
     try {
-      await mintedBookmarkService.initialize();
-      const bookmarks = await mintedBookmarkService.getUserMintedBookmarks(userAddress);
+      await mintedBookmarkService.initializeReadOnly();
+      const bookmarks = await mintedBookmarkService.getUserMintedBookmarks(profileOwnerAddress);
       setMintedBookmarks(bookmarks);
+      setHasMore(bookmarks.length > displayCount);
     } catch (error: any) {
       console.error('Error loading minted bookmarks:', error);
       setError(error.message || 'Failed to load minted bookmarks');
@@ -40,14 +46,37 @@ export function MintedBookmarks({ userAddress, profileId }: MintedBookmarksProps
       setLoading(false);
     }
   };
-
+  
   const loadTotalCount = async () => {
     try {
-      await mintedBookmarkService.initialize();
+      await mintedBookmarkService.initializeReadOnly();
       const count = await mintedBookmarkService.getTotalBookmarksCount();
       setTotalBookmarksCount(count);
     } catch (error) {
       console.error('Error loading total count:', error);
+    }
+  };
+
+  const loadMore = () => {
+    setDisplayCount(prev => {
+      const newCount = prev + 5;
+      setHasMore(mintedBookmarks.length > newCount);
+      return newCount;
+    });
+  };
+
+  const connectWallet = () => {
+    if (window.ethereum) {
+      setConnecting(true);
+      window.ethereum.request({ method: 'eth_requestAccounts' }).then(() => {
+        // Wait briefly for connection to establish, then refresh
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      }).catch((error) => {
+        console.error('Wallet connection failed:', error);
+        setConnecting(false);
+      });
     }
   };
 
@@ -74,6 +103,109 @@ export function MintedBookmarks({ userAddress, profileId }: MintedBookmarksProps
     window.open(explorerUrl, '_blank', 'noopener,noreferrer');
   };
 
+  // Show wallet connection prompt if no wallet connected
+  if (!userAddress) {
+    return (
+      <div className="minted-bookmarks-container">
+        <div className="connection-prompt">
+          <div className="connect-icon">🔗</div>
+          <h3>Connect Wallet to View Bookmarks</h3>
+          <p>This user has bookmark NFT collections. Connect your wallet to view their curated bookmarks.</p>
+          <button onClick={connectWallet} className="connect-button" disabled={connecting}>
+            {connecting ? 'Connecting...' : 'Connect Wallet'}
+          </button>
+          <div className="browse-note">
+            Or continue browsing publicly:
+            <br />• View profile information
+            <br />• See verification status
+            <br />• Check creation date
+          </div>
+        </div>
+
+        <style jsx>{`
+          .minted-bookmarks-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+          }
+
+          .connection-prompt {
+            text-align: center;
+            padding: 60px 40px;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+            margin: 20px;
+          }
+
+          .connect-icon {
+            font-size: 64px;
+            margin-bottom: 24px;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+          }
+
+          .connection-prompt h3 {
+            margin: 0 0 16px 0;
+            color: #1e293b;
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+          }
+
+          .connection-prompt p {
+            color: #64748b;
+            margin-bottom: 32px;
+            line-height: 1.6;
+            font-size: 18px;
+            max-width: 480px;
+            margin-left: auto;
+            margin-right: auto;
+          }
+
+          .connect-button {
+            background: linear-gradient(135deg, #0066cc 0%, #0052a3 100%);
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 32px;
+            box-shadow: 0 8px 16px rgba(0, 102, 204, 0.3);
+            transition: all 0.2s ease;
+            transform: translateY(0);
+          }
+
+          .connect-button:hover:not(:disabled) {
+            background: linear-gradient(135deg, #0052a3 0%, #003d7a 100%);
+            box-shadow: 0 12px 24px rgba(0, 102, 204, 0.4);
+            transform: translateY(-2px);
+          }
+
+          .connect-button:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+          }
+
+          .browse-note {
+            font-size: 16px;
+            color: #64748b;
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            max-width: 360px;
+            margin: 0 auto;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            text-align: left;
+          }
+        `}</style>
+      </div>
+    );
+  }
+
   if (loading && mintedBookmarks.length === 0) {
     return (
       <div className="minted-bookmarks-container">
@@ -98,13 +230,15 @@ export function MintedBookmarks({ userAddress, profileId }: MintedBookmarksProps
     );
   }
 
+  const displayedBookmarks = mintedBookmarks.slice(0, displayCount);
+
   return (
     <div className="minted-bookmarks-container">
       <div className="minted-bookmarks-header">
         <div className="header-info">
           <h2>Minted Bookmark NFTs</h2>
           <div className="stats">
-            <span className="user-count">Your NFTs: {mintedBookmarks.length}</span>
+            <span className="user-count">Profile NFTs: {mintedBookmarks.length}</span>
             <span className="total-count">Total Platform NFTs: {totalBookmarksCount}</span>
           </div>
         </div>
@@ -117,63 +251,72 @@ export function MintedBookmarks({ userAddress, profileId }: MintedBookmarksProps
 
       {mintedBookmarks.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-icon">📑</div>
+          <div className="empty-icon">📚</div>
           <h3>No Minted Bookmarks Yet</h3>
-          <p>Once you mint bookmark collections, your NFTs will appear here.</p>
-          <p className="hint">Go to "Bookmark URLs" tab to create and mint collections.</p>
+          <p>This user hasn't minted any bookmark collections as NFTs yet.</p>
         </div>
       ) : (
-        <div className="bookmarks-grid">
-          {mintedBookmarks.map((bookmark) => (
-            <div key={bookmark.tokenId} className="bookmark-nft-card">
-              <div className="nft-header">
-                <div className="token-info">
-                  <span className="token-id">#{bookmark.tokenId}</span>
-                  <button 
-                    onClick={() => viewOnExplorer(bookmark.tokenId)}
-                    className="explorer-link"
-                    title="View on Flow Explorer"
-                  >
-                    🔗
-                  </button>
+        <>
+          <div className="bookmarks-grid">
+            {displayedBookmarks.map((bookmark) => (
+              <div key={bookmark.tokenId} className="bookmark-nft-card">
+                <div className="nft-header">
+                  <div className="token-info">
+                    <span className="token-id">#{bookmark.tokenId}</span>
+                    <button 
+                      onClick={() => viewOnExplorer(bookmark.tokenId)}
+                      className="explorer-link"
+                      title="View on Flow Explorer"
+                    >
+                      🔗
+                    </button>
+                  </div>
+                  <div className="mint-date">
+                    {formatDate(bookmark.mintedAt)}
+                  </div>
                 </div>
-                <div className="mint-date">
-                  {formatDate(bookmark.mintedAt)}
+
+                <div className="bookmark-content">
+                  <h3 className="bookmark-title">{bookmark.title}</h3>
+                  
+                  {bookmark.description && (
+                    <p className="bookmark-description">"{bookmark.description}"</p>
+                  )}
+
+                  <div className="bookmark-url-section">
+                    <button 
+                      onClick={() => openUrl(bookmark.url)}
+                      className="url-button"
+                      title="Visit URL"
+                    >
+                      🌐 Visit Link
+                    </button>
+                    <div className="url-display">
+                      {bookmark.url}
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              <div className="bookmark-content">
-                <h3 className="bookmark-title">{bookmark.title}</h3>
-                
-                {bookmark.description && (
-                  <p className="bookmark-description">"{bookmark.description}"</p>
-                )}
-
-                <div className="bookmark-url-section">
-                  <button 
-                    onClick={() => openUrl(bookmark.url)}
-                    className="url-button"
-                    title="Visit URL"
-                  >
-                    🌐 Visit Link
-                  </button>
-                  <div className="url-display">
-                    {bookmark.url}
+                <div className="nft-footer">
+                  <div className="creator-info">
+                    <span className="creator-label">Minted by:</span>
+                    <span className="creator-address">
+                      {bookmark.creator === userAddress ? 'You' : truncateAddress(bookmark.creator)}
+                    </span>
                   </div>
                 </div>
               </div>
+            ))}
+          </div>
 
-              <div className="nft-footer">
-                <div className="creator-info">
-                  <span className="creator-label">Minted by:</span>
-                  <span className="creator-address">
-                    {bookmark.creator === userAddress ? 'You' : truncateAddress(bookmark.creator)}
-                  </span>
-                </div>
-              </div>
+          {hasMore && (
+            <div className="load-more-container">
+              <button onClick={loadMore} className="load-more-button">
+                Load More Bookmarks ({mintedBookmarks.length - displayCount} remaining)
+              </button>
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
 
       <style jsx>{`
@@ -263,12 +406,6 @@ export function MintedBookmarks({ userAddress, profileId }: MintedBookmarksProps
         .empty-state h3 {
           margin: 0 0 12px 0;
           color: #374151;
-        }
-
-        .hint {
-          font-size: 14px;
-          color: #9ca3af;
-          margin-top: 16px;
         }
 
         .bookmarks-grid {
@@ -384,6 +521,26 @@ export function MintedBookmarks({ userAddress, profileId }: MintedBookmarksProps
         .creator-address {
           color: #374151;
           font-family: 'SF Mono', 'Monaco', monospace;
+        }
+
+        .load-more-container {
+          text-align: center;
+          margin-top: 32px;
+        }
+
+        .load-more-button {
+          background: #f3f4f6;
+          color: #374151;
+          border: 1px solid #d1d5db;
+          padding: 12px 24px;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 16px;
+          font-weight: 500;
+        }
+
+        .load-more-button:hover {
+          background: #e5e7eb;
         }
       `}</style>
     </div>
