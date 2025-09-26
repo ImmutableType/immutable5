@@ -354,16 +354,51 @@ export default function ProfilePage() {
     <div className="profile-container">
       <div className="profile-card profile-card-wide" style={{ maxWidth: '720px', margin: '2rem auto' }}>
         
-        {/* Profile Header - Unchanged */}
+        {/* Profile Header - With Avatar */}
         <div style={{ 
           textAlign: 'center', 
           borderBottom: '1px solid var(--color-border)', 
           paddingBottom: '2rem', 
           marginBottom: '2rem' 
         }}>
-          <h1 className="profile-title" style={{ fontSize: 'var(--text-4xl)', marginBottom: '0.5rem' }}>
-            {profile.displayName}
-          </h1>
+          {/* Avatar and Title Container */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '1rem',
+            marginBottom: '0.5rem'
+          }}>
+            {/* Avatar Image */}
+            {profile.avatarUrl && (
+              <div style={{
+                width: '60px',
+                height: '60px',
+                borderRadius: '50%',
+                overflow: 'hidden',
+                border: '2px solid var(--color-border)',
+                flexShrink: 0
+              }}>
+                <img 
+                  src={profile.avatarUrl} 
+                  alt={`${profile.displayName} avatar`}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover'
+                  }}
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              </div>
+            )}
+            
+            {/* Profile Name */}
+            <h1 className="profile-title" style={{ fontSize: 'var(--text-4xl)', margin: 0 }}>
+              {profile.displayName}
+            </h1>
+          </div>
           
           <div style={{ 
             display: 'inline-flex', 
