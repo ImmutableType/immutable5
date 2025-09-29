@@ -103,6 +103,10 @@ export function MintedBookmarks({ userAddress, profileId, profileOwnerAddress }:
     window.open(explorerUrl, '_blank', 'noopener,noreferrer');
   };
 
+  const openExtensionStore = () => {
+    window.open('https://chromewebstore.google.com/search/ImmutableType%20Stacks', '_blank', 'noopener,noreferrer');
+  };
+
   // Show wallet connection prompt if no wallet connected
   if (!userAddress) {
     return (
@@ -317,6 +321,23 @@ export function MintedBookmarks({ userAddress, profileId, profileOwnerAddress }:
             </div>
           )}
         </>
+      )}
+
+      {/* Extension Promotion Section - Only shows for connected users */}
+      {userAddress && (
+        <div className="extension-promotion">
+          <div className="extension-content">
+            <h3>Browser Extension Available</h3>
+            <p>
+              Install the ImmutableType Stacks extension to easily save and export your bookmarks. 
+              Capture URLs as you browse, organize them into collections, and seamlessly import them 
+              into your ImmutableType profile for minting as NFTs.
+            </p>
+            <button onClick={openExtensionStore} className="extension-button">
+              Download Chrome Extension
+            </button>
+          </div>
+        </div>
       )}
 
       <style jsx>{`
@@ -541,6 +562,54 @@ export function MintedBookmarks({ userAddress, profileId, profileOwnerAddress }:
 
         .load-more-button:hover {
           background: #e5e7eb;
+        }
+
+        .extension-promotion {
+          margin-top: 48px;
+          padding-top: 32px;
+          border-top: 2px solid #e5e7eb;
+        }
+
+        .extension-content {
+          background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+          border: 1px solid #bae6fd;
+          border-radius: 12px;
+          padding: 32px;
+          text-align: center;
+        }
+
+        .extension-content h3 {
+          margin: 0 0 16px 0;
+          color: #0c4a6e;
+          font-size: 22px;
+          font-weight: 600;
+        }
+
+        .extension-content p {
+          color: #075985;
+          line-height: 1.6;
+          font-size: 16px;
+          max-width: 600px;
+          margin: 0 auto 24px;
+        }
+
+        .extension-button {
+          background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+          color: white;
+          border: none;
+          padding: 14px 28px;
+          border-radius: 8px;
+          cursor: pointer;
+          font-size: 16px;
+          font-weight: 600;
+          box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+          transition: all 0.2s ease;
+        }
+
+        .extension-button:hover {
+          background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+          box-shadow: 0 6px 16px rgba(14, 165, 233, 0.4);
+          transform: translateY(-2px);
         }
       `}</style>
     </div>
