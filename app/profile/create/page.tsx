@@ -243,47 +243,59 @@ const CreateProfilePage: React.FC = () => {
   }
 
   // Auth selection
-  if (!selectedAuth) {
-    return (
-      <>
-        <Modal 
-          isOpen={showHowToModal} 
-          onClose={() => setShowHowToModal(false)}
-          title="New to Flow Blockchain?"
-        >
-          <HowToModalContent />
-        </Modal>
+if (!selectedAuth) {
+  return (
+    <>
+      <Modal 
+        isOpen={showHowToModal} 
+        onClose={() => setShowHowToModal(false)}
+        title="New to Flow Blockchain?"
+      >
+        <HowToModalContent />
+      </Modal>
 
-        <div className="profile-container profile-centered">
-          <div className="profile-card">
-            <h1 className="profile-title">Welcome to ImmutableType</h1>
-            <p className="profile-subtitle">
-              Once moveable, now provable. 
-            </p>
-            <p className="profile-subtitle">
-              Get started by creating a profile.
-            </p>
+      <div className="profile-container profile-centered">
+        <div className="profile-card">
+          <h1 className="profile-title">Welcome to ImmutableType</h1>
+          <p className="profile-subtitle">
+            Get started by creating a profile.
+          </p>
 
-            <button
-              onClick={() => setShowHowToModal(true)}
-              className="btn btn-secondary"
-              style={{ marginBottom: '1rem', width: '100%' }}
-            >
-              New to Flow Blockchain? Learn how to get started
-            </button>
+          <button
+            onClick={() => setSelectedAuth('wallet')}
+            className="btn btn-primary btn-icon"
+          >
+            <span style={{ fontSize: '1.25rem' }}>🦊</span>
+            Connect with MetaMask
+          </button>
 
-            <button
-              onClick={() => setSelectedAuth('wallet')}
-              className="btn btn-primary btn-icon"
-            >
-              <span style={{ fontSize: '1.25rem' }}>🦊</span>
-              Connect with MetaMask
-            </button>
+          <div style={{ 
+            textAlign: 'center', 
+            margin: '2rem 0',
+            color: 'var(--color-text-secondary)',
+            fontSize: '0.9rem'
+          }}>
+            Or, Learn How to Connect 👇
           </div>
+
+          <button
+  onClick={() => setShowHowToModal(true)}
+  className="btn btn-secondary"
+  style={{ 
+    width: '100%',
+    fontSize: '1rem',
+    fontWeight: '500',
+    lineHeight: '1.4'
+  }}
+>
+  New to Flow Blockchain?<br />
+  Learn how to get started
+</button>
         </div>
-      </>
-    )
-  }
+      </div>
+    </>
+  )
+}
 
   // Connecting state with improved mobile instructions
   if (selectedAuth === 'wallet' && !isConnected) {
@@ -535,6 +547,7 @@ const CreateProfilePage: React.FC = () => {
             text-decoration: underline;
           }
         `}</style>
+
       </div>
     )
   }
