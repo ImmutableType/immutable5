@@ -5,6 +5,8 @@ import { useDirectWallet } from '../../../lib/hooks/useDirectWallet'
 import { tokenQualifierService } from '../../../lib/services/profile/TokenQualifier'
 import confetti from 'canvas-confetti'
 import Image from 'next/image'
+import { Modal } from '../../components/ui/Modal'
+import { HowToModalContent } from '../../components/features/registration/HowToModal'
 
 type AuthMethod = 'wallet' | null
 
@@ -34,6 +36,7 @@ interface QualificationStatus {
 
 const CreateProfilePage: React.FC = () => {
   const [selectedAuth, setSelectedAuth] = useState<AuthMethod>(null)
+  const [showHowToModal, setShowHowToModal] = useState(false)
   const [formData, setFormData] = useState<FormData>({
     displayName: '',
     bio: '',
@@ -242,25 +245,43 @@ const CreateProfilePage: React.FC = () => {
   // Auth selection
   if (!selectedAuth) {
     return (
-      <div className="profile-container profile-centered">
-        <div className="profile-card">
-          <h1 className="profile-title">Welcome to ImmutableType</h1>
-          <p className="profile-subtitle">
-            Once moveable, now provable. 
-          </p>
-          <p className="profile-subtitle">
-            Get started by creating a profile.
-          </p>
+      <>
+        <Modal 
+          isOpen={showHowToModal} 
+          onClose={() => setShowHowToModal(false)}
+          title="New to Flow Blockchain?"
+        >
+          <HowToModalContent />
+        </Modal>
 
-          <button
-            onClick={() => setSelectedAuth('wallet')}
-            className="btn btn-primary btn-icon"
-          >
-            <span style={{ fontSize: '1.25rem' }}>🦊</span>
-            Connect with MetaMask
-          </button>
+        <div className="profile-container profile-centered">
+          <div className="profile-card">
+            <h1 className="profile-title">Welcome to ImmutableType</h1>
+            <p className="profile-subtitle">
+              Once moveable, now provable. 
+            </p>
+            <p className="profile-subtitle">
+              Get started by creating a profile.
+            </p>
+
+            <button
+              onClick={() => setShowHowToModal(true)}
+              className="btn btn-secondary"
+              style={{ marginBottom: '1rem', width: '100%' }}
+            >
+              New to Flow Blockchain? Learn how to get started
+            </button>
+
+            <button
+              onClick={() => setSelectedAuth('wallet')}
+              className="btn btn-primary btn-icon"
+            >
+              <span style={{ fontSize: '1.25rem' }}>🦊</span>
+              Connect with MetaMask
+            </button>
+          </div>
         </div>
-      </div>
+      </>
     )
   }
 
@@ -465,6 +486,25 @@ const CreateProfilePage: React.FC = () => {
                 <div className="alert-subtitle">{creationState.error}</div>
               </div>
             )}
+
+            <div className="terms-footer">
+              By creating a profile, you agree to our{' '}
+              <a 
+                href="https://immutabletype.com/policies/terms-of-service" 
+                target="_blank" 
+                rel="noopener noreferrer"
+              >
+                Terms of Service
+              </a>{' '}
+              and{' '}
+              <a 
+                href="https://immutabletype.com/policies/privacy-policy" 
+                target="_blank" 
+                rel="noopener noreferrer"
+              >
+                Privacy Policy
+              </a>
+            </div>
           </form>
 
           <div className="form-note">
@@ -472,6 +512,29 @@ const CreateProfilePage: React.FC = () => {
             Personal data resets upon transfer, ensuring privacy while maintaining profile history and verification status.
           </div>
         </div>
+
+        <style jsx>{`
+          .terms-footer {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--color-border);
+            text-align: center;
+            font-size: 0.875rem;
+            color: var(--color-text-tertiary);
+            line-height: 1.5;
+          }
+
+          .terms-footer a {
+            color: var(--color-primary-600);
+            text-decoration: none;
+            transition: color 0.2s ease;
+          }
+
+          .terms-footer a:hover {
+            color: var(--color-primary-700);
+            text-decoration: underline;
+          }
+        `}</style>
       </div>
     )
   }
