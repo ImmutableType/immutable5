@@ -7,6 +7,9 @@ import ProfileTabSystem from '../../../app/components/ui/tabs/ProfileTabSystem'
 import { BookmarkCollectionManager } from '../../../app/components/features/bookmarks/BookmarkCollection'
 import { MintedBookmarks } from '../../../app/components/features/bookmarks/MintedBookmarks'
 import BuyBuffaflow from '../../../app/components/features/buffaflow/BuyBuffaflow'
+import { Modal } from '../../../app/components/ui/Modal'
+import { GlobalFeedTrigger } from '../../../app/components/features/bookmarks/GlobalFeedTrigger'
+import { GlobalBookmarkFeed } from '../../../app/components/features/bookmarks/GlobalBookmarkFeed'
 
 interface ProfileDisplayData {
   tier: number
@@ -29,6 +32,7 @@ export default function ProfilePage() {
   const [isOwner, setIsOwner] = useState(false)
   const [checkingOwnership, setCheckingOwnership] = useState(true)
   const [walletAddress, setWalletAddress] = useState<string | null>(null)
+  const [showGlobalFeed, setShowGlobalFeed] = useState(false)
 
   const loadProfile = useCallback(async () => {
     try {
@@ -446,24 +450,38 @@ export default function ProfilePage() {
         {/* Tab System - New */}
         <ProfileTabSystem tabs={tabs} defaultTab="overview" />
 
-        {/* Actions - Unchanged */}
-        {/* Actions - Link to main website */}
-<div style={{ 
-  borderTop: '1px solid var(--color-border)', 
-  paddingTop: '2rem',
-  textAlign: 'center'
-}}>
-  
-    <a href="https://immutabletype.com"
-      target="_blank"
-      rel="noopener noreferrer"
-    className="btn btn-secondary"
-    style={{ minWidth: '140px', textDecoration: 'none' }}
-  >
-    ← ImmutableType
-  </a>
-</div>
+       {/* Actions - Global Feed + Main Website Link */}
+       <div style={{ 
+          borderTop: '1px solid var(--color-border)', 
+          paddingTop: '2rem',
+          textAlign: 'center'
+        }}>
+          
+          {/* Global Feed Trigger - Only for connected users */}
+          <GlobalFeedTrigger 
+            onOpenFeed={() => setShowGlobalFeed(true)}
+            isConnected={!!walletAddress}
+          />
+          
+          <a href="https://immutabletype.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-secondary"
+            style={{ minWidth: '140px', textDecoration: 'none' }}
+          >
+            ← ImmutableType
+          </a>
+        </div>
       </div>
-    </div>
+
+      {/* Global Bookmark Feed Modal */}
+      <Modal
+        isOpen={showGlobalFeed}
+        onClose={() => setShowGlobalFeed(false)}
+        title="Global Bookmark Feed"
+      >
+        <GlobalBookmarkFeed />
+      </Modal>
+      </div>
   )
 }
