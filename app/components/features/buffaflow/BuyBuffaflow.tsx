@@ -1,6 +1,115 @@
 'use client'
 
-export default function BuyBuffaflow() {
+import { useState, useEffect } from 'react'
+import { ethers } from 'ethers'
+
+const BUFFAFLOW_CONTRACT_ADDRESS = '0xc8654a7a4bd671d4ceac6096a92a3170fa3b4798'
+const BUFFAFLOW_ABI = [
+  // ERC20 standard balanceOf function
+  'function balanceOf(address owner) view returns (uint256)',
+  // ERC404 totalSupply
+  'function totalSupply() view returns (uint256)',
+  // Decimals
+  'function decimals() view returns (uint8)'
+]
+
+interface BuyBuffaflowProps {
+  isOwnProfile?: boolean
+}
+
+export default function BuyBuffaflow({ isOwnProfile = false }: BuyBuffaflowProps) {
+  const [walletAddress, setWalletAddress] = useState<string | null>(null)
+  const [buffaflowBalance, setBuffaflowBalance] = useState<string | null>(null)
+  const [isQualified, setIsQualified] = useState<boolean>(false)
+  const [isLoading, setIsLoading] = useState<boolean>(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Check wallet connection and balance ONLY on own profile
+  useEffect(() => {
+    if (isOwnProfile) {
+      checkWalletAndBalance()
+    }
+  }, [isOwnProfile])
+
+  const checkWalletAndBalance = async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+
+      // Check if MetaMask is installed
+      if (typeof window.ethereum === 'undefined') {
+        setError('MetaMask not detected')
+        return
+      }
+
+      // Get connected accounts
+      const accounts = await window.ethereum.request({ 
+        method: 'eth_accounts' 
+      })
+
+      if (accounts.length === 0) {
+        // No wallet connected
+        setWalletAddress(null)
+        setBuffaflowBalance(null)
+        return
+      }
+
+      const address = accounts[0]
+      setWalletAddress(address)
+
+      // Create provider and contract instance
+      const provider = new ethers.BrowserProvider(window.ethereum)
+      const contract = new ethers.Contract(
+        BUFFAFLOW_CONTRACT_ADDRESS,
+        BUFFAFLOW_ABI,
+        provider
+      )
+
+      // Get balance
+      const balance = await contract.balanceOf(address)
+      const decimals = await contract.decimals()
+      
+      // Format balance (divide by 10^decimals)
+      const formattedBalance = ethers.formatUnits(balance, decimals)
+      setBuffaflowBalance(formattedBalance)
+
+      // Check if qualified (100+ tokens)
+      const balanceNumber = parseFloat(formattedBalance)
+      setIsQualified(balanceNumber >= 100)
+
+    } catch (err) {
+      console.error('Error checking balance:', err)
+      setError('Failed to load balance')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleConnectWallet = async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+
+      if (typeof window.ethereum === 'undefined') {
+        setError('MetaMask not installed')
+        return
+      }
+
+      // Request account access
+      await window.ethereum.request({ 
+        method: 'eth_requestAccounts' 
+      })
+
+      // Recheck balance after connection
+      await checkWalletAndBalance()
+    } catch (err) {
+      console.error('Error connecting wallet:', err)
+      setError('Failed to connect wallet')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const handleFlowFunClick = () => {
     window.open('https://flowfun.xyz/collection/6893c3f9fc44a8bb9e159eb4/token', '_blank', 'noopener,noreferrer')
   }
@@ -24,6 +133,171 @@ export default function BuyBuffaflow() {
       maxWidth: '600px',
       margin: '0 auto'
     }}>
+      {/* Wallet Balance Card - ONLY SHOWN ON OWN PROFILE */}
+      {isOwnProfile && walletAddress && (
+        <div style={{
+          background: isQualified 
+            ? 'linear-gradient(135deg, var(--color-success-50) 0%, var(--color-success-100) 100%)'
+            : 'var(--color-neutral-50)',
+          padding: '1.5rem',
+          borderRadius: '12px',
+          border: `2px solid ${isQualified ? 'var(--color-success-400)' : 'var(--color-neutral-200)'}`,
+          marginBottom: '2rem',
+          boxShadow: isQualified ? '0 4px 12px rgba(34, 197, 94, 0.15)' : 'none'
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '1rem'
+          }}>
+            <h3 style={{
+              fontSize: 'var(--text-base)',
+              fontWeight: '600',
+              color: 'var(--color-text-primary)',
+              margin: 0
+            }}>
+              Your $BUFFAFLOW Balance
+            </h3>
+            {isQualified && (
+              <span style={{
+                background: 'var(--color-success-500)',
+                color: 'white',
+                padding: '0.25rem 0.75rem',
+                borderRadius: '9999px',
+                fontSize: 'var(--text-xs)',
+                fontWeight: '600'
+              }}>
+                ✓ Qualified
+              </span>
+            )}
+          </div>
+
+          {isLoading ? (
+            <p style={{ 
+              fontSize: 'var(--text-sm)', 
+              color: 'var(--color-text-secondary)' 
+            }}>
+              Loading balance...
+            </p>
+          ) : error ? (
+            <p style={{ 
+              fontSize: 'var(--text-sm)', 
+              color: 'var(--color-error-600)' 
+            }}>
+              {error}
+            </p>
+          ) : (
+            <>
+              <div style={{
+                fontSize: '2rem',
+                fontWeight: '700',
+                color: isQualified ? 'var(--color-success-700)' : 'var(--color-text-primary)',
+                marginBottom: '0.5rem'
+              }}>
+                {parseFloat(buffaflowBalance || '0').toLocaleString(undefined, {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 2
+                })} $BUFFAFLOW
+              </div>
+
+              <p style={{
+                fontSize: 'var(--text-sm)',
+                color: isQualified ? 'var(--color-success-700)' : 'var(--color-text-secondary)',
+                marginBottom: '0.5rem'
+              }}>
+                {isQualified 
+                  ? '🎉 You qualify for free profile creation and bookmark minting!'
+                  : `You need ${(100 - parseFloat(buffaflowBalance || '0')).toFixed(0)} more tokens to qualify`
+                }
+              </p>
+
+              <p style={{
+                fontSize: 'var(--text-xs)',
+                color: 'var(--color-text-tertiary)',
+                fontFamily: 'monospace'
+              }}>
+                Wallet: {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+              </p>
+            </>
+          )}
+
+          <button
+            onClick={checkWalletAndBalance}
+            disabled={isLoading}
+            style={{
+              marginTop: '1rem',
+              background: 'transparent',
+              color: 'var(--color-primary-600)',
+              border: '1px solid var(--color-primary-300)',
+              padding: '0.5rem 1rem',
+              borderRadius: '6px',
+              fontSize: 'var(--text-xs)',
+              fontWeight: '500',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              opacity: isLoading ? 0.6 : 1
+            }}
+            onMouseEnter={(e) => {
+              if (!isLoading) {
+                e.currentTarget.style.backgroundColor = 'var(--color-primary-50)'
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent'
+            }}
+          >
+            {isLoading ? 'Refreshing...' : '🔄 Refresh Balance'}
+          </button>
+        </div>
+      )}
+
+      {/* Connect Wallet Button - ONLY SHOWN ON OWN PROFILE */}
+      {isOwnProfile && !walletAddress && (
+        <div style={{
+          background: 'var(--color-primary-50)',
+          padding: '1.5rem',
+          borderRadius: '12px',
+          border: '1px solid var(--color-primary-200)',
+          marginBottom: '2rem',
+          textAlign: 'center'
+        }}>
+          <p style={{
+            fontSize: 'var(--text-sm)',
+            color: 'var(--color-text-secondary)',
+            marginBottom: '1rem'
+          }}>
+            Connect your wallet to check your $BUFFAFLOW balance
+          </p>
+          <button
+            onClick={handleConnectWallet}
+            disabled={isLoading}
+            style={{
+              background: 'var(--color-primary-600)',
+              color: 'white',
+              border: 'none',
+              padding: '0.75rem 1.5rem',
+              borderRadius: '8px',
+              fontSize: 'var(--text-sm)',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'background-color 0.2s ease',
+              opacity: isLoading ? 0.6 : 1
+            }}
+            onMouseEnter={(e) => {
+              if (!isLoading) {
+                e.currentTarget.style.backgroundColor = 'var(--color-primary-700)'
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--color-primary-600)'
+            }}
+          >
+            {isLoading ? 'Connecting...' : '🦊 Connect MetaMask'}
+          </button>
+        </div>
+      )}
+
       {/* Main Header */}
       <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
         <div style={{
@@ -76,6 +350,7 @@ export default function BuyBuffaflow() {
         </div>
       </div>
 
+      {/* Rest of the component remains the same... */}
       {/* Value Propositions */}
       <div style={{
         background: 'var(--color-primary-50)',
@@ -318,50 +593,47 @@ export default function BuyBuffaflow() {
         </p>
       </div>
      
-{/* Legal Disclaimers */}
-<div style={{
-  borderTop: '1px solid var(--color-neutral-200)',
-  paddingTop: '1.5rem',
-  fontSize: 'var(--text-xs)',
-  color: 'var(--color-text-tertiary)',
-  lineHeight: '1.4'
-}}>
-  <h4 style={{
-    fontSize: 'var(--text-xs)',
-    fontWeight: '600',
-    color: 'var(--color-text-secondary)',
-    marginBottom: '1rem'
-  }}>
-    Legal Disclaimers
-  </h4>
-  
-  <p style={{ marginBottom: '0.75rem' }}>
-    <strong>Collectible Nature:</strong> $BUFFAFLOW are collectible tokens which unlock utility on ImmutableType. These tokens and MoonBuffaFLOW NFTs are experimental digital collectibles that may fluctuate in value. Only acquire what you can afford to lose.
-  </p>
-  
-  <p style={{ marginBottom: '0.75rem' }}>
-    <strong>Entertainment Purposes:</strong> ImmutableType tokens foster experiments in collaboration that should be used for entertainment purposes only. This information is educational and does not constitute financial, investment, or legal advice.
-  </p>
-  
-  <p style={{ marginBottom: '0.75rem' }}>
-    <strong>No Financial Advice:</strong> Consult with qualified professionals before making any decisions regarding digital collectibles or blockchain interactions.
-  </p>
-  
-  <p style={{ marginBottom: '0.75rem' }}>
-    <strong>Platform Features:</strong> Utility features and token benefits are subject to change. ImmutableType reserves the right to modify platform functionality, qualification requirements, and terms of service.
-  </p>
-  
-  <p style={{ marginBottom: '0.75rem' }}>
-    <strong>Regulatory Compliance:</strong> Users are responsible for compliance with applicable laws and regulations in their jurisdiction. Some features may not be available in all regions.
-  </p>
-  
-  <p>
-    <strong>Smart Contract Risk:</strong> Blockchain transactions are irreversible. Ensure you understand the risks associated with smart contract interactions before proceeding.
-  </p>
-</div>
-
-
-
+      {/* Legal Disclaimers */}
+      <div style={{
+        borderTop: '1px solid var(--color-neutral-200)',
+        paddingTop: '1.5rem',
+        fontSize: 'var(--text-xs)',
+        color: 'var(--color-text-tertiary)',
+        lineHeight: '1.4'
+      }}>
+        <h4 style={{
+          fontSize: 'var(--text-xs)',
+          fontWeight: '600',
+          color: 'var(--color-text-secondary)',
+          marginBottom: '1rem'
+        }}>
+          Legal Disclaimers
+        </h4>
+        
+        <p style={{ marginBottom: '0.75rem' }}>
+          <strong>Collectible Nature:</strong> $BUFFAFLOW are collectible tokens which unlock utility on ImmutableType. These tokens and MoonBuffaFLOW NFTs are experimental digital collectibles that may fluctuate in value. Only acquire what you can afford to lose.
+        </p>
+        
+        <p style={{ marginBottom: '0.75rem' }}>
+          <strong>Entertainment Purposes:</strong> ImmutableType tokens foster experiments in collaboration that should be used for entertainment purposes only. This information is educational and does not constitute financial, investment, or legal advice.
+        </p>
+        
+        <p style={{ marginBottom: '0.75rem' }}>
+          <strong>No Financial Advice:</strong> Consult with qualified professionals before making any decisions regarding digital collectibles or blockchain interactions.
+        </p>
+        
+        <p style={{ marginBottom: '0.75rem' }}>
+          <strong>Platform Features:</strong> Utility features and token benefits are subject to change. ImmutableType reserves the right to modify platform functionality, qualification requirements, and terms of service.
+        </p>
+        
+        <p style={{ marginBottom: '0.75rem' }}>
+          <strong>Regulatory Compliance:</strong> Users are responsible for compliance with applicable laws and regulations in their jurisdiction. Some features may not be available in all regions.
+        </p>
+        
+        <p>
+          <strong>Smart Contract Risk:</strong> Blockchain transactions are irreversible. Ensure you understand the risks associated with smart contract interactions before proceeding.
+        </p>
+      </div>
     </div>
   )
 }

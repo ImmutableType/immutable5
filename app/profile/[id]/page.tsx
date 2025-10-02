@@ -347,7 +347,7 @@ export default function ProfilePage() {
       id: 'buffaflow',
       label: 'Buy BUFFAFLOW', 
       icon: '💰',
-      content: <BuyBuffaflow />
+      content: <BuyBuffaflow isOwnProfile={isOwner} />
     },
     // Security: Only show bookmark creation tab to profile owner
     ...(isOwner ? [{
