@@ -4,13 +4,12 @@ import { useState, useEffect } from 'react'
 import { ethers } from 'ethers'
 
 const BUFFAFLOW_CONTRACT_ADDRESS = '0xc8654a7a4bd671d4ceac6096a92a3170fa3b4798'
-const BUFFAFLOW_ABI = [
-  // ERC20 standard balanceOf function
+const WFLOW_CONTRACT_ADDRESS = '0xd3bF53DAC106A0290B0483EcBC89d40FcC961f3e' // Wrapped FLOW on Flow EVM
+
+const ERC20_ABI = [
   'function balanceOf(address owner) view returns (uint256)',
-  // ERC404 totalSupply
-  'function totalSupply() view returns (uint256)',
-  // Decimals
-  'function decimals() view returns (uint8)'
+  'function decimals() view returns (uint8)',
+  'function symbol() view returns (string)'
 ]
 
 interface BuyBuffaflowProps {
@@ -19,19 +18,21 @@ interface BuyBuffaflowProps {
 
 export default function BuyBuffaflow({ isOwnProfile = false }: BuyBuffaflowProps) {
   const [walletAddress, setWalletAddress] = useState<string | null>(null)
+  const [flowBalance, setFlowBalance] = useState<string | null>(null)
+  const [wflowBalance, setWflowBalance] = useState<string | null>(null)
   const [buffaflowBalance, setBuffaflowBalance] = useState<string | null>(null)
   const [isQualified, setIsQualified] = useState<boolean>(false)
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Check wallet connection and balance ONLY on own profile
+  // Check wallet connection and balances ONLY on own profile
   useEffect(() => {
     if (isOwnProfile) {
-      checkWalletAndBalance()
+      checkWalletAndBalances()
     }
   }, [isOwnProfile])
 
-  const checkWalletAndBalance = async () => {
+  const checkWalletAndBalances = async () => {
     try {
       setIsLoading(true)
       setError(null)
@@ -50,6 +51,8 @@ export default function BuyBuffaflow({ isOwnProfile = false }: BuyBuffaflowProps
       if (accounts.length === 0) {
         // No wallet connected
         setWalletAddress(null)
+        setFlowBalance(null)
+        setWflowBalance(null)
         setBuffaflowBalance(null)
         return
       }
@@ -57,29 +60,43 @@ export default function BuyBuffaflow({ isOwnProfile = false }: BuyBuffaflowProps
       const address = accounts[0]
       setWalletAddress(address)
 
-      // Create provider and contract instance
+      // Create provider
       const provider = new ethers.BrowserProvider(window.ethereum)
-      const contract = new ethers.Contract(
-        BUFFAFLOW_CONTRACT_ADDRESS,
-        BUFFAFLOW_ABI,
+
+      // Get native FLOW balance
+      const nativeBalance = await provider.getBalance(address)
+      const formattedFlowBalance = ethers.formatEther(nativeBalance)
+      setFlowBalance(formattedFlowBalance)
+
+      // Get WFLOW balance
+      const wflowContract = new ethers.Contract(
+        WFLOW_CONTRACT_ADDRESS,
+        ERC20_ABI,
         provider
       )
+      const wflowBal = await wflowContract.balanceOf(address)
+      const wflowDecimals = await wflowContract.decimals()
+      const formattedWflowBalance = ethers.formatUnits(wflowBal, wflowDecimals)
+      setWflowBalance(formattedWflowBalance)
 
-      // Get balance
-      const balance = await contract.balanceOf(address)
-      const decimals = await contract.decimals()
-      
-      // Format balance (divide by 10^decimals)
-      const formattedBalance = ethers.formatUnits(balance, decimals)
-      setBuffaflowBalance(formattedBalance)
+      // Get BUFFAFLOW balance
+      const buffaflowContract = new ethers.Contract(
+        BUFFAFLOW_CONTRACT_ADDRESS,
+        ERC20_ABI,
+        provider
+      )
+      const buffaflowBal = await buffaflowContract.balanceOf(address)
+      const buffaflowDecimals = await buffaflowContract.decimals()
+      const formattedBuffaflowBalance = ethers.formatUnits(buffaflowBal, buffaflowDecimals)
+      setBuffaflowBalance(formattedBuffaflowBalance)
 
-      // Check if qualified (100+ tokens)
-      const balanceNumber = parseFloat(formattedBalance)
+      // Check if qualified (100+ BUFFAFLOW tokens)
+      const balanceNumber = parseFloat(formattedBuffaflowBalance)
       setIsQualified(balanceNumber >= 100)
 
     } catch (err) {
-      console.error('Error checking balance:', err)
-      setError('Failed to load balance')
+      console.error('Error checking balances:', err)
+      setError('Failed to load balances')
     } finally {
       setIsLoading(false)
     }
@@ -100,8 +117,8 @@ export default function BuyBuffaflow({ isOwnProfile = false }: BuyBuffaflowProps
         method: 'eth_requestAccounts' 
       })
 
-      // Recheck balance after connection
-      await checkWalletAndBalance()
+      // Recheck balances after connection
+      await checkWalletAndBalances()
     } catch (err) {
       console.error('Error connecting wallet:', err)
       setError('Failed to connect wallet')
@@ -157,7 +174,7 @@ export default function BuyBuffaflow({ isOwnProfile = false }: BuyBuffaflowProps
               color: 'var(--color-text-primary)',
               margin: 0
             }}>
-              Your $BUFFAFLOW Balance
+              Your Wallet Balances
             </h3>
             {isQualified && (
               <span style={{
@@ -178,7 +195,7 @@ export default function BuyBuffaflow({ isOwnProfile = false }: BuyBuffaflowProps
               fontSize: 'var(--text-sm)', 
               color: 'var(--color-text-secondary)' 
             }}>
-              Loading balance...
+              Loading balances...
             </p>
           ) : error ? (
             <p style={{ 
@@ -189,18 +206,96 @@ export default function BuyBuffaflow({ isOwnProfile = false }: BuyBuffaflowProps
             </p>
           ) : (
             <>
+              {/* Balance Grid */}
               <div style={{
-                fontSize: '2rem',
-                fontWeight: '700',
-                color: isQualified ? 'var(--color-success-700)' : 'var(--color-text-primary)',
-                marginBottom: '0.5rem'
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                gap: '1rem',
+                marginBottom: '1rem'
               }}>
-                {parseFloat(buffaflowBalance || '0').toLocaleString(undefined, {
-                  minimumFractionDigits: 0,
-                  maximumFractionDigits: 2
-                })} $BUFFAFLOW
+                {/* FLOW Balance */}
+                <div style={{
+                  background: 'white',
+                  padding: '1rem',
+                  borderRadius: '8px',
+                  border: '1px solid var(--color-neutral-200)'
+                }}>
+                  <div style={{
+                    fontSize: 'var(--text-xs)',
+                    color: 'var(--color-text-tertiary)',
+                    marginBottom: '0.25rem',
+                    fontWeight: '500'
+                  }}>
+                    FLOW
+                  </div>
+                  <div style={{
+                    fontSize: 'var(--text-lg)',
+                    fontWeight: '700',
+                    color: 'var(--color-text-primary)'
+                  }}>
+                    {parseFloat(flowBalance || '0').toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 4
+                    })}
+                  </div>
+                </div>
+
+                {/* WFLOW Balance */}
+                <div style={{
+                  background: 'white',
+                  padding: '1rem',
+                  borderRadius: '8px',
+                  border: '1px solid var(--color-neutral-200)'
+                }}>
+                  <div style={{
+                    fontSize: 'var(--text-xs)',
+                    color: 'var(--color-text-tertiary)',
+                    marginBottom: '0.25rem',
+                    fontWeight: '500'
+                  }}>
+                    WFLOW
+                  </div>
+                  <div style={{
+                    fontSize: 'var(--text-lg)',
+                    fontWeight: '700',
+                    color: 'var(--color-text-primary)'
+                  }}>
+                    {parseFloat(wflowBalance || '0').toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 4
+                    })}
+                  </div>
+                </div>
+
+                {/* BUFFAFLOW Balance */}
+                <div style={{
+                  background: isQualified ? 'var(--color-success-50)' : 'white',
+                  padding: '1rem',
+                  borderRadius: '8px',
+                  border: `1px solid ${isQualified ? 'var(--color-success-300)' : 'var(--color-neutral-200)'}`
+                }}>
+                  <div style={{
+                    fontSize: 'var(--text-xs)',
+                    color: isQualified ? 'var(--color-success-700)' : 'var(--color-text-tertiary)',
+                    marginBottom: '0.25rem',
+                    fontWeight: '500'
+                  }}>
+                    $BUFFAFLOW
+                  </div>
+                  <div style={{
+                    fontSize: 'var(--text-lg)',
+                    fontWeight: '700',
+                    color: isQualified ? 'var(--color-success-700)' : 'var(--color-text-primary)'
+                  }}>
+                    {parseFloat(buffaflowBalance || '0').toLocaleString(undefined, {
+                      minimumFractionDigits: 0,
+                      maximumFractionDigits: 2
+                    })}
+                  </div>
+                </div>
               </div>
 
+              {/* Qualification Status */}
               <p style={{
                 fontSize: 'var(--text-sm)',
                 color: isQualified ? 'var(--color-success-700)' : 'var(--color-text-secondary)',
@@ -208,7 +303,7 @@ export default function BuyBuffaflow({ isOwnProfile = false }: BuyBuffaflowProps
               }}>
                 {isQualified 
                   ? '🎉 You qualify for free profile creation and bookmark minting!'
-                  : `You need ${(100 - parseFloat(buffaflowBalance || '0')).toFixed(0)} more tokens to qualify`
+                  : `You need ${(100 - parseFloat(buffaflowBalance || '0')).toFixed(0)} more $BUFFAFLOW to qualify`
                 }
               </p>
 
@@ -223,7 +318,7 @@ export default function BuyBuffaflow({ isOwnProfile = false }: BuyBuffaflowProps
           )}
 
           <button
-            onClick={checkWalletAndBalance}
+            onClick={checkWalletAndBalances}
             disabled={isLoading}
             style={{
               marginTop: '1rem',
@@ -247,7 +342,7 @@ export default function BuyBuffaflow({ isOwnProfile = false }: BuyBuffaflowProps
               e.currentTarget.style.backgroundColor = 'transparent'
             }}
           >
-            {isLoading ? 'Refreshing...' : '🔄 Refresh Balance'}
+            {isLoading ? 'Refreshing...' : '🔄 Refresh Balances'}
           </button>
         </div>
       )}
@@ -267,7 +362,7 @@ export default function BuyBuffaflow({ isOwnProfile = false }: BuyBuffaflowProps
             color: 'var(--color-text-secondary)',
             marginBottom: '1rem'
           }}>
-            Connect your wallet to check your $BUFFAFLOW balance
+            Connect your wallet to check your balances
           </p>
           <button
             onClick={handleConnectWallet}
@@ -350,7 +445,6 @@ export default function BuyBuffaflow({ isOwnProfile = false }: BuyBuffaflowProps
         </div>
       </div>
 
-      {/* Rest of the component remains the same... */}
       {/* Value Propositions */}
       <div style={{
         background: 'var(--color-primary-50)',
@@ -460,7 +554,7 @@ export default function BuyBuffaflow({ isOwnProfile = false }: BuyBuffaflowProps
             color: 'var(--color-text-primary)',
             marginBottom: '0.5rem'
           }}>
-            Add $BUFFAFLOW Token to MetaMask:
+            Add Tokens to MetaMask:
           </h4>
           <ul style={{
             color: 'var(--color-text-secondary)',
@@ -468,9 +562,8 @@ export default function BuyBuffaflow({ isOwnProfile = false }: BuyBuffaflowProps
             lineHeight: '1.5',
             paddingLeft: '1rem'
           }}>
-            <li>Token Contract: 0xc8654a7a4bd671d4ceac6096a92a3170fa3b4798</li>
-            <li>Token Symbol: $BUFFAFLOW</li>
-            <li>Decimals: 18</li>
+            <li><strong>$BUFFAFLOW:</strong> 0xc8654a7a4bd671d4ceac6096a92a3170fa3b4798</li>
+            <li><strong>WFLOW:</strong> 0xd3bF53DAC106A0290B0483EcBC89d40FcC961f3e</li>
           </ul>
         </div>
       </div>
