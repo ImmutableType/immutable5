@@ -1,12 +1,12 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react'
-import { useDirectWallet } from '../../../lib/hooks/useDirectWallet'
-import { tokenQualifierService } from '../../../lib/services/profile/TokenQualifier'
+import { useDirectWallet } from '../../../../lib/hooks/useDirectWallet'
+import { tokenQualifierService } from '../../../../lib/services/profile/TokenQualifier'
 import confetti from 'canvas-confetti'
 import Image from 'next/image'
-import { Modal } from '../../components/ui/Modal'
-import { HowToModalContent } from '../../components/features/registration/HowToModal'
+import { Modal } from '../../../components/ui/Modal'
+import { HowToModalContent } from '../../../components/features/registration/HowToModal'
 
 type AuthMethod = 'wallet' | null
 
@@ -165,7 +165,8 @@ const CreateProfilePage: React.FC = () => {
     try {
       console.log('Creating profile on Flow EVM...')
       
-      const { profileNFTService } = await import('../../../lib/services/profile/ProfileNFT')
+      const { profileNFTService } = await import('../../../../lib/services/profile/ProfileNFT')
+
       
       setCreationState({ status: 'pending' })
       

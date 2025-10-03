@@ -126,6 +126,42 @@ export class ProfileNFTService {
     }
   }
 
+  // NEW: Check if an address has a profile
+  async hasProfile(address: string): Promise<boolean> {
+    if (!this.contract) {
+      await this.initializeReadOnly()
+    }
+
+    try {
+      const profileId = await this.contract!.addressToProfileId(address)
+      return Number(profileId) > 0
+    } catch (error) {
+      console.error('Error checking if user has profile:', error)
+      return false
+    }
+  }
+
+  // NEW: Get profile by wallet address
+  async getProfileByAddress(address: string): Promise<{ profileId: string } | null> {
+    if (!this.contract) {
+      await this.initializeReadOnly()
+    }
+
+    try {
+      const profileId = await this.contract!.addressToProfileId(address)
+      const id = Number(profileId)
+      
+      if (id === 0) {
+        return null // No profile exists
+      }
+      
+      return { profileId: id.toString() }
+    } catch (error) {
+      console.error('Error getting profile by address:', error)
+      return null
+    }
+  }
+
   private extractProfileIdFromReceipt(receipt: TransactionReceipt): string {
     try {
       // Look for ProfileCreated event in logs

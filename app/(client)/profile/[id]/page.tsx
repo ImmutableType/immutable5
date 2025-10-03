@@ -2,14 +2,14 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
-import { profileNFTService } from '../../../lib/services/profile/ProfileNFT'
-import ProfileTabSystem from '../../../app/components/ui/tabs/ProfileTabSystem'
-import { BookmarkCollectionManager } from '../../../app/components/features/bookmarks/BookmarkCollection'
-import { MintedBookmarks } from '../../../app/components/features/bookmarks/MintedBookmarks'
-import BuyBuffaflow from '../../../app/components/features/buffaflow/BuyBuffaflow'
-import { Modal } from '../../../app/components/ui/Modal'
-import { GlobalFeedTrigger } from '../../../app/components/features/bookmarks/GlobalFeedTrigger'
-import { GlobalBookmarkFeed } from '../../../app/components/features/bookmarks/GlobalBookmarkFeed'
+import { profileNFTService } from '../../../../lib/services/profile/ProfileNFT'
+import ProfileTabSystem from '../../../../app/components/ui/tabs/ProfileTabSystem'
+import { BookmarkCollectionManager } from '../../../../app/components/features/bookmarks/BookmarkCollection'
+import { MintedBookmarks } from '../../../../app/components/features/bookmarks/MintedBookmarks'
+import BuyBuffaflow from '../../../../app/components/features/buffaflow/BuyBuffaflow'
+import { Modal } from '../../../../app/components/ui/Modal'
+import { GlobalFeedTrigger } from '../../../../app/components/features/bookmarks/GlobalFeedTrigger'
+import { GlobalBookmarkFeed } from '../../../../app/components/features/bookmarks/GlobalBookmarkFeed'
 
 interface ProfileDisplayData {
   tier: number
