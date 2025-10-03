@@ -63,3 +63,4 @@ design-inspo/
 *.tgz
 *.tar.gz
 .env.production
+backups/
