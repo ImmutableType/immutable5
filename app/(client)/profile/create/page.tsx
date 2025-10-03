@@ -48,6 +48,8 @@ const CreateProfilePage: React.FC = () => {
   const [qualificationStatus, setQualificationStatus] = useState<QualificationStatus | null>(null)
   const [isCheckingQualification, setIsCheckingQualification] = useState(false)
   const [showReturnInstructions, setShowReturnInstructions] = useState(false)
+  const [hasExistingProfile, setHasExistingProfile] = useState(false)
+  const [checkingExistingProfile, setCheckingExistingProfile] = useState(true)
 
   const { 
     address, 
@@ -124,6 +126,40 @@ const CreateProfilePage: React.FC = () => {
     }
   }, [isConnected, address, selectedAuth, checkBuffaflowQualification])
 
+  // Check if user already has a profile
+  useEffect(() => {
+    async function checkExistingProfile() {
+      if (!isConnected || !address) {
+        setCheckingExistingProfile(false)
+        return
+      }
+      
+      try {
+        setCheckingExistingProfile(true)
+        const { profileNFTService } = await import('../../../../lib/services/profile/ProfileNFT')
+        await profileNFTService.initializeReadOnly()
+        
+        const hasProfile = await profileNFTService.hasProfile(address)
+        
+        if (hasProfile) {
+          setHasExistingProfile(true)
+          const profileData = await profileNFTService.getProfileByAddress(address)
+          if (profileData?.profileId) {
+            setTimeout(() => {
+              window.location.href = `/profile/${profileData.profileId}`
+            }, 2000)
+          }
+        }
+      } catch (error) {
+        console.error('Failed to check existing profile:', error)
+      } finally {
+        setCheckingExistingProfile(false)
+      }
+    }
+    
+    checkExistingProfile()
+  }, [isConnected, address])
+
   const handleInputChange = (field: keyof FormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
     setFormErrors({})
@@ -166,7 +202,6 @@ const CreateProfilePage: React.FC = () => {
       console.log('Creating profile on Flow EVM...')
       
       const { profileNFTService } = await import('../../../../lib/services/profile/ProfileNFT')
-
       
       setCreationState({ status: 'pending' })
       
@@ -228,75 +263,91 @@ const CreateProfilePage: React.FC = () => {
         <div className="profile-card">
           <h1 className="profile-title">ImmutableType</h1>
           <div className="alert alert-info">
-            <div className="alert-title">📱 Hey, guys.  Damon here...</div>
+            <div className="alert-title">📱 Hey, guys. Damon here...</div>
             <div className="alert-subtitle">
-              Please visit app.immutabletype.com on your desktop or laptop computer.  Today is Sept 19, 2025, and I am unable to get the mobile UI to work without critical bugs crashing the vibe.  Please head to a pc or laptop to use the app for now.
+              Please visit app.immutabletype.com on your desktop or laptop computer. Today is Sept 19, 2025, and I am unable to get the mobile UI to work without critical bugs crashing the vibe. Please head to a pc or laptop to use the app for now.
             </div>
           </div>
           
           <p className="profile-subtitle" style={{ marginTop: '1.5rem' }}>
             <strong>Why desktop or laptop?</strong><br />
-            Because the app works well in those browsers.  I realize it is annoying.  Apologies for now. Thanks for understanding. 
+            Because the app works well in those browsers. I realize it is annoying. Apologies for now. Thanks for understanding.
           </p>
         </div>
       </div>
     )
   }
 
-  // Auth selection
-if (!selectedAuth) {
-  return (
-    <>
-      <Modal 
-        isOpen={showHowToModal} 
-        onClose={() => setShowHowToModal(false)}
-        title="New to Flow Blockchain?"
-      >
-        <HowToModalContent />
-      </Modal>
-
+  // Block users who already have a profile
+  if (hasExistingProfile) {
+    return (
       <div className="profile-container profile-centered">
         <div className="profile-card">
-          <h1 className="profile-title">Welcome to ImmutableType</h1>
-          <p className="profile-subtitle">
-            Get started by creating a profile.
-          </p>
-
-          <button
-            onClick={() => setSelectedAuth('wallet')}
-            className="btn btn-primary btn-icon"
-          >
-            <span style={{ fontSize: '1.25rem' }}>🦊</span>
-            Connect with MetaMask
-          </button>
-
-          <div style={{ 
-            textAlign: 'center', 
-            margin: '2rem 0',
-            color: 'var(--color-text-secondary)',
-            fontSize: '0.9rem'
-          }}>
-            Or, Learn How to Connect 👇
+          <div className="alert alert-info">
+            <div className="alert-title">✅ Profile Already Exists</div>
+            <div className="alert-subtitle">
+              You already have an ImmutableType profile. Redirecting you now...
+            </div>
           </div>
-
-          <button
-  onClick={() => setShowHowToModal(true)}
-  className="btn btn-secondary"
-  style={{ 
-    width: '100%',
-    fontSize: '1rem',
-    fontWeight: '500',
-    lineHeight: '1.4'
-  }}
->
-  New to Flow Blockchain?<br />
-  Learn how to get started
-</button>
         </div>
       </div>
-    </>
-  )
-}
+    )
+  }
+
+  // Auth selection
+  if (!selectedAuth) {
+    return (
+      <>
+        <Modal 
+          isOpen={showHowToModal} 
+          onClose={() => setShowHowToModal(false)}
+          title="New to Flow Blockchain?"
+        >
+          <HowToModalContent />
+        </Modal>
+
+        <div className="profile-container profile-centered">
+          <div className="profile-card">
+            <h1 className="profile-title">Welcome to ImmutableType</h1>
+            <p className="profile-subtitle">
+              Get started by creating a profile.
+            </p>
+
+            <button
+              onClick={() => setSelectedAuth('wallet')}
+              className="btn btn-primary btn-icon"
+            >
+              <span style={{ fontSize: '1.25rem' }}>🦊</span>
+              Connect with MetaMask
+            </button>
+
+            <div style={{ 
+              textAlign: 'center', 
+              margin: '2rem 0',
+              color: 'var(--color-text-secondary)',
+              fontSize: '0.9rem'
+            }}>
+              Or, Learn How to Connect 👇
+            </div>
+
+            <button
+              onClick={() => setShowHowToModal(true)}
+              className="btn btn-secondary"
+              style={{ 
+                width: '100%',
+                fontSize: '1rem',
+                fontWeight: '500',
+                lineHeight: '1.4'
+              }}
+            >
+              New to Flow Blockchain?<br />
+              Learn how to get started
+            </button>
+          </div>
+        </div>
+      </>
+    )
+  }
 
   // Connecting state with improved mobile instructions
   if (selectedAuth === 'wallet' && !isConnected) {
@@ -548,7 +599,6 @@ if (!selectedAuth) {
             text-decoration: underline;
           }
         `}</style>
-
       </div>
     )
   }
