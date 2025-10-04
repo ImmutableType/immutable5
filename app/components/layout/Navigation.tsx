@@ -57,6 +57,11 @@ export default function Navigation() {
         <span>About</span>
       </Link>
 
+      <Link href="/roadmap" className="nav-roadmap-link">
+        <span className="nav-roadmap-icon">🗺️</span>
+        <span>Roadmap</span>
+      </Link>
+
       {isConnected && profileId && (
         <Link href={`/profile/${profileId}`} className="nav-profile-link">
           <span className="nav-profile-icon">👤</span>
