@@ -1,0 +1,22 @@
+{
+    "title": "About ImmutableType",
+    "subtitle": "Building the infrastructure for trusted, community-owned journalism on the blockchain",
+    "sections": [
+      {
+        "heading": "What ImmutableType Is",
+        "content": "ImmutableType is a decentralized platform that enables journalists and readers to publish, fund, and preserve journalism on the Flow blockchain. The platform combines verified digital identity with permanent on-chain publishing, allowing journalists to maintain ownership of their work while communities directly support the news that matters to them. Built on Flow EVM Mainnet, ImmutableType creates a tiered verification system where users progress from basic profiles to fully verified identities, ensuring accountability while preserving the permanent record of published work. Community members holding 100 or more BUFFAFLOW tokens receive free platform access, aligning incentives between journalists, readers, and the technology itself."
+      },
+      {
+        "heading": "How It Works",
+        "content": "Users create verified profiles through a three-tier system on Flow blockchain. Basic verification requires only wallet connection, while social and identity tiers add progressively stronger proof of authenticity. Once verified, users can collect important articles and journalism as bookmarks, then mint these bookmarks as NFTs permanently recorded on-chain. This transforms passive reading into active preservation—your bookmarked journalism becomes a permanent digital asset you own. The platform integrates with desktop Web3 wallets like MetaMask and includes a Chrome extension for seamless bookmark importing. Each minted bookmark creates an immutable record linking the journalism to its source, building a transparent network of readers, writers, and the stories that connect them."
+      },
+      {
+        "heading": "Why Blockchain for Journalism",
+        "content": "Traditional media faces an existential trust crisis. Centralized publishers can edit or delete articles, journalists lose attribution when outlets close, and advertising models incentivize engagement over accuracy. Blockchain solves this by making published work immutable and permanently attributable to its author. When journalism lives on-chain, it cannot be altered, censored, or erased—creating perfect accountability. This technology enables direct community funding without intermediaries, returns ownership to journalists instead of corporations, and builds verifiable records of sources and contributors. ImmutableType applies these principles to restore trust between communities and the journalists who serve them, starting at the local level where relationships matter most."
+      },
+      {
+        "heading": "Current Status",
+        "content": "ImmutableType launched Phase 5 to production in October 2025, with core platform features deployed to Flow EVM Mainnet (Chain ID 747). The ProfileNFT smart contract manages three-tier verification, while the BookmarkNFT contract enables permanent on-chain preservation of journalism. The desktop Web3 application runs at app.immutabletype.com, with BUFFAFLOW token integration providing qualification-based access. Users can currently create verified profiles, import bookmarks via Chrome extension, and mint bookmarks as NFTs. The platform is preparing for expanded deployment including Farcaster integration and multi-city community building, with Miami serving as the initial pilot market for community-funded local journalism."
+      }
+    ]
+  }

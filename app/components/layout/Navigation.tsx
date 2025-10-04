@@ -50,6 +50,11 @@ export default function Navigation() {
         <h1>ImmutableType</h1>
       </Link>
 
+      <Link href="/about" className="nav-about-link">
+        <span className="nav-about-icon">ℹ️</span>
+        <span>About</span>
+      </Link>
+
       <div style={{ flex: 1 }} />
 
       {isConnected && profileId && (
