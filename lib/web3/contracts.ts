@@ -134,6 +134,14 @@ export const PROFILE_NFT_ABI = [
     "stateMutability": "view",
     "type": "function"
   },
+  // Address to Profile ID mapping
+  {
+    "inputs": [{"internalType": "address", "name": "", "type": "address"}],
+    "name": "addressToProfileId",
+    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
   // Get total profiles count
   {
     "inputs": [],
