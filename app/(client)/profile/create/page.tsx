@@ -145,9 +145,7 @@ const CreateProfilePage: React.FC = () => {
           setHasExistingProfile(true)
           const profileData = await profileNFTService.getProfileByAddress(address)
           if (profileData?.profileId) {
-            setTimeout(() => {
-              window.location.href = `/profile/${profileData.profileId}`
-            }, 2000)
+            window.location.href = `/profile/${profileData.profileId}`
           }
         }
       } catch (error) {
