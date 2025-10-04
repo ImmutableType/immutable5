@@ -718,3 +718,216 @@ html {
     display: none;
   }
 }
+
+/* FAQ Page Styles */
+.faq-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+.faq-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.faq-header h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--color-text-primary, #0f172a);
+  margin-bottom: 0.75rem;
+}
+
+.faq-subtitle {
+  font-size: 1.125rem;
+  color: var(--color-text-secondary, #64748b);
+  margin-bottom: 0.5rem;
+}
+
+.faq-last-updated {
+  font-size: 0.875rem;
+  color: var(--color-text-tertiary, #94a3b8);
+}
+
+.faq-controls {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 2rem;
+}
+
+.faq-toggle-all-btn {
+  padding: 0.625rem 1.25rem;
+  background: var(--color-primary-600, #2563eb);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.faq-toggle-all-btn:hover {
+  background: var(--color-primary-700, #1d4ed8);
+  transform: translateY(-1px);
+}
+
+.faq-category {
+  margin-bottom: 3rem;
+}
+
+.faq-category-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--color-text-primary, #0f172a);
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid var(--color-slate-200, #e2e8f0);
+}
+
+.faq-category-icon {
+  font-size: 1.5rem;
+}
+
+.faq-questions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.faq-question-item {
+  border: 1px solid var(--color-slate-200, #e2e8f0);
+  border-radius: 8px;
+  overflow: hidden;
+  background: white;
+  transition: all 0.2s ease;
+}
+
+.faq-question-item:hover {
+  border-color: var(--color-primary-300, #93c5fd);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.1);
+}
+
+.faq-question-item.open {
+  border-color: var(--color-primary-500, #3b82f6);
+}
+
+.faq-question-button {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.faq-question-button:hover {
+  background: var(--color-slate-50, #f8fafc);
+}
+
+.faq-question-text {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: var(--color-text-primary, #0f172a);
+  flex: 1;
+  padding-right: 1rem;
+}
+
+.faq-question-icon {
+  font-size: 0.875rem;
+  color: var(--color-primary-600, #2563eb);
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.faq-question-item.open .faq-question-icon {
+  transform: rotate(0deg);
+}
+
+.faq-answer {
+  padding: 0 1.25rem 1.25rem 1.25rem;
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--color-text-secondary, #475569);
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.faq-answer a {
+  color: var(--color-primary-600, #2563eb);
+  text-decoration: underline;
+  transition: color 0.2s ease;
+}
+
+.faq-answer a:hover {
+  color: var(--color-primary-700, #1d4ed8);
+}
+
+.faq-loading {
+  text-align: center;
+  padding: 4rem 2rem;
+  font-size: 1.125rem;
+  color: var(--color-text-secondary, #64748b);
+}
+
+/* Navigation FAQ Link Styles */
+.nav-faq-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  text-decoration: none;
+  color: var(--color-text-primary, #0f172a);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.nav-faq-link:hover {
+  background: var(--color-slate-50, #f8fafc);
+  color: var(--color-primary-600, #2563eb);
+}
+
+.nav-faq-icon {
+  font-size: 1.25rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .faq-page {
+    padding: 1.5rem 1rem;
+  }
+
+  .faq-header h1 {
+    font-size: 2rem;
+  }
+
+  .faq-category-title {
+    font-size: 1.5rem;
+  }
+
+  .faq-question-text {
+    font-size: 1rem;
+  }
+
+  .faq-answer {
+    font-size: 0.9375rem;
+  }
+}

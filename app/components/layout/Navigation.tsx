@@ -62,6 +62,11 @@ export default function Navigation() {
         <span>Roadmap</span>
       </Link>
 
+      <Link href="/faq" className="nav-faq-link" aria-label="Frequently Asked Questions">
+        <span className="nav-faq-icon">❓</span>
+        <span>FAQ</span>
+      </Link>
+
       {isConnected && profileId && (
         <Link href={`/profile/${profileId}`} className="nav-profile-link">
           <span className="nav-profile-icon">👤</span>

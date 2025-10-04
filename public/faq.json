@@ -1,0 +1,237 @@
+{
+    "title": "Frequently Asked Questions",
+    "subtitle": "Everything you need to know about ImmutableType",
+    "lastUpdated": "2025-10-04",
+    "categories": [
+      {
+        "category": "Getting Started",
+        "icon": "🚀",
+        "questions": [
+          {
+            "id": "need-crypto",
+            "question": "Do I need cryptocurrency to use ImmutableType?",
+            "answer": "Yes, you need a small amount of FLOW tokens to pay for blockchain transactions (gas fees). Creating a profile costs approximately 3 FLOW, and minting each bookmark costs approximately 0.025 FLOW. **However**, if you hold 100+ BUFFAFLOW tokens OR own a MoonBuffaFLOW NFT, you get **free access** to all platform features with no gas fees. You'll still need a Web3 wallet like MetaMask to connect, but the platform covers your transaction costs. This makes ImmutableType accessible to early supporters while eventually expanding access as the ecosystem grows."
+          },
+          {
+            "id": "what-is-metamask",
+            "question": "What is MetaMask and how do I install it?",
+            "answer": "MetaMask is a browser extension that acts as your digital wallet for interacting with blockchain applications. It stores your private keys securely and lets you approve transactions. Download it from <a href=\"https://metamask.io\" target=\"_blank\" rel=\"noopener noreferrer\">metamask.io</a> - only use the official site to avoid scams. Install the browser extension for Chrome, Firefox, Brave, or Edge. Create a new wallet, write down your 12-word recovery phrase on paper (never store it digitally), and set a strong password. **Critical**: Your recovery phrase is the only way to recover your wallet if you lose access. Never share it with anyone."
+          },
+          {
+            "id": "add-flow-network",
+            "question": "How do I add Flow EVM to MetaMask?",
+            "answer": "ImmutableType runs on Flow EVM (Chain ID 747), not Ethereum mainnet. To add it: Open MetaMask, click the network dropdown at the top, select 'Add Network' or 'Add Network Manually', then enter these details: **Network Name**: Flow EVM, **RPC URL**: https://mainnet.evm.nodes.onflow.org, **Chain ID**: 747, **Currency Symbol**: FLOW, **Block Explorer**: https://evm.flowscan.io. Save and switch to the Flow EVM network. You should see 'Flow EVM' in your network dropdown. Now you can connect to app.immutabletype.com."
+          },
+          {
+            "id": "get-flow-tokens",
+            "question": "Where do I get FLOW tokens?",
+            "answer": "You can purchase FLOW tokens on major exchanges like Kraken, Coinbase, or Binance. After purchasing, you need to **bridge** them to Flow EVM (the EVM-compatible version of Flow). Use the official <a href=\"https://bridge.flow.com\" target=\"_blank\" rel=\"noopener noreferrer\">Flow bridge</a> to convert Flow mainnet tokens to Flow EVM tokens. Send your bridged FLOW to your MetaMask wallet address on the Flow EVM network (Chain ID 747). Start with 5-10 FLOW to cover profile creation and initial bookmark minting. Once you're on Flow EVM, transaction costs are extremely low—fractions of a penny per bookmark."
+          },
+          {
+            "id": "create-profile",
+            "question": "How do I create my ImmutableType profile?",
+            "answer": "Visit <a href=\"https://app.immutabletype.com\" target=\"_blank\" rel=\"noopener noreferrer\">app.immutabletype.com</a>, click 'Connect Wallet', approve the MetaMask connection, then navigate to the Profile section. Click 'Create Profile' and you'll start with **Tier 0 (Basic)** verification—just your wallet address. The profile creation mints a ProfileNFT to your wallet (costs ~3 FLOW or free with 100+ BUFFAFLOW). Your profile includes three tabs: Overview (profile info), Minted Bookmarks (your NFT collection), and Bookmark URLs (your saved links). You can upgrade to higher verification tiers later by connecting Farcaster (Tier 1) or completing KYC verification (Tier 2)."
+          },
+          {
+            "id": "verification-tiers",
+            "question": "What's the difference between the three verification tiers?",
+            "answer": "**Tier 0 (Basic)**: Just your connected wallet address. Anonymous participation, perfect for readers who want privacy. **Tier 1 (Social)**: Connect your Farcaster account to prove social identity without revealing personal information. Shows your Farcaster connections and builds trust through social graph. Good for community members and journalists who want credibility without KYC. **Tier 2 (Identity)**: Full KYC verification with government ID through Crossmint. Highest trust level for professional journalists, public officials, or anyone who needs maximum credibility. Each tier unlocks progressively more platform features and community trust."
+          },
+          {
+            "id": "profile-without-buffaflow",
+            "question": "Can I create a profile without BUFFAFLOW tokens?",
+            "answer": "Yes, you can create a profile by paying ~3 FLOW in gas fees directly. BUFFAFLOW tokens (100+) or a MoonBuffaFLOW NFT give you **free access**, meaning the platform covers your gas costs. Without BUFFAFLOW qualification, you'll pay for each transaction: profile creation, bookmark minting, and future features. For casual users testing the platform, paying in FLOW works fine. For active community members who'll mint many bookmarks and participate regularly, acquiring BUFFAFLOW tokens makes economic sense. Think of BUFFAFLOW as a membership pass that pays for itself quickly."
+          },
+          {
+            "id": "first-steps",
+            "question": "I just created my profile. What should I do first?",
+            "answer": "**Step 1**: Install the ImmutableType Chrome Extension from the Chrome Web Store to import your existing browser bookmarks. **Step 2**: Import your bookmarks to see them in your Bookmark URLs tab. **Step 3**: Browse your imported bookmarks and select important articles or journalism you want to preserve permanently. **Step 4**: Mint your first bookmark as an NFT—this creates an immutable on-chain record linking you to that piece of journalism forever. **Step 5**: Check your Minted Bookmarks tab to see your growing collection. Each minted bookmark costs ~0.025 FLOW (or free with BUFFAFLOW qualification). Start small, mint what matters, and explore the platform."
+          },
+          {
+            "id": "what-is-immutabletype",
+            "question": "What is ImmutableType in simple terms?",
+            "answer": "ImmutableType is a platform where journalism lives permanently on the blockchain. Instead of articles disappearing when websites shut down or publishers delete content, important journalism becomes immutable—it can never be changed or erased. Readers can bookmark and 'mint' articles they value as NFTs, creating permanent records of what matters to them. Journalists will soon be able to publish directly on-chain, maintaining ownership and attribution forever. Communities will fund stories they want told through the News Launchpad (launching November 15, 2025). Think of it as rebuilding local journalism infrastructure using censorship-resistant blockchain technology. For more on our mission, see the <a href=\"/about\" rel=\"noopener noreferrer\">About page</a>."
+          }
+        ]
+      },
+      {
+        "category": "Platform & Technical",
+        "icon": "⚙️",
+        "questions": [
+          {
+            "id": "why-flow-evm",
+            "question": "Why did ImmutableType choose Flow EVM?",
+            "answer": "Flow EVM offers the lowest transaction costs of any major blockchain—fractions of a penny per transaction. This matters because journalism requires micropayments: readers funding individual stories, minting bookmarks, tipping journalists. On Ethereum, a single bookmark mint could cost $5-50 in gas fees. On Flow, it's ~$0.025. The platform's mission is universal access to censorship-resistant journalism infrastructure. High transaction costs would exclude exactly the communities that need local journalism most. Flow's combination of EVM compatibility (familiar Solidity development) and ultra-low costs makes it the only choice for building **The People's chain** for journalism."
+          },
+          {
+            "id": "data-privacy",
+            "question": "Is my personal information stored on the blockchain?",
+            "answer": "**No.** Only verification status and public actions (profile creation, bookmark minting, story funding) are recorded on-chain. Your email, browsing history, and personal data stay private. Tier 0 (Basic) verification is just your wallet address—fully anonymous. Tier 1 (Social/Farcaster) links your Farcaster identity but doesn't expose personal information. Tier 2 (Identity/KYC) verification happens through Crossmint's off-chain system; only your verification status ('this wallet completed KYC') is recorded on-chain, not your government ID or documents. The blockchain stores **what** happened (you minted this bookmark, funded that story), not **who you are** in real-world terms."
+          },
+          {
+            "id": "desktop-first",
+            "question": "Why desktop-first? When will mobile work?",
+            "answer": "Phase 6 launched with desktop Web3 wallet support (MetaMask browser extension) because that's where crypto-native users already operate. Mobile Web3 wallet support is more complex—MetaMask mobile, Coinbase Wallet mobile, and WalletConnect each require separate integration work. We prioritized getting core features (profiles, bookmarks) working reliably on desktop first, then we'll expand to mobile. **Current status**: Mobile browsers won't connect properly yet. Use a desktop browser (Chrome, Firefox, Brave, Edge) with MetaMask extension installed. Mobile support is planned for Q4 2025 after News Launchpad and Miami Hub launch. Progressive enhancement—nail one platform, then expand."
+          },
+          {
+            "id": "other-wallets",
+            "question": "Can I use Coinbase Wallet or other wallets besides MetaMask?",
+            "answer": "Currently, ImmutableType only supports **MetaMask browser extension** on desktop. We plan to add WalletConnect support in Q4 2025, which will enable Coinbase Wallet, Rainbow, Trust Wallet, and other WalletConnect-compatible wallets. For now, if you prefer another wallet, you can import your existing wallet's recovery phrase into MetaMask (use a separate browser profile for security). Your wallet address and private keys remain the same across wallet software—MetaMask is just the interface. Once WalletConnect is integrated, you'll have many more wallet options including mobile wallet apps."
+          },
+          {
+            "id": "smart-contract-security",
+            "question": "Are the smart contracts secure?",
+            "answer": "ImmutableType's smart contracts (ProfileNFT and BookmarkNFT) are deployed to Flow EVM Mainnet and are **immutable**—they cannot be changed after deployment. The contracts are written in Solidity following standard ERC-721 patterns with custom verification logic. Contract addresses are publicly visible on <a href=\"https://evm.flowscan.io\" target=\"_blank\" rel=\"noopener noreferrer\">Flow EVM explorer</a> for anyone to audit. We follow security best practices: minimal external dependencies, standard NFT interfaces, and straightforward logic. The contracts hold no funds—they only mint NFTs to user wallets. Future contracts (News Launchpad, story funding) will undergo professional security audits before handling community funds. Transparency and auditability are core principles."
+          },
+          {
+            "id": "profile-nft-transfer",
+            "question": "Can I transfer my Profile NFT to another wallet?",
+            "answer": "Technically yes—it's an ERC-721 NFT, so it's transferable. **However**, transferring your Profile NFT means transferring your verification status, bookmark collection, and entire ImmutableType identity to another wallet. This is generally not recommended unless you're intentionally moving to a new wallet address. If you transfer your Profile NFT, you'll need to connect with the new wallet to access your profile. The original wallet loses access. Think of your Profile NFT as your account—transferring it is like giving someone your account, not just an asset. For security, most users should keep their Profile NFT in their primary wallet."
+          },
+          {
+            "id": "blockchain-explained",
+            "question": "I'm new to blockchain. Where can I learn more?",
+            "answer": "Start with these resources: **MetaMask Learn**: <a href=\"https://learn.metamask.io\" target=\"_blank\" rel=\"noopener noreferrer\">learn.metamask.io</a> covers wallet basics and security. **Flow Documentation**: <a href=\"https://developers.flow.com\" target=\"_blank\" rel=\"noopener noreferrer\">developers.flow.com</a> explains how Flow works. **Ethereum.org Basics**: <a href=\"https://ethereum.org/learn\" target=\"_blank\" rel=\"noopener noreferrer\">ethereum.org/learn</a> covers fundamental blockchain concepts (Flow EVM uses the same technology). For ImmutableType-specific questions, our <a href=\"/about\" rel=\"noopener noreferrer\">About page</a> explains why we're using blockchain for journalism. The key concepts: wallets hold your private keys, transactions are recorded permanently on-chain, and you control your data instead of corporations. Take time to understand wallet security—your recovery phrase is everything."
+          },
+          {
+            "id": "transaction-failed",
+            "question": "My transaction failed. What happened?",
+            "answer": "Common causes: **(1) Insufficient FLOW**: You don't have enough FLOW to cover gas fees. Check your wallet balance on Flow EVM network (Chain ID 747), not Ethereum mainnet. **(2) Wrong Network**: MetaMask is connected to Ethereum or another chain instead of Flow EVM. Switch networks. **(3) Gas Limit Too Low**: Rarely happens on Flow, but try again with default gas settings. **(4) Contract Interaction Failed**: The smart contract rejected the transaction—usually due to validation (example: profile already exists, bookmark already minted). Check the error message in MetaMask. If the transaction failed, no FLOW was deducted except a small fee for the failed attempt. Try again after checking these issues."
+          }
+        ]
+      },
+      {
+        "category": "Bookmarks",
+        "icon": "🔖",
+        "questions": [
+          {
+            "id": "chrome-extension",
+            "question": "How does the Chrome extension work?",
+            "answer": "Install the ImmutableType Chrome Extension from the Chrome Web Store. Once installed, click the extension icon and connect your wallet (same MetaMask wallet you use on app.immutabletype.com). The extension can read your browser's bookmark folders and import them to ImmutableType. Select which bookmark folders to import, and they'll appear in your Bookmark URLs tab on the platform. The extension doesn't send bookmarks anywhere except directly to ImmutableType's interface—no third-party servers. It's a convenience tool for importing your existing bookmarks so you can decide which ones to mint as permanent NFTs on-chain."
+          },
+          {
+            "id": "manual-bookmark",
+            "question": "Can I add bookmarks manually without the extension?",
+            "answer": "Yes, you can manually add bookmarks directly on app.immutabletype.com. Go to your profile's Bookmark URLs tab and click 'Add Bookmark'. Enter the URL, title, and optional description. This is useful if you're on a different browser, don't want to install the extension, or want to add specific articles as you discover them. Manual entry works the same as imported bookmarks—once added to your Bookmark URLs, you can mint them as NFTs to preserve them permanently on-chain. The extension just makes bulk importing easier for existing bookmark collections."
+          },
+          {
+            "id": "what-is-minting",
+            "question": "What does 'minting a bookmark as an NFT' mean?",
+            "answer": "Minting creates a permanent on-chain record (an NFT) that links you to a specific piece of journalism or web content. When you mint a bookmark, the BookmarkNFT smart contract records: the URL, title, timestamp, and your wallet address as the owner. This record lives on Flow blockchain forever—it cannot be deleted, altered, or censored. You're not storing the article's full text on-chain (that would be expensive), but you're creating proof that you valued this content enough to preserve its reference permanently. It's like carving 'this mattered to me' into digital stone. Your minted bookmarks appear in your Minted Bookmarks tab as NFTs you own."
+          },
+          {
+            "id": "bookmark-costs",
+            "question": "How much does it cost to mint bookmarks?",
+            "answer": "Each bookmark mint costs approximately **0.025 FLOW** (~$0.02-0.05 depending on FLOW price) if you're paying gas fees directly. **However**, if you hold **100+ BUFFAFLOW tokens** OR own a **MoonBuffaFLOW NFT**, bookmark minting is **free**—the platform covers your gas costs. There's no monthly subscription, no per-article paywall, just straightforward micropayments or qualification-based free access. Profile creation costs ~3 FLOW (or free with qualification). Future features like story funding will have transparent costs set by journalists. Flow's ultra-low transaction costs make this economic model possible where Ethereum's $5-50 gas fees would kill it."
+          },
+          {
+            "id": "daily-limits",
+            "question": "Are there limits on how many bookmarks I can mint?",
+            "answer": "Currently, there are **no hard limits** on bookmark minting. You can mint as many bookmarks as you want, subject only to transaction costs (0.025 FLOW each or free with BUFFAFLOW qualification). We may introduce rate limiting in the future to prevent spam or abuse, but for now, mint freely. The practical limit is how much you're willing to spend on gas fees (if you're not qualified for free access) or how many bookmarks you actually value enough to preserve permanently. Quality over quantity—mint the journalism that matters most to you. Each mint creates a permanent on-chain record, so be intentional."
+          },
+          {
+            "id": "view-minted-bookmarks",
+            "question": "Where can I see my minted bookmarks?",
+            "answer": "Go to your profile on app.immutabletype.com and click the **Minted Bookmarks** tab. This shows all the bookmarks you've minted as NFTs, with their titles, URLs, mint dates, and NFT token IDs. You can also view them in your MetaMask wallet under the NFTs section (if MetaMask detects them), or on <a href=\"https://evm.flowscan.io\" target=\"_blank\" rel=\"noopener noreferrer\">Flow EVM block explorer</a> by searching your wallet address. The Minted Bookmarks tab provides the best user experience—you can browse, search, and click through to the original articles. Your BookmarkNFTs are stored in your wallet, but ImmutableType's interface makes them easy to access and manage."
+          },
+          {
+            "id": "bookmark-ownership",
+            "question": "What happens to my bookmarks on-chain? Who owns them?",
+            "answer": "**You own them.** Each minted bookmark is an ERC-721 NFT stored in your wallet. The BookmarkNFT smart contract records the URL, title, timestamp, and your wallet address as owner. This data lives on Flow blockchain permanently—no company, government, or platform can delete it. If ImmutableType (the company) disappeared tomorrow, your BookmarkNFTs would still exist on-chain. You can transfer them, sell them, or hold them forever. The journalism itself (the article content) isn't stored on-chain—only the reference (URL) and metadata. You're creating permanent proof that 'on this date, I valued this journalism enough to preserve its reference forever.'"
+          },
+          {
+            "id": "bookmark-dead-links",
+            "question": "What if the article URL breaks or the site goes offline?",
+            "answer": "The BookmarkNFT preserves the **reference** (URL, title, timestamp), not the article content itself. If the original website goes offline, the NFT still exists with the URL and title, but clicking through won't work. This is a limitation of the current design—we're not archiving full article text on-chain due to storage costs. Future phases may integrate with decentralized storage systems (IPFS, Arweave) to preserve article content alongside the NFT reference. For now, think of BookmarkNFTs as permanent citations or bookmarks, not full archives. They prove 'this journalism existed and I valued it,' even if the original publisher disappears."
+          }
+        ]
+      },
+      {
+        "category": "BUFFAFLOW Token",
+        "icon": "🦬",
+        "questions": [
+          {
+            "id": "what-is-buffaflow",
+            "question": "What is BUFFAFLOW?",
+            "answer": "BUFFAFLOW is an ERC-404 hybrid token on Flow EVM that combines fungible tokens with unique NFT collectibles. There are 15,600,000 total BUFFAFLOW tokens bonded to 156 unique MoonBuffaFLOW NFTs. Holding 100+ BUFFAFLOW tokens OR owning any MoonBuffaFLOW NFT gives you **free access** to ImmutableType platform features (profile creation, bookmark minting, future features). It's both a utility token (platform access) and a membership in the ImmutableType community. BUFFAFLOW holders also receive governance participation rights, early access to new features, and benefits in the News Launchpad launching November 15, 2025."
+          },
+          {
+            "id": "moonbuffaflow-launch",
+            "question": "What was the MoonBuffaFLOW collection launch?",
+            "answer": "In July 2025, ImmutableType launched the MoonBuffaFLOW NFT collection—156 unique NFTs bonded to 15,600,000 BUFFAFLOW tokens using the novel ERC-404 standard. The collection sold out within hours and achieved a 50,000 FLOW market cap, becoming **the largest launch in Flowfun.xyz history**. Each MoonBuffaFLOW NFT is bonded to 100,000 BUFFAFLOW tokens. The launch funded ImmutableType's development through Phase 6 (mainnet deployment) and built a committed early community. MoonBuffaFLOW holders receive amplified platform benefits, governance weight, and status as founding supporters. The collection combines collectible art with functional utility—it's not just art, it's your membership pass to the future of decentralized journalism."
+          },
+          {
+            "id": "how-get-buffaflow",
+            "question": "How do I get BUFFAFLOW tokens?",
+            "answer": "**Option 1**: Buy BUFFAFLOW tokens directly on decentralized exchanges (DEXs) on Flow EVM. Check <a href=\"https://flowfun.xyz\" target=\"_blank\" rel=\"noopener noreferrer\">Flowfun.xyz</a> or <a href=\"https://www.increment.fi\" target=\"_blank\" rel=\"noopener noreferrer\">IncrementFi</a> for BUFFAFLOW trading pairs. **Option 2**: Buy a MoonBuffaFLOW NFT on secondary markets (OpenSea, secondary Flow marketplaces)—each NFT is bonded to 100,000 BUFFAFLOW tokens, far exceeding the 100-token threshold for free access. **Option 3**: Participate in future community airdrops or rewards programs (details TBA). Once you have 100+ BUFFAFLOW in your wallet, connect to app.immutabletype.com and you'll automatically qualify for free platform access."
+          },
+          {
+            "id": "check-qualification",
+            "question": "How do I know if I qualify for free access?",
+            "answer": "Connect your wallet to app.immutabletype.com. The platform automatically checks: **(1)** Do you hold 100+ BUFFAFLOW tokens? **(2)** Do you own any MoonBuffaFLOW NFT? If either is true, you see 'Qualified for Free Access' on your profile and won't be charged gas fees for profile creation or bookmark minting. You can also check your MetaMask wallet on Flow EVM network—look for BUFFAFLOW token balance or MoonBuffaFLOW NFT in your assets. Need to add the BUFFAFLOW token to MetaMask? Use the contract address from <a href=\"https://evm.flowscan.io\" target=\"_blank\" rel=\"noopener noreferrer\">Flow EVM explorer</a>. Qualification is automatic—no registration required."
+          },
+          {
+            "id": "buy-buffaflow-where",
+            "question": "Where can I buy BUFFAFLOW tokens?",
+            "answer": "BUFFAFLOW trades on Flow EVM decentralized exchanges. **Primary options**: **(1) Flowfun.xyz**—the platform where MoonBuffaFLOW launched, likely with the deepest liquidity. **(2) IncrementFi**—Flow's leading DEX aggregator. Visit these sites, connect your MetaMask wallet (on Flow EVM network), search for BUFFAFLOW token, and swap FLOW for BUFFAFLOW. **Important**: Make sure you're on Flow EVM (Chain ID 747), not Ethereum. Start with enough FLOW to cover both the token purchase and a small amount for gas fees. Check current prices and liquidity before buying. Remember, you only need 100 BUFFAFLOW for platform qualification."
+          },
+          {
+            "id": "buffaflow-benefits",
+            "question": "What benefits do BUFFAFLOW holders get?",
+            "answer": "**Free platform access**: No gas fees for profile creation, bookmark minting, and future features (saves 3 FLOW + 0.025 per bookmark). **News Launchpad benefits** (launching Nov 15): Early access to story proposals, reduced fees, featured placement. **Governance participation**: Vote on platform decisions, featured content, verification standards. **Community status**: Recognition as early supporter and committed community member. **Future benefits**: Priority features, airdrops, special access as the ecosystem grows. MoonBuffaFLOW NFT holders (100k+ tokens each) receive amplified versions of all benefits. The more engaged you are, the more value BUFFAFLOW provides—it's not just a pass, it's ongoing community membership."
+          },
+          {
+            "id": "buffaflow-economics",
+            "question": "What's the tokenomics of BUFFAFLOW?",
+            "answer": "**Total Supply**: 15,600,000 BUFFAFLOW tokens, fully minted and distributed. **Bonding**: 156 MoonBuffaFLOW NFTs each bonded to 100,000 BUFFAFLOW (15,600,000 total). **ERC-404 Standard**: Hybrid NFT/fungible token—fractional ownership possible via token trading while maintaining NFT collectibility. **No inflation**: No new tokens will be minted. **Utility**: 100+ tokens = free platform access. **Governance**: Token-weighted voting on platform decisions. **Distribution**: Initial distribution via MoonBuffaFLOW collection sale (July 2025), now traded on secondary markets. This is a utility token for platform access and governance, not an investment vehicle. Focus on the utility and community value, not speculation."
+          }
+        ]
+      },
+      {
+        "category": "News Launchpad & Future Features",
+        "icon": "🚀",
+        "questions": [
+          {
+            "id": "launchpad-launch-date",
+            "question": "When does the News Launchpad launch?",
+            "answer": "The News Launchpad launches **November 15, 2025**. This is ImmutableType's core business feature—the system where local journalists propose stories, set funding goals, and receive direct community support. The Launchpad shifts editorial power from corporate media to community priorities. Journalists maintain full ownership of their work while meeting commitments to supporters. Every funded story creates transparent on-chain records showing exactly how community resources support journalism. This is what the entire platform has been building toward—community-funded, censorship-resistant local journalism at scale."
+          },
+          {
+            "id": "geographic-verification",
+            "question": "How will geographic verification work?",
+            "answer": "Geographic verification ties journalists and artists to their communities, ensuring only **local creators** can launch article proposals in their region. The verification process will likely combine: **(1)** Crossmint KYC (Tier 2) with location data, **(2)** Social proof via Farcaster connections to local community members, **(3)** Manual verification for edge cases. Once verified for a location (e.g., 'Miami, Florida'), you can launch story proposals tagged to that city. This prevents narrative capture from outside actors while allowing anyone globally to fund stories they care about. Details are still being finalized—expect more specifics as the November 15 launch approaches."
+          },
+          {
+            "id": "fund-outside-city",
+            "question": "Can I fund stories outside my city?",
+            "answer": "**Yes!** Anyone can fund any story on the Launchpad, regardless of location. The geographic restriction applies only to **launching** story proposals—you must be verified in that city to propose stories there. But readers and supporters globally can fund investigations they believe matter. Here's the key: when non-local supporters fund a story, the **monetization benefits flow back to the local community** that launched it. This creates economic incentives for local journalism while allowing broader audiences to support important stories wherever they happen. You might live in New York but fund investigative journalism in Miami if you care about that issue."
+          },
+          {
+            "id": "journalist-payment",
+            "question": "How do journalists get paid from funded stories?",
+            "answer": "Journalists set funding goals for each story proposal (e.g., '$500 to investigate city council corruption'). Supporters fund proposals through the Launchpad using FLOW tokens. When a proposal reaches its funding goal, the journalist receives the pooled funds minus a small platform fee (details TBA, likely 5-10%). Funds transfer on-chain—transparent, immediate, no intermediaries. Journalists commit to delivering the story within a specified timeframe. If they don't deliver, there may be reputation consequences or future proposal restrictions (exact accountability mechanisms being finalized). The model is crowdfunding for journalism: propose → get funded → deliver → build reputation → repeat."
+          },
+          {
+            "id": "story-funding-mechanics",
+            "question": "How does story funding work in detail?",
+            "answer": "**(1) Propose**: Verified local journalist creates story proposal (title, description, funding goal, timeline). **(2) Browse**: Community members browse proposals by city, topic, or journalist. **(3) Fund**: Supporters contribute FLOW tokens toward the goal. Contributions are held in escrow. **(4) Reach Goal**: When funding goal is met, escrowed funds release to journalist (minus platform fee). **(5) Deliver**: Journalist works on story, posts updates, and publishes the finished piece on-chain. **(6) Accountability**: On-chain records show who funded what, when stories were delivered, and journalist track records. Transparency throughout. BUFFAFLOW holders get reduced fees, early access, and governance say in featured proposals."
+          },
+          {
+            "id": "article-publishing",
+            "question": "When can journalists publish articles directly on-chain?",
+            "answer": "Full article publishing launches in **Q4 2025** (Phase 10). This feature will enable verified journalists to write, format, and publish articles directly to the blockchain—creating permanent, immutable records of their work linked to their verified identity. The publishing interface will support rich text, images, and multimedia. Each published article becomes an on-chain artifact that can never be altered, deleted, or censored. Version control will show any updates while maintaining the original text. This transforms ImmutableType from a story funding platform into a complete publishing environment. Until then, journalists can use external publishing tools and share links through the Launchpad."
+          },
+          {
+            "id": "miami-hub",
+            "question": "What is the Miami Local News Hub?",
+            "answer": "The Miami Local News Hub launches in **December 2025** as ImmutableType's first city-specific journalism network. The Hub aggregates Miami-focused stories from verified local journalists, creates discovery mechanisms for Miami news, and builds a dedicated community of South Florida readers and writers. Miami is the pilot market given ImmutableType's roots in the city (Built in Miami incubator, Flow GrantDAO participation, strong local MoonBuffaFLOW community). Features include Miami-specific story discovery, local journalist profiles, geographic tagging, and community forums. Success in Miami proves the model works, then we replicate to 3-5 additional cities in 2026, eventually targeting **20,000 towns** across America. Each hub operates with local governance and funding."
+          },
+          {
+            "id": "journalism-vision",
+            "question": "What's the ultimate vision for decentralized journalism?",
+            "answer": "**20,000 cities and towns** across America having their own source of trusted local information. Little League scores. Town hall minutes. Local obituaries. Zoning decisions. Fire department funding. The journalism that makes neighbors recognize each other as aligned instead of adversaries. National news outlets can't and won't cover these stories—they don't scale economically. But **local matters most**. Decentralized infrastructure makes neighborhood-level journalism sustainable by removing intermediaries and letting communities directly fund the information they need. Journalists own their work permanently through on-chain attribution. Readers own the journalism they value through minted bookmarks. Censorship resistance protects against narrative capture. ImmutableType is building the rails for this future—one city at a time, starting with Miami. See our <a href=\"/about\" rel=\"noopener noreferrer\">About page</a> for the full vision."
+          }
+        ]
+      }
+    ]
+  }
