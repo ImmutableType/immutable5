@@ -278,6 +278,18 @@ const CreateProfilePage: React.FC = () => {
     )
   }
 
+    // Show loading while checking for existing profile
+    if (checkingExistingProfile) {
+      return (
+        <div className="profile-container profile-centered">
+          <div className="profile-card">
+            <h1 className="profile-title">Checking Profile Status...</h1>
+            <p className="profile-subtitle">Please wait while we verify your account...</p>
+          </div>
+        </div>
+      )
+    }
+
   // Block users who already have a profile
   if (hasExistingProfile) {
     return (
