@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { BookmarkCollection, BookmarkItem } from '../../../../lib/types/bookmark';
 import { BookmarkNFTService, BookmarkData } from '../../../../lib/services/bookmark/BookmarkNFTService';
-import { profileNFTService } from '../../../../lib/services/profile/ProfileNFT';
 
 interface BookmarkCardProps {
   collection: BookmarkCollection;
@@ -20,9 +19,21 @@ export function BookmarkCard({ collection, onDelete, onEdit, userAddress }: Book
   const handleMint = async () => {
     console.log('Mint button clicked');
     
-    // Get wallet address from ProfileNFT service instead of props
-    const currentAddress = await profileNFTService.getCurrentAddress();
-    console.log('Wallet address from service:', currentAddress);
+    // Get wallet address directly from ethereum provider
+    let currentAddress = userAddress; // First try the prop
+    
+    if (!currentAddress && window.ethereum) {
+      try {
+        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        if (accounts.length > 0) {
+          currentAddress = accounts[0];
+        }
+      } catch (error) {
+        console.error('Error getting accounts:', error);
+      }
+    }
+    
+    console.log('Wallet address:', currentAddress);
     
     if (!currentAddress) {
       console.log('No wallet connected');
