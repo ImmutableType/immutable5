@@ -86,13 +86,34 @@ export function BookmarkCard({ collection, onDelete, onEdit, userAddress }: Book
         throw new Error(`Daily limit exceeded. ${remainingMints} mints remaining today`);
       }
 
-      // Prepare bookmark data
+      // Prepare bookmark data with proper validation
       console.log('Preparing bookmark data...');
-      const bookmarkData: BookmarkData[] = collection.items.map((item: BookmarkItem) => ({
-        title: item.title,
-        url: item.url,
-        description: item.description || ''
-      }));
+      const bookmarkData: BookmarkData[] = collection.items.map((item: BookmarkItem) => {
+        // Truncate title to 100 characters max (contract requirement)
+        let title = item.title.trim();
+        if (title.length > 100) {
+          title = title.substring(0, 97) + '...';
+        }
+        
+        // Ensure URL is valid and within limits (500 chars max per contract)
+        let url = item.url.trim();
+        if (url.length > 500) {
+          throw new Error(`URL too long for bookmark "${title}"`);
+        }
+        
+        // Ensure description is within limits (300 chars max per contract)
+        let description = (item.description || '').trim();
+        if (description.length > 300) {
+          description = description.substring(0, 297) + '...';
+        }
+        
+        return {
+          title,
+          url,
+          description
+        };
+      });
+      
       console.log('Bookmark data prepared:', bookmarkData);
 
       // Mint the bookmarks
