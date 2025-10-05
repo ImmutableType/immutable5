@@ -99,7 +99,7 @@ export function MintedBookmarks({ userAddress, profileId, profileOwnerAddress }:
   };
 
   const viewOnExplorer = (tokenId: string) => {
-    const explorerUrl = `https://evm.flowscan.io/token/0x6652801B89f9E3B4a8847Fd0C4F17e7dCd32dFF5/${tokenId}`;
+    const explorerUrl = `https://evm.flowscan.io/token/0x6652801B89f9E3B4a8847Fd0C4F17e7dCd32dFF5/instance/${tokenId}`;
     window.open(explorerUrl, '_blank', 'noopener,noreferrer');
   };
 
