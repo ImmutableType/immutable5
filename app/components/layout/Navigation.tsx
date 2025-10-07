@@ -50,8 +50,6 @@ export default function Navigation() {
         <h1>ImmutableType</h1>
       </Link>
 
-      <div style={{ flex: 1 }} />
-
       <Link 
         href="/reader" 
         className="nav-reader-link"
@@ -60,6 +58,8 @@ export default function Navigation() {
         <span className="nav-reader-icon">🗞️</span>
         <span>Reader</span>
       </Link>
+
+      <div style={{ flex: 1 }} />
 
       <Link href="/about" className="nav-about-link">
         <span className="nav-about-icon">ℹ️</span>
