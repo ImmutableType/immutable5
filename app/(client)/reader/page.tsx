@@ -80,18 +80,21 @@ export default function ReaderPage() {
   };
 
   // Fetch bookmarks from the contract
-  const fetchBookmarks = async () => {
+const fetchBookmarks = async () => {
     try {
       const contract = getContract();
       const totalSupply = await contract.totalSupply();
-      setTotalBookmarks(Number(totalSupply));
-
+      const total = Number(totalSupply);
+      setTotalBookmarks(total);
+  
       const bookmarkPromises: Promise<ReaderBookmark | null>[] = [];
       
-      // Fetch most recent bookmarks (up to displayCount)
-      const startIndex = Math.max(0, Number(totalSupply) - displayCount);
+      // Calculate how many to fetch
+      const fetchCount = Math.min(displayCount, total);
       
-      for (let i = Number(totalSupply) - 1; i >= startIndex; i--) {
+      // Fetch from the end backwards (most recent first)
+      // Note: token IDs might be 1-indexed, not 0-indexed
+      for (let i = total; i > total - fetchCount && i > 0; i--) {
         bookmarkPromises.push(
           contract.getBookmark(i)
             .then((data: any) => ({
@@ -102,10 +105,13 @@ export default function ReaderPage() {
               creatorAddress: data.creator,
               timestamp: new Date(Number(data.createdAt) * 1000).toISOString()
             }))
-            .catch(() => null)
+            .catch((err) => {
+              console.log(`Failed to fetch bookmark ${i}:`, err);
+              return null;
+            })
         );
       }
-
+  
       const results = await Promise.all(bookmarkPromises);
       const validBookmarks = results.filter((b: ReaderBookmark | null): b is ReaderBookmark => b !== null);
       
@@ -277,13 +283,13 @@ export default function ReaderPage() {
             </div>
 
             {/* Load More */}
-            {bookmarks.length < totalBookmarks && (
-              <div className="load-more-container">
-                <button onClick={loadMore} className="load-more-button">
-                  Load More ({totalBookmarks - bookmarks.length} remaining)
-                </button>
-              </div>
-            )}
+{bookmarks.length < totalBookmarks && (
+  <div className="load-more-container">
+    <button onClick={loadMore} className="load-more-button">
+      Load More ({Math.max(0, totalBookmarks - bookmarks.length)} remaining)
+    </button>
+  </div>
+)}
           </>
         )}
       </div>
