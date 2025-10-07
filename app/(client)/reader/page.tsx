@@ -202,9 +202,9 @@ const fetchBookmarks = async () => {
       <div className="reader-container">
         {/* Header */}
         <header className="reader-header">
-          <h1>Bookmark Reader</h1>
+          <h1>Onchain Bookmark Reader</h1>
           <p className="reader-subtitle">
-            Real-time feed of bookmarks minted on Flow EVM
+            Real-time feed of onchainbookmarks minted on Flow EVM
           </p>
           
           <div className="reader-stats">
