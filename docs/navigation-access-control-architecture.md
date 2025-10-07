@@ -1,4 +1,25 @@
 # ImmutableType Navigation & Access Control Architecture
+**FUTURE VISION - NOT IMPLEMENTED**
+**Version 1.0 - Planned for Phase 6+**
+**Date: October 3, 2025**
+
+## Status: Planning Document Only
+
+This document describes the FUTURE navigation and access control model for the journalism platform features. The current Phase 5 implementation (identity verification + bookmarks) uses a simpler navigation:
+
+**Current Navigation (Phase 5):**
+- Logo → Home
+- About (placeholder)
+- My Profile (if connected + has profile)
+- Wallet connection status
+
+**This Document Describes (Phase 6+):**
+- Geography-based content access
+- Publisher tokens for journalists
+- Launchpad, Newsstand, Leaderboard
+- Content filtering by location
+
+# ImmutableType Navigation & Access Control Architecture
 **Version 1.0 - Navigation Rebuild & Geography-Based Access Model**
 **Date: October 3, 2025**
 

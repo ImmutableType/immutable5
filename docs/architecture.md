@@ -1,3 +1,20 @@
+**Files Modified:**
+- `app/components/layout/Navigation.tsx` - New navigation component
+- `app/(client)/layout.tsx` - Wraps pages with navigation
+- `app/globals.css` - Navigation styles (lines 565-641)
+
+**Profile Detection:**
+- Uses `addressToProfileId` mapping from ProfileNFT contract
+- Calls `hasProfile()` and `getProfileByAddress()` on wallet connection
+- Cached results prevent redundant blockchain queries
+
+**Access Control:**
+- Profile creation page blocks existing profile holders
+- Instant redirect when profile detected
+- Smart home page routing based on profile existence
+
+
+
 # Global Bookmark Feed Feature - September 30, 2025
 
 ## Feature Overview
