@@ -52,6 +52,15 @@ export default function Navigation() {
 
       <div style={{ flex: 1 }} />
 
+      <Link 
+        href="/reader" 
+        className="nav-reader-link"
+        aria-label="Reader - View articles and journalism"
+      >
+        <span className="nav-reader-icon">🗞️</span>
+        <span>Reader</span>
+      </Link>
+
       <Link href="/about" className="nav-about-link">
         <span className="nav-about-icon">ℹ️</span>
         <span>About</span>

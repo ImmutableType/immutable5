@@ -931,3 +931,50 @@ html {
     font-size: 0.9375rem;
   }
 }
+
+/* ... existing FAQ styles ... */
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .faq-page {
+    padding: 1.5rem 1rem;
+  }
+
+  .faq-header h1 {
+    font-size: 2rem;
+  }
+
+  .faq-category-title {
+    font-size: 1.5rem;
+  }
+
+  .faq-question-text {
+    font-size: 1rem;
+  }
+
+  .faq-answer {
+    font-size: 0.9375rem;
+  }
+}
+
+/* Reader Navigation Link */
+.nav-reader-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  text-decoration: none;
+  color: var(--color-text-primary, #0f172a);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.nav-reader-link:hover {
+  background: var(--color-slate-50, #f8fafc);
+  color: var(--color-primary-600, #2563eb);
+}
+
+.nav-reader-icon {
+  font-size: 1.25rem;
+}
