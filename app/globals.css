@@ -695,30 +695,6 @@ html {
   transform: translateY(-1px);
 }
 
-@media (max-width: 768px) {
-  .immutable-nav {
-    width: 100%;
-    height: auto;
-    border-right: none;
-    border-bottom: 1px solid var(--color-border, #e2e8f0);
-    padding: 1rem;
-    flex-direction: row;
-    align-items: center;
-    position: static;
-  }
-
-  .nav-wallet {
-    padding: 0;
-    border-top: none;
-    margin-top: 0;
-    margin-left: auto;
-  }
-
-  .wallet-address {
-    display: none;
-  }
-}
-
 /* FAQ Page Styles */
 .faq-page {
   max-width: 900px;
@@ -932,31 +908,6 @@ html {
   }
 }
 
-/* ... existing FAQ styles ... */
-
-/* Responsive Design */
-@media (max-width: 768px) {
-  .faq-page {
-    padding: 1.5rem 1rem;
-  }
-
-  .faq-header h1 {
-    font-size: 2rem;
-  }
-
-  .faq-category-title {
-    font-size: 1.5rem;
-  }
-
-  .faq-question-text {
-    font-size: 1rem;
-  }
-
-  .faq-answer {
-    font-size: 0.9375rem;
-  }
-}
-
 /* Reader Navigation Link */
 .nav-reader-link {
   display: flex;
@@ -977,4 +928,194 @@ html {
 
 .nav-reader-icon {
   font-size: 1.25rem;
+}
+
+/* App Layout - 2 Panel System */
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* Mobile Navigation Styles */
+.mobile-menu-toggle {
+  display: none;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  width: 40px;
+  height: 40px;
+}
+
+.hamburger-line {
+  display: block;
+  width: 24px;
+  height: 2px;
+  background: var(--color-text-primary);
+  transition: all 0.3s ease;
+  margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+  .app-layout {
+    position: relative;
+  }
+
+  .main-content {
+    padding-top: 60px; /* Account for fixed mobile nav */
+  }
+
+  .immutable-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: auto;
+    min-width: unset;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    z-index: 100;
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
+    border-right: none;
+  }
+
+  .nav-reader-link,
+  .nav-about-link,
+  .nav-roadmap-link,
+  .nav-faq-link,
+  .nav-profile-link,
+  .nav-wallet {
+    display: none;
+  }
+
+  .mobile-menu-toggle {
+    display: flex;
+  }
+
+  .nav-logo h1 {
+    font-size: 1.125rem;
+  }
+}
+
+/* Mobile Menu Overlay */
+.mobile-menu-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+}
+
+@media (max-width: 768px) {
+  .mobile-menu-overlay {
+    display: block;
+  }
+}
+
+.mobile-menu {
+  position: fixed;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 80%;
+  max-width: 320px;
+  background: var(--color-surface);
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+  overflow-y: auto;
+  animation: slideIn 0.3s ease;
+}
+
+.mobile-menu-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.mobile-menu-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: var(--color-text-primary);
+}
+
+.mobile-menu-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--color-text-primary);
+  padding: 0.5rem;
+}
+
+.mobile-menu-links {
+  padding: 1rem 0;
+}
+
+.mobile-menu-link {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  text-decoration: none;
+  color: var(--color-text-primary);
+  transition: background 0.2s ease;
+}
+
+.mobile-menu-link:hover {
+  background: var(--color-slate-50);
+}
+
+.mobile-menu-wallet {
+  padding: 1.5rem;
+  border-top: 1px solid var(--color-border);
+  margin-top: auto;
+}
+
+.wallet-connected-mobile {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: var(--color-slate-50);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-family: var(--font-mono);
+}
+
+.btn-connect-mobile {
+  width: 100%;
+  padding: 0.75rem;
+  background: var(--color-primary-600);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-connect-mobile:hover {
+  background: var(--color-primary-700);
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
 }
