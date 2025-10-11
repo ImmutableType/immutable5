@@ -278,6 +278,21 @@ const fetchBookmarks = async () => {
                       {formatDistanceToNow(new Date(bookmark.timestamp), { addSuffix: true })}
                     </span>
                   </div>
+                  
+                  <div className="bookmark-actions">
+                    <a 
+                      href={`https://evm.flowscan.io/token/${BOOKMARK_NFT_ADDRESS}/instance/${bookmark.tokenId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="chain-link"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                      </svg>
+                      View on Chain
+                    </a>
+                  </div>
                 </Card>
               ))}
             </div>
@@ -460,6 +475,31 @@ const fetchBookmarks = async () => {
 
         .bookmark-creator {
           font-family: var(--font-mono);
+        }
+
+        .bookmark-actions {
+          margin-top: 1rem;
+          padding-top: 1rem;
+          border-top: 1px solid var(--color-slate-200, #e2e8f0);
+        }
+
+        .chain-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          color: var(--color-text-secondary, #64748b);
+          text-decoration: none;
+          font-size: 0.875rem;
+          transition: color 0.2s ease;
+        }
+
+        .chain-link:hover {
+          color: var(--color-primary-600, #2563eb);
+        }
+
+        .chain-link svg {
+          width: 16px;
+          height: 16px;
         }
 
         .empty-state {
