@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useDirectWallet } from '../../../lib/hooks/useDirectWallet'
+import { ShareButton } from '../ui/ShareButton'
 
 export default function Navigation() {
   const { address, isConnected, connectWallet } = useDirectWallet()
@@ -86,6 +87,8 @@ export default function Navigation() {
           <span>FAQ</span>
         </Link>
 
+        <ShareButton />
+
         {isConnected && profileId && (
           <Link href={`/profile/${profileId}`} className="nav-profile-link">
             <span className="nav-profile-icon">👤</span>
@@ -160,6 +163,10 @@ export default function Navigation() {
                 <span className="nav-faq-icon">❓</span>
                 <span>FAQ</span>
               </Link>
+
+              <div className="mobile-menu-link" onClick={closeMenu}>
+                <ShareButton />
+              </div>
 
               {isConnected && profileId && (
                 <Link 

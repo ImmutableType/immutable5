@@ -1119,3 +1119,119 @@ html {
   from { transform: translateX(100%); }
   to { transform: translateX(0); }
 }
+
+.share-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: #000; /* X brand color */
+  color: white;
+  border: none;
+  border-radius: 9999px; /* Fully rounded */
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent; /* Remove tap highlight on mobile */
+  touch-action: manipulation; /* Improve touch responsiveness */
+}
+
+.share-button:hover {
+  background: #1a1a1a;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.share-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.share-button svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+}
+
+/* Tablet and Mobile Styles */
+@media (max-width: 768px) {
+  .share-button {
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
+  }
+  
+  .share-button svg {
+    width: 1.125rem;
+    height: 1.125rem;
+  }
+}
+
+/* Small mobile devices */
+@media (max-width: 480px) {
+  .share-button {
+    padding: 0.5rem 0.875rem;
+    font-size: 0.8125rem;
+  }
+  
+  /* Optional: Hide text on very small screens */
+  .share-button-text {
+    display: inline;
+  }
+  
+  /* If you want icon-only on very small screens, uncomment: */
+  /*
+  .share-button-text {
+    display: none;
+  }
+  
+  .share-button {
+    padding: 0.625rem;
+    aspect-ratio: 1;
+  }
+  */
+}
+
+/* Ensure good touch targets on mobile (minimum 44x44px) */
+@media (hover: none) and (pointer: coarse) {
+  .share-button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Navigation-specific styles for ShareButton positioning */
+.immutable-nav .share-button {
+  /* Remove margin-left: auto - doesn't work in column layout */
+  margin: 0 1rem; /* Just add consistent margins */
+}
+
+/* Adjust share button to match navigation style */
+.immutable-nav .share-button {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  background: var(--color-primary-600); /* Fixed: use correct variable */
+  border-radius: 0.5rem;
+}
+
+/* Mobile menu share button */
+.mobile-menu-link .share-button {
+  width: 100%;
+  justify-content: center;
+  margin: 0;
+}
+
+/* Hide ShareButton on mobile nav bar like other items */
+@media (max-width: 768px) {
+  .immutable-nav .share-button {
+    display: none; /* Hide in mobile nav bar */
+  }
+  
+  /* But keep it visible in mobile menu */
+  .mobile-menu-link .share-button {
+    display: flex;
+  }
+}
