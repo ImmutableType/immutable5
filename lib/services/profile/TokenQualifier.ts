@@ -3,6 +3,10 @@ import { MMSDK } from '../../web3/metamask'
 import { CONTRACTS, TOKEN_QUALIFIER_ABI, BUFFAFLOW_ABI } from '../../web3/contracts'
 import type { QualificationStatus } from '../../types/profile'
 
+// FORTE HACKS - Add FROTH constants
+const FROTH_ADDRESS = "0xb73bf8e6a4477a952e0338e6cc00cc0ce5ad04ba";
+const FROTH_ABI = ["function balanceOf(address) view returns (uint256)"];
+
 export class TokenQualifierService {
   private provider: BrowserProvider | null = null
 
@@ -52,6 +56,30 @@ export class TokenQualifierService {
         8000
       )
 
+      // FORTE HACKS - BOUNTY PENDING
+      // Temporary FROTH integration for hackathon demo
+      // Full contract integration pending bounty evaluation
+      // TO REMOVE: Delete this FROTH block and update UI text
+      let frothQualified = false;
+      if (!isQualified) {
+        try {
+          const frothContract = new ethers.Contract(FROTH_ADDRESS, FROTH_ABI, this.provider);
+          const frothBalance = await this.withTimeout(
+            frothContract.balanceOf(userAddress),
+            5000
+          );
+          const requiredFroth = ethers.parseUnits("100", 18); // 100 FROTH tokens
+          
+          if (frothBalance >= requiredFroth) {
+            console.log("✅ User qualified with FROTH tokens:", ethers.formatUnits(frothBalance, 18));
+            frothQualified = true;
+          }
+        } catch (error) {
+          console.log("FROTH check failed:", error);
+        }
+      }
+      // END FORTE HACKS
+
       // Still check BUFFAFLOW for display purposes
       const buffaflowContract = new ethers.Contract(
         CONTRACTS.BUFFAFLOW,
@@ -89,16 +117,21 @@ export class TokenQualifierService {
         nftCount = 0
       }
 
-      console.log('Qualification result from contract:', {
-        isQualified,
-        canBypassFee: isQualified
+      // FORTE HACKS - Include FROTH qualification in the result
+      const finalQualified = isQualified || frothQualified;
+
+      console.log('Qualification result:', {
+        isQualified: finalQualified,
+        canBypassFee: finalQualified,
+        contractQualified: isQualified,
+        frothQualified: frothQualified
       })
 
       return {
-        isQualified,
+        isQualified: finalQualified,
         tokenBalance: formattedBalance,
         nftCount,
-        canBypassFee: isQualified
+        canBypassFee: finalQualified
       }
 
     } catch (error) {
@@ -119,7 +152,8 @@ export class TokenQualifierService {
   }
 
   getQualificationRequirements(): string {
-    return 'Hold 100+ $BUFFAFLOW tokens OR any $BUFFAFLOW NFT'
+    // FORTE HACKS - Updated for FROTH support
+    return 'Hold 100+ $BUFFAFLOW tokens OR 100+ $FROTH tokens OR any $BUFFAFLOW NFT'
   }
 
   isBuffaflowBypassAvailable(): boolean {
