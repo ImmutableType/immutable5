@@ -63,6 +63,9 @@ export class TokenQualifierService {
       // Temporary FROTH integration for hackathon demo
       // Full contract integration pending bounty evaluation
       // TO REMOVE: Delete this FROTH block and update UI text
+
+      console.log("FROTH CHECK: Starting FROTH qualification check...");
+
       let frothQualified = false;
       if (!isQualified) {
         try {
