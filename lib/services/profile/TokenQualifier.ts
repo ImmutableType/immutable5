@@ -56,6 +56,9 @@ export class TokenQualifierService {
         8000
       )
 
+      console.log('Contract isQualified result:', isQualified); // ADD THIS LINE
+
+
       // FORTE HACKS - BOUNTY PENDING
       // Temporary FROTH integration for hackathon demo
       // Full contract integration pending bounty evaluation
