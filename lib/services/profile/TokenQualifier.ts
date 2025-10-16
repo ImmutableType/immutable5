@@ -164,4 +164,4 @@ export class TokenQualifierService {
   }
 }
 
-export const tokenQualifierService = new TokenQualifierService()
+export const tokenQualifierService = new TokenQualifierService()// Force redeploy: Thu Oct 16 12:36:09 EDT 2025
