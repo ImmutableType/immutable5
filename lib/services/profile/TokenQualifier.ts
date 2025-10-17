@@ -64,26 +64,36 @@ export class TokenQualifierService {
       // Full contract integration pending bounty evaluation
       // TO REMOVE: Delete this FROTH block and update UI text
 
-      console.log("FROTH CHECK: Starting FROTH qualification check...");
+      // FORTE HACKS - BOUNTY PENDING
+// Temporary FROTH integration for hackathon demo
+// Full contract integration pending bounty evaluation
+// TO REMOVE: Delete this FROTH block and update UI text
 
-      let frothQualified = false;
-      if (!isQualified) {
-        try {
-          const frothContract = new ethers.Contract(FROTH_ADDRESS, FROTH_ABI, this.provider);
-          const frothBalance = await this.withTimeout(
-            frothContract.balanceOf(userAddress),
-            5000
-          );
-          const requiredFroth = ethers.parseUnits("100", 18); // 100 FROTH tokens
-          
-          if (frothBalance >= requiredFroth) {
-            console.log("✅ User qualified with FROTH tokens:", ethers.formatUnits(frothBalance, 18));
-            frothQualified = true;
-          }
-        } catch (error) {
-          console.log("FROTH check failed:", error);
-        }
-      }
+console.log("FROTH CHECK: Starting FROTH qualification check...");
+
+let frothQualified = false;
+if (!isQualified) {
+  console.log("FROTH CHECK: Contract not qualified, checking FROTH balance...");
+  try {
+    const frothContract = new ethers.Contract(FROTH_ADDRESS, FROTH_ABI, this.provider);
+    console.log("FROTH CHECK: Contract created, calling balanceOf...");
+    const frothBalance = await this.withTimeout(
+      frothContract.balanceOf(userAddress),
+      5000
+    );
+    console.log("FROTH CHECK: Raw balance:", frothBalance.toString());
+    const requiredFroth = ethers.parseUnits("100", 18); // 100 FROTH tokens
+    
+    if (frothBalance >= requiredFroth) {
+      console.log("✅ User qualified with FROTH tokens:", ethers.formatUnits(frothBalance, 18));
+      frothQualified = true;
+    } else {
+      console.log("FROTH CHECK: Insufficient FROTH balance:", ethers.formatUnits(frothBalance, 18), "FROTH");
+    }
+  } catch (error) {
+    console.log("FROTH check failed:", error);
+  }
+}
       // END FORTE HACKS
 
       // Still check BUFFAFLOW for display purposes
