@@ -459,7 +459,7 @@ const CreateProfilePage: React.FC = () => {
           ) : (
             <div className="alert alert-warning">
               <div className="alert-title">💎 Profile Creation Fee: 3 FLOW</div>
-              <div className="alert-subtitle">Or hold 100+ $BUFFAFLOW tokens to create for free</div>
+              <div className="alert-subtitle">Or hold 100+ $BUFFAFLOW or 100+ $FROTH tokens to create for free</div>
             </div>
           )}
 
