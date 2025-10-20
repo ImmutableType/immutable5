@@ -1,9 +1,11 @@
 // Daily word bank - 100 PG-13 words available to all users for free
 export const DAILY_WORDS: string[] = [
-    // Articles & Connectors (10)
+    // Verbs & Connectors (25)
+    "is", "was", "will", "can", "should", "must", "could", "would", "did", "does",
     "the", "a", "an", "and", "but", "or", "so", "then", "when", "where",
+    "if", "because", "although", "while", "until",
     
-    // Common Verbs (20)
+    // Action Verbs (20)
     "run", "jump", "fly", "swim", "dance", "sing", "laugh", "cry", "shout", "whisper",
     "eat", "drink", "sleep", "wake", "find", "lose", "give", "take", "make", "break",
     
@@ -11,21 +13,15 @@ export const DAILY_WORDS: string[] = [
     "big", "small", "happy", "sad", "fast", "slow", "hot", "cold", "bright", "dark",
     "loud", "quiet", "tall", "short", "old", "new", "strong", "weak", "soft", "hard",
     
-    // Common Nouns (20)
-    "cat", "dog", "bird", "fish", "tree", "flower", "rock", "water", "fire", "wind",
-    "house", "car", "bike", "phone", "book", "door", "window", "chair", "table", "bed",
+    // Common Nouns (15)
+    "cat", "dog", "bird", "fish", "tree", "flower", "water", "fire", "wind",
+    "house", "car", "phone", "book", "door", "window",
     
     // Character Types (10)
     "robot", "alien", "wizard", "dragon", "knight", "pirate", "ninja", "ghost", "hero", "friend",
     
     // Dramatic Adverbs (10)
-    "suddenly", "quietly", "loudly", "quickly", "slowly", "carefully", "wildly", "madly", "barely", "nearly",
-    
-    // Story Elements (10)
-    "explosion", "magic", "surprise", "mystery", "danger", "adventure", "journey", "quest", "secret", "treasure",
-    
-    // Time & Sequence (10)
-    "before", "after", "during", "always", "never", "sometimes", "first", "last", "next", "finally"
+    "suddenly", "quietly", "loudly", "quickly", "slowly", "carefully", "wildly", "madly", "barely", "nearly"
   ];
   
   // Word packs for Phase 2 (currently locked/purchasable)

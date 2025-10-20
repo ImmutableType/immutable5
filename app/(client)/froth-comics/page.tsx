@@ -445,8 +445,10 @@ export default function FrothComics() {
         </div>
       </div>
 
-      {/* Create Your Entry */}
-      <div style={{ 
+
+
+    {/* Create Your Entry */}
+    <div style={{ 
         background: '#fff', 
         border: '2px solid #ddd', 
         borderRadius: '12px', 
@@ -501,24 +503,13 @@ export default function FrothComics() {
           </div>
         </div>
 
-        {/* Live Preview */}
-        <div style={{ marginBottom: '2rem' }}>
-          <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', fontWeight: 'bold' }}>
-            Live Preview
-          </h3>
-          <ComicStrip 
-            characterIds={selectedCharacters}
-            backgroundId={selectedBackground}
-            wordCloudId={wordCloudId}
-            panelWords={userPanelWords}
-          />
-        </div>
-
-        {/* Panel Tab Selector */}
+        {/* Build Your Story Section */}
         <div style={{ marginBottom: '2rem' }}>
           <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', fontWeight: 'bold' }}>
             Build Your Story
           </h3>
+
+          {/* Panel Tab Selector - MOVED ABOVE PREVIEW */}
           <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
             {[0, 1, 2, 3].map(i => (
               <button
@@ -544,36 +535,45 @@ export default function FrothComics() {
             ))}
           </div>
 
-          {/* Panel Controls for Selected Panel */}
+          {/* Live Preview */}
+          <ComicStrip 
+            characterIds={selectedCharacters}
+            backgroundId={selectedBackground}
+            wordCloudId={wordCloudId}
+            panelWords={userPanelWords}
+          />
+
+          {/* Character Dropdowns - DIRECTLY UNDER EACH PANEL */}
           <div style={{ 
-            border: '2px solid #3b82f6', 
-            borderRadius: '8px', 
-            padding: '1.5rem',
-            background: '#f0f9ff'
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(4, 1fr)', 
+            gap: '0.5rem',
+            marginTop: '1rem'
           }}>
-            <div style={{ marginBottom: '1rem' }}>
-              <h4 style={{ fontWeight: 'bold', marginBottom: '0.75rem' }}>
-                Panel {selectedPanel + 1} - Character & Words
-              </h4>
-              
-              {/* Character Selector */}
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '14px', fontWeight: '500' }}>
-                  Character:
+            {[0, 1, 2, 3].map(i => (
+              <div key={i}>
+                <label style={{ 
+                  display: 'block', 
+                  marginBottom: '0.5rem', 
+                  fontSize: '12px',
+                  fontWeight: '500',
+                  textAlign: 'center'
+                }}>
+                  Panel {i + 1} Character:
                 </label>
                 <select
-                  value={selectedCharacters[selectedPanel]}
+                  value={selectedCharacters[i]}
                   onChange={e => {
                     const newChars = [...selectedCharacters];
-                    newChars[selectedPanel] = parseInt(e.target.value);
+                    newChars[i] = parseInt(e.target.value);
                     setSelectedCharacters(newChars);
                   }}
                   style={{
                     width: '100%',
-                    padding: '0.75rem',
+                    padding: '0.5rem',
                     border: '1px solid #ddd',
                     borderRadius: '6px',
-                    fontSize: '14px'
+                    fontSize: '12px'
                   }}
                 >
                   {CHARACTERS.map(char => (
@@ -583,56 +583,66 @@ export default function FrothComics() {
                   ))}
                 </select>
               </div>
+            ))}
+          </div>
 
-              {/* Word List for Panel */}
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '14px', fontWeight: '500' }}>
-                  Words ({panelWordIndices[selectedPanel].length}/10):
-                </label>
-                <div style={{ 
-                  minHeight: '60px',
-                  padding: '0.75rem',
-                  background: 'white',
-                  border: '1px solid #ddd',
-                  borderRadius: '6px',
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  gap: '0.5rem',
-                  alignItems: 'flex-start'
-                }}>
-                  {panelWordIndices[selectedPanel].length === 0 ? (
-                    <span style={{ color: '#9ca3af', fontSize: '14px' }}>
-                      Click words below to add them here...
-                    </span>
-                  ) : (
-                    panelWordIndices[selectedPanel].map((wordIdx, pos) => (
-                      <button
-                        key={pos}
-                        onClick={() => handleRemoveWord(selectedPanel, pos)}
-                        style={{
-                          padding: '0.5rem 0.75rem',
-                          background: '#3b82f6',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '20px',
-                          cursor: 'pointer',
-                          fontSize: '14px',
-                          fontWeight: '500',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.5rem'
-                        }}
-                      >
-                        {DAILY_WORDS[wordIdx]}
-                        <span style={{ fontSize: '12px', opacity: 0.8 }}>✕</span>
-                      </button>
-                    ))
-                  )}
-                </div>
-              </div>
+          {/* Active Panel Word Management */}
+          <div style={{ 
+            marginTop: '2rem',
+            border: '2px solid #3b82f6', 
+            borderRadius: '8px', 
+            padding: '1.5rem',
+            background: '#f0f9ff'
+          }}>
+            <h4 style={{ fontWeight: 'bold', marginBottom: '0.75rem' }}>
+              Panel {selectedPanel + 1} - Words ({panelWordIndices[selectedPanel].length}/10)
+            </h4>
+            
+            {/* Word List for Active Panel */}
+            <div style={{ 
+              minHeight: '60px',
+              padding: '0.75rem',
+              background: 'white',
+              border: '1px solid #ddd',
+              borderRadius: '6px',
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '0.5rem',
+              alignItems: 'flex-start'
+            }}>
+              {panelWordIndices[selectedPanel].length === 0 ? (
+                <span style={{ color: '#9ca3af', fontSize: '14px' }}>
+                  Click words below to add them here...
+                </span>
+              ) : (
+                panelWordIndices[selectedPanel].map((wordIdx, pos) => (
+                  <button
+                    key={pos}
+                    onClick={() => handleRemoveWord(selectedPanel, pos)}
+                    style={{
+                      padding: '0.5rem 0.75rem',
+                      background: '#3b82f6',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '20px',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem'
+                    }}
+                  >
+                    {DAILY_WORDS[wordIdx]}
+                    <span style={{ fontSize: '12px', opacity: 0.8 }}>✕</span>
+                  </button>
+                ))
+              )}
             </div>
           </div>
         </div>
+
+
 
         {/* Word Bank */}
         <div style={{ marginBottom: '2rem' }}>
