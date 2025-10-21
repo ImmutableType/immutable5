@@ -1,82 +1,124 @@
-// Daily word bank - 100 PG-13 words available to all users for free
-export const DAILY_WORDS: string[] = [
-    // Verbs & Connectors (25)
-    "is", "was", "will", "can", "should", "must", "could", "would", "did", "does",
-    "the", "a", "an", "and", "but", "or", "so", "then", "when", "where",
-    "if", "because", "although", "while", "until",
+/**
+ * FROTH Daily Comic - Word Bank System
+ * Based on authentic FROTH/KittyPunch/Flow community research
+ * @version 2.0.0
+ * @updated October 2025
+ */
+
+export interface WordPack {
+    id: string;
+    name: string;
+    description: string;
+    price: string;
+    wordCount: number;
+    isComplimentary?: boolean;
+  }
+  
+  // ============================================================================
+  // MAIN DAILY WORD BANK - 150+ AUTHENTIC FROTH COMMUNITY TERMS
+  // ============================================================================
+  
+  export const DAILY_WORDS = [
+
+      // Basic Verbs (12)
+  "run", "jump", "fly", "swim", "dance", "fight", "build", "make",
+  "take", "give", "find", "lose", "is", "will", "bounce",
+
+    // Community & Greetings (12 words)
+    "GM", "GN", "Fren", "Ser", "Anon", "WAGMI", "Family", "Builder", 
+    "Trenches", "Community", "Vibes", "Squad",
     
-    // Action Verbs (20)
-    "run", "jump", "fly", "swim", "dance", "sing", "laugh", "cry", "shout", "whisper",
-    "eat", "drink", "sleep", "wake", "find", "lose", "give", "take", "make", "break",
+    // Action Words - Trading & Gaming (25 words)
+    "Ape", "Aping", "HODL", "Stack", "Pump", "Moon", "Mooning", "Flip",
+    "Bag", "Bagging", "Stake", "Farm", "Mint", "Launch", "Swap", "Lock",
+    "Build", "Race", "Play", "Collect", "Showcase", "Trade", "Earn",
+    "Rip", "Pull", "Score", "Ride", "Punch",
     
-    // Descriptive Adjectives (20)
-    "big", "small", "happy", "sad", "fast", "slow", "hot", "cold", "bright", "dark",
-    "loud", "quiet", "tall", "short", "old", "new", "strong", "weak", "soft", "hard",
+    // Descriptive Words - States & Emotions (30 words)
+    "Based", "Bullish", "Bearish", "Comfy", "Rekt", "Wrecked", "SAFU",
+    "Legit", "Diamond", "Paper", "Degen", "Frothy", "Rare", "Epic",
+    "Wild", "Smooth", "Choppy", "Frozen", "Liquid", "Volatile", "Consumer",
+    "Chill", "Savage", "Whale", "Shrimp", "Chad", "Normie", "Transparent",
+    "Decentralized", "Permissionless", "Composable",
     
-    // Common Nouns (15)
-    "cat", "dog", "bird", "fish", "tree", "flower", "water", "fire", "wind",
-    "house", "car", "phone", "book", "door", "window",
+    // FROTH & KittyPunch Specific (18 words)
+    "Punch", "PunchSwap", "Kitty", "FVIX", "Protocol", "Trenches",
+    "Vaults", "Farms", "Locks", "Convert", "Consumer", "Innovation",
+    "Litany", "Utility", "DeFi", "Ecosystem", "Participation", "Froth",
     
-    // Character Types (10)
-    "robot", "alien", "wizard", "dragon", "knight", "pirate", "ninja", "ghost", "hero", "friend",
+    // Flow Blockchain Culture (15 words)
+    "Flow", "Cadence", "Moment", "Float", "Resource", "Mainstream",
+    "Family", "Emerald", "Set", "Challenge", "Pack", "Showcase",
+    "Sports", "Collectible", "Gaming",
     
-    // Dramatic Adverbs (10)
-    "suddenly", "quietly", "loudly", "quickly", "slowly", "carefully", "wildly", "madly", "barely", "nearly"
+    // Market & Sentiment (20 words)
+    "FOMO", "FUD", "ATH", "ATL", "Dip", "Dump", "Rally", "Crash",
+    "Bull", "Bear", "Crab", "Pump", "Volatility", "LFG", "NGMI",
+    "GMI", "Alpha", "Hopium", "Copium", "Signal",
+    
+    // Phrases & Expressions (12 terms)
+    "To the Moon", "Wen Moon", "Diamond Hands", "Paper Hands",
+    "Probably Nothing", "DYOR", "Few Understand", "IYKYK",
+    "Buy the Dip", "Seems Legit", "Not Financial Advice", "This is the Way",
+    
+    // Comic-Specific Narrative (8 words)
+    "Journey", "Quest",
+    "Achievement", "Power-up", "Epic",
+    
+    // Tournament & Skill Game Positioning (10 words)
+    "Tournament", "Skill", "Strategy", "Compete", "Winner",
+    "Challenge", "Leaderboard", "Score", "Victory", "Champion"
   ];
   
-  // Word packs for Phase 2 (currently locked/purchasable)
+  // ============================================================================
+  // FROTH WORD PACK (Complimentary)
+  // ============================================================================
+  
+  export const FROTH_WORD_PACK = [
+    "Punch", "PunchSwap", "Kitty", "FVIX", "Protocol", "Trenches",
+    "Vaults", "Farms", "Locks", "Convert", "Consumer", "Innovation",
+    "Litany", "Utility", "DeFi", "Ecosystem", "Participation", "Froth"
+  ];
+  
+  // ============================================================================
+  // WORD PACKS CONFIGURATION
+  // ============================================================================
+  
   export const WORD_PACKS: WordPack[] = [
     {
-      id: "sci-fi",
-      name: "Sci-Fi Pack",
-      description: "Futuristic tech and space adventure words",
-      price: "15 FLOW",
-      wordCount: 150,
-      words: [], // Will be populated in Phase 2
-      preview: ["spaceship", "laser", "teleport", "hologram", "asteroid", "galaxy", "cyborg", "quantum", "android", "wormhole"],
-      isOwned: false
+      id: "froth-essentials",
+      name: "FROTH Essentials",
+      description: "Official KittyPunch ecosystem terms - Complimentary!",
+      price: "FREE ✓",
+      wordCount: 18,
+      isComplimentary: true
     },
     {
-      id: "fantasy",
-      name: "Fantasy Pack",
-      description: "Magical realms and mythical creatures",
-      price: "10 FLOW",
-      wordCount: 120,
-      words: [], // Will be populated in Phase 2
-      preview: ["spell", "wand", "potion", "enchant", "dungeon", "sword", "shield", "castle", "prophecy", "rune"],
-      isOwned: false
+      id: "degen-starter",
+      name: "Degen Starter Pack",
+      description: "Essential crypto slang and community classics",
+      price: "500 FROTH",
+      wordCount: 25
     },
     {
-      id: "memes",
-      name: "Meme Pack",
-      description: "Internet culture and viral phrases",
-      price: "8 FLOW",
-      wordCount: 80,
-      words: [], // Will be populated in Phase 2
-      preview: ["stonks", "wen", "moon", "rekt", "hodl", "cope", "based", "cringe", "poggers", "ratio"],
-      isOwned: false
+      id: "flow-culture",
+      name: "Flow Culture Pack",
+      description: "Flow blockchain-specific vocabulary",
+      price: "500 FROTH",
+      wordCount: 15
     },
     {
-      id: "western",
-      name: "Western Pack",
-      description: "Cowboys, outlaws, and frontier life",
-      price: "12 FLOW",
-      wordCount: 100,
-      words: [], // Will be populated in Phase 2
-      preview: ["sheriff", "outlaw", "saloon", "lasso", "wagon", "ranch", "showdown", "tumble", "gold", "frontier"],
-      isOwned: false
+      id: "market-master",
+      name: "Market Master Pack",
+      description: "Trading and sentiment terminology",
+      price: "750 FROTH",
+      wordCount: 20
     },
     {
-      id: "sports",
-      name: "Sports Pack",
-      description: "Athletic action and competition",
-      price: "10 FLOW",
-      wordCount: 110,
-      words: [], // Will be populated in Phase 2
-      preview: ["goal", "score", "champion", "trophy", "victory", "defeat", "team", "coach", "stadium", "tournament"],
-      isOwned: false
+      id: "tournament-pro",
+      name: "Tournament Pro Pack",
+      description: "Competitive gaming vocabulary",
+      price: "300 FROTH",
+      wordCount: 10
     }
   ];
-  
-  // Import type for TypeScript
-  import type { WordPack } from '../types/comic';

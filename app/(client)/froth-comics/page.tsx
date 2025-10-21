@@ -139,45 +139,48 @@ const ComicPanel = ({
       {/* Layer 3: Word Cloud */}
       <WordCloud id={wordCloudId} x={0} />
       
-      {/* Layer 4: Words (rendered as text) */}
-      {caption && (
-        <g>
-          <text 
-            x="190" 
-            y="65"
-            textAnchor="middle" 
-            fill="#000" 
-            fontSize="16"
-            fontFamily="Arial, sans-serif"
-            fontWeight="bold"
-          >
-            {lines[0]}
-          </text>
-          <text 
-            x="190" 
-            y="85"
-            textAnchor="middle" 
-            fill="#000" 
-            fontSize="16"
-            fontFamily="Arial, sans-serif"
-            fontWeight="bold"
-          >
-            {lines[1]}
-          </text>
-          <text 
-            x="190" 
-            y="105"
-            textAnchor="middle" 
-            fill="#000" 
-            fontSize="16"
-            fontFamily="Arial, sans-serif"
-            fontWeight="bold"
-          >
-            {lines[2]}
-          </text>
-        </g>
-      )}
-    </g>
+      // REPLACE LINES 140-175 (the text rendering section) WITH:
+
+{/* Layer 4: Words (rendered as text) - CENTERED IN WORD CLOUD */}
+{caption && (
+  <g>
+    <text 
+      x="190" 
+      y="70"
+      textAnchor="middle" 
+      fill="#000" 
+      fontSize="14"
+      fontFamily="Arial, sans-serif"
+      fontWeight="bold"
+    >
+      {lines[0]}
+    </text>
+    <text 
+      x="190" 
+      y="86"
+      textAnchor="middle" 
+      fill="#000" 
+      fontSize="14"
+      fontFamily="Arial, sans-serif"
+      fontWeight="bold"
+    >
+      {lines[1]}
+    </text>
+    <text 
+      x="190" 
+      y="102"
+      textAnchor="middle" 
+      fill="#000" 
+      fontSize="14"
+      fontFamily="Arial, sans-serif"
+      fontWeight="bold"
+    >
+      {lines[2]}
+    </text>
+  </g>
+)}
+
+</g>
   );
 };
 
@@ -351,99 +354,121 @@ export default function FrothComics() {
 
   return (
     <div style={{ padding: '2rem', maxWidth: '1600px', margin: '0 auto' }}>
-      {/* Header */}
-      <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-        <h1 style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-          FROTH Daily Comic Challenge
+
+
+{/* Header + Leaderboard Row */}
+<div style={{ 
+      display: 'grid', 
+      gridTemplateColumns: '1fr 1fr', 
+      gap: '2rem', 
+      marginBottom: '3rem',
+      background: '#fff',
+      border: '2px solid #ddd',
+      borderRadius: '12px',
+      padding: '2rem'
+    }}>
+
+
+
+
+{/* Tournament Info - Left Side */}
+<div>
+        <h1 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '1rem' }}>
+          FROTH Daily Comic Tournament
         </h1>
-        <p style={{ fontSize: '1.2rem', color: '#666' }}>
-          Create Comics with Word Bank
-        </p>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '2rem', marginTop: '1rem' }}>
-          <div>Prize Pool: <strong>15200 FROTH</strong></div>
-          <div>Submissions: <strong>{submissions.length}</strong></div>
-          <div>Time Remaining: <strong>8h 42m</strong></div>
+        <div style={{ fontSize: '1.1rem', color: '#666', lineHeight: '1.8', marginBottom: '1.5rem' }}>
+          <div><strong>Day #47</strong></div>
+          <div>Prize Pool: <strong style={{ color: '#10b981' }}>15,200 FROTH</strong></div>
+          <div>Time Remaining: <strong style={{ color: '#ef4444' }}>8h 42m</strong></div>
+        </div>
+
+        {/* Entry Cost Breakdown */}
+        <div style={{ 
+          background: '#f9fafb', 
+          border: '1px solid #ddd', 
+          borderRadius: '8px', 
+          padding: '1rem'
+        }}>
+          <div style={{ fontWeight: 'bold', marginBottom: '0.5rem' }}>
+            Entry Cost: 100 FROTH
+          </div>
+          <ul style={{ fontSize: '14px', color: '#666', paddingLeft: '1.5rem', margin: 0 }}>
+            <li>60 FROTH → Treasury (converts to FVIX)</li>
+            <li>20 FROTH → Creator Prize Pool</li>
+            <li>20 FROTH → Voter Prize Pool</li>
+          </ul>
         </div>
       </div>
 
-      {/* Carousel Section */}
-      <div style={{ 
-        background: '#fff', 
-        border: '2px solid #ddd', 
-        borderRadius: '12px', 
-        padding: '2rem',
-        marginBottom: '3rem',
-        position: 'relative'
-      }}>
-        <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem', textAlign: 'center' }}>
-          Community Submissions
+
+
+
+
+
+      {/* Leaderboard - Right Side */}
+      <div>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>
+          🏆 Today's Leaderboard
         </h2>
-        
-        <div style={{ position: 'relative' }}>
-          <button
-            onClick={prevSubmission}
-            style={{
-              position: 'absolute',
-              left: '-60px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              fontSize: '3rem',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              zIndex: 10
-            }}
-          >
-            ←
-          </button>
-          
-          <div style={{ margin: '0 auto' }}>
-            <ComicStrip 
-              characterIds={submissions[currentSubmission].characterIds}
-              backgroundId={submissions[currentSubmission].backgroundId}
-              wordCloudId={submissions[currentSubmission].wordCloudId}
-              panelWords={currentSubmissionWords}
-            />
-            <div style={{ textAlign: 'center', marginTop: '1rem' }}>
-              <p>By {submissions[currentSubmission].creator} | {submissions[currentSubmission].votes} votes</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          {submissions.slice(0, 3).map((sub, idx) => (
+            <div 
+              key={sub.id}
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '1rem',
+                padding: '0.75rem',
+                background: idx === 0 ? '#fef3c7' : '#f9fafb',
+                border: '1px solid #ddd',
+                borderRadius: '8px'
+              }}
+            >
+              <div style={{ 
+                fontSize: '1.5rem', 
+                fontWeight: 'bold',
+                color: idx === 0 ? '#f59e0b' : '#666',
+                minWidth: '30px'
+              }}>
+                #{idx + 1}
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '14px', color: '#666' }}>
+                  {sub.creator}
+                </div>
+                <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#000' }}>
+                  {sub.votes} votes
+                </div>
+              </div>
             </div>
-          </div>
+          ))}
           
           <button
-            onClick={nextSubmission}
+            onClick={() => alert('Navigate to Reader - Coming in Phase 2')}
             style={{
-              position: 'absolute',
-              right: '-60px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              fontSize: '3rem',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              zIndex: 10
-            }}
-          >
-            →
-          </button>
-        </div>
-        
-        <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
-          <button
-            onClick={() => setShowAllModal(true)}
-            style={{
-              padding: '0.75rem 1.5rem',
+              marginTop: '0.5rem',
+              padding: '0.75rem',
               background: '#3b82f6',
               color: 'white',
               border: 'none',
               borderRadius: '8px',
               cursor: 'pointer',
-              fontSize: '1rem'
+              fontSize: '14px',
+              fontWeight: '500'
             }}
           >
-            View All Submissions ({submissions.length})
+            View All Submissions →
           </button>
         </div>
       </div>
+    </div>
+
+
+
+
+
+
+
 
 
 
@@ -647,19 +672,17 @@ export default function FrothComics() {
         {/* Word Bank */}
         <div style={{ marginBottom: '2rem' }}>
           <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', fontWeight: 'bold' }}>
-            Word Bank (Click to add to Panel {selectedPanel + 1})
+            FROTH Word Bank (Click to add to Panel {selectedPanel + 1})
           </h3>
           <div style={{ 
-            display: 'flex', 
-            flexWrap: 'wrap', 
-            gap: '0.5rem',
-            padding: '1.5rem',
-            background: '#f9fafb',
-            borderRadius: '8px',
-            maxHeight: '300px',
-            overflow: 'auto',
-            border: '1px solid #ddd'
-          }}>
+  display: 'flex', 
+  flexWrap: 'wrap', 
+  gap: '0.5rem',
+  padding: '1.5rem',
+  background: '#f9fafb',
+  borderRadius: '8px',
+  border: '1px solid #ddd'
+}}>
             {DAILY_WORDS.map((word: string, index: number) => (
               <button
                 key={index}
@@ -687,28 +710,20 @@ export default function FrothComics() {
           </p>
         </div>
 
-        {/* Word Packs Preview (Phase 2 - Coming Soon) */}
-        <div style={{ marginBottom: '2rem', padding: '1rem', background: '#f3f4f6', borderRadius: '8px', border: '1px dashed #d1d5db' }}>
-          <h3 style={{ fontSize: '1rem', marginBottom: '0.5rem', fontWeight: 'bold', color: '#666' }}>
-            🔒 Word Packs (Coming Soon)
-          </h3>
-          <p style={{ fontSize: '14px', color: '#666', marginBottom: '0.75rem' }}>
-            Unlock more words with premium packs:
-          </p>
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-          {WORD_PACKS.slice(0, 3).map((pack: any) => (
-              <div key={pack.id} style={{ 
-                padding: '0.5rem 0.75rem', 
-                background: 'white', 
-                borderRadius: '6px',
-                border: '1px solid #ddd',
-                fontSize: '12px'
-              }}>
-                <strong>{pack.name}</strong> - {pack.price}
-              </div>
-            ))}
-          </div>
-        </div>
+        {/* Word Packs Preview - FROTH Pack Included! */}
+<div style={{ marginBottom: '2rem', padding: '1rem', background: '#f3f4f6', borderRadius: '8px', border: '1px solid #10b981' }}>
+  <h3 style={{ fontSize: '1rem', marginBottom: '0.5rem', fontWeight: 'bold', color: '#10b981' }}>
+    ✓ FROTH Essentials Pack - Included Free!
+  </h3>
+  <p style={{ fontSize: '14px', color: '#666', marginBottom: '0.75rem' }}>
+    You have access to 18 official KittyPunch ecosystem terms: Punch, PunchSwap, FVIX, Trenches, Vaults, and more!
+  </p>
+  
+  <div style={{ fontSize: '12px', color: '#888', marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid #e5e7eb' }}>
+    <strong>Additional packs coming soon:</strong> Degen Starter, Flow Culture, Market Master, Tournament Pro
+  </div>
+</div>
+
 
         {/* Mint Section */}
         <div style={{ 
@@ -718,15 +733,9 @@ export default function FrothComics() {
           padding: '1.5rem',
           marginBottom: '1rem'
         }}>
-          <div style={{ marginBottom: '1rem' }}>
-            <strong>Cost: 100 FROTH</strong>
-          </div>
-          <ul style={{ marginBottom: '1rem', paddingLeft: '1.5rem' }}>
-            <li>60 FROTH → Treasury (converts to FVIX)</li>
-            <li>20 FROTH → Creator Prize Pool</li>
-            <li>20 FROTH → Voter Prize Pool</li>
-          </ul>
-        </div>
+         
+
+
 
         <button
           onClick={handleMint}
@@ -749,6 +758,7 @@ export default function FrothComics() {
             ? 'Add words to all 4 panels'
             : 'Mint Your Comic (100 FROTH)'}
         </button>
+      </div>
       </div>
 
       {/* View All Modal */}
