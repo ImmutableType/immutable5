@@ -9,10 +9,26 @@ import type {
   SubmissionMetadata 
 } from '../types/frothComic';
 
-const FROTH_COMIC_ADDRESS = process.env.NEXT_PUBLIC_FROTH_COMIC_ADDRESS!;
-const FROTH_TOKEN_ADDRESS = process.env.NEXT_PUBLIC_FROTH_TOKEN!;
-const BUFFAFLOW_ADDRESS = process.env.NEXT_PUBLIC_BUFFAFLOW_ADDRESS!;
-const FLOW_EVM_RPC = process.env.NEXT_PUBLIC_FLOW_EVM_RPC_URL!;
+// Get contract addresses with validation
+const FROTH_COMIC_ADDRESS = process.env.NEXT_PUBLIC_FROTH_COMIC_ADDRESS;
+const FROTH_TOKEN_ADDRESS = process.env.NEXT_PUBLIC_FROTH_TOKEN;
+const BUFFAFLOW_ADDRESS = process.env.NEXT_PUBLIC_BUFFAFLOW_ADDRESS;
+const FLOW_EVM_RPC = process.env.NEXT_PUBLIC_FLOW_EVM_RPC_URL || 'https://mainnet.evm.nodes.onflow.org';
+
+// Validate addresses on service initialization
+if (!FROTH_COMIC_ADDRESS) {
+  console.error('❌ NEXT_PUBLIC_FROTH_COMIC_ADDRESS is not set!');
+}
+if (!FROTH_TOKEN_ADDRESS) {
+  console.error('❌ NEXT_PUBLIC_FROTH_TOKEN is not set!');
+}
+if (!BUFFAFLOW_ADDRESS) {
+  console.error('❌ NEXT_PUBLIC_BUFFAFLOW_ADDRESS is not set!');
+}
+
+console.log('FrothComicDaily Contract Address:', FROTH_COMIC_ADDRESS);
+console.log('FROTH Token Address:', FROTH_TOKEN_ADDRESS);
+console.log('BUFFAFLOW Token Address:', BUFFAFLOW_ADDRESS);
 
 export class FrothComicDailyService {
   private contract: ethers.Contract | null = null;
@@ -24,6 +40,16 @@ export class FrothComicDailyService {
    * Initialize service with user's wallet for write operations
    */
   async initialize(signer: ethers.Signer): Promise<void> {
+    if (!FROTH_COMIC_ADDRESS) {
+      throw new Error('FROTH_COMIC_ADDRESS not configured - check environment variables');
+    }
+    if (!FROTH_TOKEN_ADDRESS) {
+      throw new Error('FROTH_TOKEN_ADDRESS not configured - check environment variables');
+    }
+    if (!BUFFAFLOW_ADDRESS) {
+      throw new Error('BUFFAFLOW_ADDRESS not configured - check environment variables');
+    }
+
     this.contract = new ethers.Contract(
       FROTH_COMIC_ADDRESS,
       FrothComicDailyABI.abi,
@@ -49,6 +75,10 @@ export class FrothComicDailyService {
    * Initialize read-only access for public data
    */
   async initializeReadOnly(): Promise<void> {
+    if (!FROTH_COMIC_ADDRESS) {
+      throw new Error('FROTH_COMIC_ADDRESS not configured - check environment variables');
+    }
+
     const provider = new ethers.JsonRpcProvider(FLOW_EVM_RPC);
     
     this.readOnlyContract = new ethers.Contract(
@@ -334,7 +364,7 @@ export class FrothComicDailyService {
     const now = BigInt(Math.floor(Date.now() / 1000));
     const remaining = template.closeTime - now;
     
-    return Number(remaining > 0n ? remaining : 0n);
+    return Number(remaining > BigInt(0) ? remaining : BigInt(0));
   }
 }
 

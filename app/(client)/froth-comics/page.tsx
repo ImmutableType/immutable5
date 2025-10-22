@@ -335,7 +335,6 @@ export default function FrothComics() {
         setDailyTemplate(template);
         
         // Set template characters and background
-        setSelectedCharacters(template.characterIds);
         setSelectedBackground(template.backgroundId);
         
         // Get submissions
@@ -807,7 +806,8 @@ export default function FrothComics() {
             marginBottom: '2rem',
             fontSize: '14px'
           }}>
-            <strong>Today's Template:</strong> Background {selectedBackground} ({BACKGROUNDS[selectedBackground].name}) with Characters {selectedCharacters.join(', ')}
+  <strong>Today's Template:</strong> Background {selectedBackground} ({BACKGROUNDS[selectedBackground].name}) - Choose any characters you like!
+
           </div>
 
           {/* Build Your Story Section */}
