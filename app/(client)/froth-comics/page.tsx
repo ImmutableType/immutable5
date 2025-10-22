@@ -3,9 +3,12 @@
 
 import { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
-import { DAILY_WORDS, WORD_PACKS } from '../../../lib/constants/wordBank';
+import { DAILY_WORDS } from '../../../lib/constants/wordBank';
 import { allPanelsHaveWords } from '../../../lib/utils/wordValidation';
-import type { ComicSubmission } from '../../../lib/types/comic';
+import { frothComicService } from '../../../lib/services/FrothComicDailyService';
+import { ProfileNFTService } from '../../../lib/services/profile/ProfileNFT';
+import type { DailyTemplate, SubmissionMetadata } from '../../../lib/types/frothComic';
+
 // Helper function to wrap text into lines
 const wrapText = (text: string): string[] => {
   if (!text) return ['', '', ''];
@@ -37,6 +40,26 @@ const wrapText = (text: string): string[] => {
   }
   
   return lines;
+};
+
+// Helper to format time remaining
+const formatTimeRemaining = (seconds: number): string => {
+  if (seconds <= 0) return "Closed";
+  
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  
+  if (hours > 24) {
+    const days = Math.floor(hours / 24);
+    return `${days}d ${hours % 24}h`;
+  }
+  
+  return `${hours}h ${minutes}m`;
+};
+
+// Helper to truncate address
+const truncateAddress = (address: string): string => {
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
 };
 
 // Character data
@@ -139,48 +162,45 @@ const ComicPanel = ({
       {/* Layer 3: Word Cloud */}
       <WordCloud id={wordCloudId} x={0} />
       
-      // REPLACE LINES 140-175 (the text rendering section) WITH:
-
-{/* Layer 4: Words (rendered as text) - CENTERED IN WORD CLOUD */}
-{caption && (
-  <g>
-    <text 
-      x="190" 
-      y="70"
-      textAnchor="middle" 
-      fill="#000" 
-      fontSize="14"
-      fontFamily="Arial, sans-serif"
-      fontWeight="bold"
-    >
-      {lines[0]}
-    </text>
-    <text 
-      x="190" 
-      y="86"
-      textAnchor="middle" 
-      fill="#000" 
-      fontSize="14"
-      fontFamily="Arial, sans-serif"
-      fontWeight="bold"
-    >
-      {lines[1]}
-    </text>
-    <text 
-      x="190" 
-      y="102"
-      textAnchor="middle" 
-      fill="#000" 
-      fontSize="14"
-      fontFamily="Arial, sans-serif"
-      fontWeight="bold"
-    >
-      {lines[2]}
-    </text>
-  </g>
-)}
-
-</g>
+      {/* Layer 4: Words (rendered as text) - CENTERED IN WORD CLOUD */}
+      {caption && (
+        <g>
+          <text 
+            x="190" 
+            y="70"
+            textAnchor="middle" 
+            fill="#000" 
+            fontSize="14"
+            fontFamily="Arial, sans-serif"
+            fontWeight="bold"
+          >
+            {lines[0]}
+          </text>
+          <text 
+            x="190" 
+            y="86"
+            textAnchor="middle" 
+            fill="#000" 
+            fontSize="14"
+            fontFamily="Arial, sans-serif"
+            fontWeight="bold"
+          >
+            {lines[1]}
+          </text>
+          <text 
+            x="190" 
+            y="102"
+            textAnchor="middle" 
+            fill="#000" 
+            fontSize="14"
+            fontFamily="Arial, sans-serif"
+            fontWeight="bold"
+          >
+            {lines[2]}
+          </text>
+        </g>
+      )}
+    </g>
   );
 };
 
@@ -212,54 +232,72 @@ const ComicStrip = ({
   );
 };
 
+// Loading Spinner Component
+const LoadingSpinner = ({ message }: { message: string }) => (
+  <div style={{ 
+    display: 'flex', 
+    flexDirection: 'column', 
+    alignItems: 'center', 
+    gap: '1rem',
+    padding: '2rem'
+  }}>
+    <div style={{
+      width: '40px',
+      height: '40px',
+      border: '4px solid #e5e7eb',
+      borderTop: '4px solid #3b82f6',
+      borderRadius: '50%',
+      animation: 'spin 1s linear infinite'
+    }} />
+    <p style={{ color: '#666', fontSize: '14px' }}>{message}</p>
+    <style jsx>{`
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    `}</style>
+  </div>
+);
+
 export default function FrothComics() {
   const [provider, setProvider] = useState<ethers.BrowserProvider | null>(null);
+  const [signer, setSigner] = useState<ethers.Signer | null>(null);
   const [address, setAddress] = useState<string | null>(null);
   
-  // Visual selections
+  // Blockchain data
+  const [currentDay, setCurrentDay] = useState<number>(0);
+  const [dailyTemplate, setDailyTemplate] = useState<DailyTemplate | null>(null);
+  const [submissions, setSubmissions] = useState<SubmissionMetadata[]>([]);
+  const [timeRemaining, setTimeRemaining] = useState<number>(0);
+  const [hasProfile, setHasProfile] = useState<boolean>(false);
+  
+  // Loading states
+  const [loading, setLoading] = useState<boolean>(true);
+  const [loadingMessage, setLoadingMessage] = useState<string>("Loading tournament data...");
+  const [submitting, setSubmitting] = useState<boolean>(false);
+  const [submitMessage, setSubmitMessage] = useState<string>("");
+  const [voting, setVoting] = useState<{ [tokenId: string]: boolean }>({});
+  
+  // Error states
+  const [error, setError] = useState<string>("");
+  
+  // Visual selections (now initialized from template)
   const [selectedBackground, setSelectedBackground] = useState(0);
   const [selectedCharacters, setSelectedCharacters] = useState([0, 1, 2, 3]);
   const [wordCloudId] = useState(0);
   
   // Word bank system
-  const [selectedPanel, setSelectedPanel] = useState(0); // Active panel (0-3)
-  const [panelWordIndices, setPanelWordIndices] = useState<number[][]>([[], [], [], []]); // Word indices per panel
-  const [usedWordIndices, setUsedWordIndices] = useState<Set<number>>(new Set()); // Track used words
+  const [selectedPanel, setSelectedPanel] = useState(0);
+  const [panelWordIndices, setPanelWordIndices] = useState<number[][]>([[], [], [], []]);
+  const [usedWordIndices, setUsedWordIndices] = useState<Set<number>>(new Set());
   
-  // Mock submissions with word indices
-  const [submissions] = useState([
-    { 
-      id: 1, 
-      creator: "0xABC...123", 
-      votes: 47,
-      characterIds: [0, 7, 1, 9],
-      backgroundId: 3,
-      wordCloudId: 0,
-      wordIndices: [[0, 10, 5], [9, 1, 11], [8, 12, 6], [2, 7, 13]] // "the run happy suddenly..."
-    },
-    { 
-      id: 2, 
-      creator: "0xDEF...456", 
-      votes: 32,
-      characterIds: [5, 6, 8, 10],
-      backgroundId: 2,
-      wordCloudId: 0,
-      wordIndices: [[3, 14, 15], [16, 17, 18], [19, 20, 21], [22, 23, 24]]
-    },
-    { 
-      id: 3, 
-      creator: "0xGHI...789", 
-      votes: 28,
-      characterIds: [11, 12, 4, 3],
-      backgroundId: 4,
-      wordCloudId: 0,
-      wordIndices: [[25, 26, 27], [28, 29, 30], [31, 32, 33], [34, 35, 36]]
-    }
-  ]);
-  
+  // UI states
   const [currentSubmission, setCurrentSubmission] = useState(0);
   const [showAllModal, setShowAllModal] = useState(false);
+  const [showRewardsModal, setShowRewardsModal] = useState(false);
+  const [claimableRewards, setClaimableRewards] = useState({ creator: "0", voter: "0", claimed: false });
 
+  // Initialize wallet connection
   useEffect(() => {
     const initProvider = async () => {
       if (typeof window !== 'undefined' && (window as any).ethereum) {
@@ -268,6 +306,8 @@ export default function FrothComics() {
         
         const accounts = await ethersProvider.listAccounts();
         if (accounts.length > 0) {
+          const userSigner = await ethersProvider.getSigner();
+          setSigner(userSigner);
           setAddress(accounts[0].address);
         }
       }
@@ -276,33 +316,103 @@ export default function FrothComics() {
     initProvider();
   }, []);
 
+  // Load tournament data
+  useEffect(() => {
+    const loadTournamentData = async () => {
+      try {
+        setLoading(true);
+        setLoadingMessage("Loading tournament data...");
+        
+        // Initialize read-only service
+        await frothComicService.initializeReadOnly();
+        
+        // Get current day
+        const day = await frothComicService.getCurrentDay();
+        setCurrentDay(day);
+        
+        // Get daily template
+        const template = await frothComicService.getDailyTemplate(day);
+        setDailyTemplate(template);
+        
+        // Set template characters and background
+        setSelectedCharacters(template.characterIds);
+        setSelectedBackground(template.backgroundId);
+        
+        // Get submissions
+        const subs = await frothComicService.getDaySubmissionsWithMetadata(day);
+        setSubmissions(subs.sort((a, b) => b.votes - a.votes)); // Sort by votes
+        
+        // Calculate time remaining
+        const remaining = await frothComicService.getTimeUntilClose(day);
+        setTimeRemaining(remaining);
+        
+        setLoading(false);
+      } catch (err) {
+        console.error("Error loading tournament data:", err);
+        setError("Failed to load tournament data. Please refresh the page.");
+        setLoading(false);
+      }
+    };
+    
+    loadTournamentData();
+  }, []);
+
+  // Check profile ownership when wallet connects
+  useEffect(() => {
+    const checkProfile = async () => {
+      if (!address || !signer) return;
+      
+      try {
+        const profileService = new ProfileNFTService();
+        await profileService.initialize();
+        const hasProf = await profileService.hasProfile(address);
+        setHasProfile(hasProf);
+        
+        // Initialize froth service with wallet
+        await frothComicService.initialize(signer);
+      } catch (err) {
+        console.error("Error checking profile:", err);
+      }
+    };
+    
+    checkProfile();
+  }, [address, signer]);
+
+  // Update countdown timer
+  useEffect(() => {
+    if (timeRemaining <= 0) return;
+    
+    const interval = setInterval(() => {
+      setTimeRemaining(prev => Math.max(0, prev - 1));
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [timeRemaining]);
+
   // Add word to active panel
   const handleAddWord = (wordIndex: number) => {
-    // Check if panel is full
     if (panelWordIndices[selectedPanel].length >= 10) {
-      alert("Maximum 10 words per panel!");
+      setError("Maximum 10 words per panel!");
+      setTimeout(() => setError(""), 3000);
       return;
     }
     
-    // Add word to panel
     const newPanelWords = [...panelWordIndices];
     newPanelWords[selectedPanel] = [...newPanelWords[selectedPanel], wordIndex];
     setPanelWordIndices(newPanelWords);
     
-    // Mark word as used
     setUsedWordIndices(new Set([...usedWordIndices, wordIndex]));
+    setError("");
   };
 
   // Remove word from panel
   const handleRemoveWord = (panelId: number, position: number) => {
     const wordIndex = panelWordIndices[panelId][position];
     
-    // Remove from panel
     const newPanelWords = [...panelWordIndices];
     newPanelWords[panelId] = newPanelWords[panelId].filter((_, i) => i !== position);
     setPanelWordIndices(newPanelWords);
     
-    // Mark as available again
     const newUsed = new Set(usedWordIndices);
     newUsed.delete(wordIndex);
     setUsedWordIndices(newUsed);
@@ -315,6 +425,131 @@ export default function FrothComics() {
     );
   };
 
+  // Handle comic submission
+  const handleMint = async () => {
+    if (!address || !signer) {
+      setError("Please connect your wallet");
+      return;
+    }
+    
+    if (!hasProfile) {
+      setError("You need an ImmutableType Profile to submit comics");
+      return;
+    }
+    
+    if (!allPanelsHaveWords(panelWordIndices)) {
+      setError("All 4 panels must have at least 1 word!");
+      return;
+    }
+    
+    if (timeRemaining <= 0) {
+      setError("Submissions are closed for this day");
+      return;
+    }
+    
+    try {
+      setSubmitting(true);
+      setError("");
+      
+      setSubmitMessage("Approving 100 FROTH...");
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Brief pause for UX
+      
+      setSubmitMessage("Submitting your comic to the blockchain...");
+      const tokenId = await frothComicService.submitEntry(panelWordIndices);
+      
+      setSubmitMessage("Success! Your comic has been minted 🎉");
+      
+      // Reset form
+      setPanelWordIndices([[], [], [], []]);
+      setUsedWordIndices(new Set());
+      
+      // Reload submissions
+      const subs = await frothComicService.getDaySubmissionsWithMetadata(currentDay);
+      setSubmissions(subs.sort((a, b) => b.votes - a.votes));
+      
+      setTimeout(() => {
+        setSubmitting(false);
+        setSubmitMessage("");
+      }, 3000);
+      
+    } catch (err: any) {
+      console.error("Submission error:", err);
+      setError(err.message || "Failed to submit comic. Please try again.");
+      setSubmitting(false);
+      setSubmitMessage("");
+    }
+  };
+
+  // Handle voting
+  const handleVote = async (tokenId: string, amount: number) => {
+    if (!address || !signer) {
+      setError("Please connect your wallet to vote");
+      return;
+    }
+    
+    if (!dailyTemplate?.finalized && timeRemaining > 0) {
+      setError("Voting opens after submission closes");
+      return;
+    }
+    
+    try {
+      setVoting({ ...voting, [tokenId]: true });
+      setError("");
+      
+      await frothComicService.vote(tokenId, amount);
+      
+      // Reload submissions to show updated votes
+      const subs = await frothComicService.getDaySubmissionsWithMetadata(currentDay);
+      setSubmissions(subs.sort((a, b) => b.votes - a.votes));
+      
+      setVoting({ ...voting, [tokenId]: false });
+    } catch (err: any) {
+      console.error("Voting error:", err);
+      setError(err.message || "Failed to cast vote. Please try again.");
+      setVoting({ ...voting, [tokenId]: false });
+    }
+  };
+
+  // Check rewards
+  const handleCheckRewards = async () => {
+    if (!address) {
+      setError("Please connect your wallet");
+      return;
+    }
+    
+    try {
+      const rewards = await frothComicService.getClaimableRewards(address, currentDay);
+      setClaimableRewards({
+        creator: ethers.formatUnits(rewards.creatorReward, 18),
+        voter: ethers.formatUnits(rewards.voterReward, 18),
+        claimed: rewards.voterClaimed
+      });
+      setShowRewardsModal(true);
+    } catch (err) {
+      console.error("Error checking rewards:", err);
+      setError("Failed to check rewards");
+    }
+  };
+
+  // Claim rewards
+  const handleClaimRewards = async (type: 'creator' | 'voter') => {
+    if (!address || !signer) return;
+    
+    try {
+      if (type === 'creator') {
+        await frothComicService.claimCreatorReward(currentDay);
+      } else {
+        await frothComicService.claimVoterReward(currentDay);
+      }
+      
+      // Refresh rewards
+      await handleCheckRewards();
+    } catch (err: any) {
+      console.error("Claim error:", err);
+      setError(err.message || "Failed to claim rewards");
+    }
+  };
+
   const nextSubmission = () => {
     setCurrentSubmission((prev) => (prev + 1) % submissions.length);
   };
@@ -323,445 +558,447 @@ export default function FrothComics() {
     setCurrentSubmission((prev) => (prev - 1 + submissions.length) % submissions.length);
   };
 
-  const handleMint = async () => {
-    if (!address) {
-      alert("Please connect wallet");
-      return;
-    }
-    
-    if (!allPanelsHaveWords(panelWordIndices)) {
-      alert("All 4 panels must have at least 1 word!");
-      return;
-    }
-    
-    const submissionData: ComicSubmission = {
-      characterIds: selectedCharacters,
-      backgroundId: selectedBackground,
-      wordCloudId: wordCloudId,
-      wordIndices: panelWordIndices
-    };
-    
-    console.log('Minting comic:', submissionData);
-    alert(`Ready to mint!\n\nCharacters: ${selectedCharacters.join(', ')}\nBackground: ${selectedBackground}\nWords per panel: ${panelWordIndices.map(p => p.length).join(', ')}`);
-    // TODO: Contract integration
-  };
-
-  // Get current submission words for display
-  const currentSubmissionWords = getPanelWords(submissions[currentSubmission].wordIndices);
-  
   // Get user's current words for preview
   const userPanelWords = getPanelWords(panelWordIndices);
 
-  return (
-    <div style={{ padding: '2rem', maxWidth: '1600px', margin: '0 auto' }}>
-
-
-{/* Header + Leaderboard Row */}
-<div style={{ 
-      display: 'grid', 
-      gridTemplateColumns: '1fr 1fr', 
-      gap: '2rem', 
-      marginBottom: '3rem',
-      background: '#fff',
-      border: '2px solid #ddd',
-      borderRadius: '12px',
-      padding: '2rem'
-    }}>
-
-
-
-
-{/* Tournament Info - Left Side */}
-<div>
-        <h1 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '1rem' }}>
-          FROTH Daily Comic Tournament
-        </h1>
-        <div style={{ fontSize: '1.1rem', color: '#666', lineHeight: '1.8', marginBottom: '1.5rem' }}>
-          <div><strong>Day #47</strong></div>
-          <div>Prize Pool: <strong style={{ color: '#10b981' }}>15,200 FROTH</strong></div>
-          <div>Time Remaining: <strong style={{ color: '#ef4444' }}>8h 42m</strong></div>
-        </div>
-
-        {/* Entry Cost Breakdown */}
-        <div style={{ 
-          background: '#f9fafb', 
-          border: '1px solid #ddd', 
-          borderRadius: '8px', 
-          padding: '1rem'
-        }}>
-          <div style={{ fontWeight: 'bold', marginBottom: '0.5rem' }}>
-            Entry Cost: 100 FROTH
-          </div>
-          <ul style={{ fontSize: '14px', color: '#666', paddingLeft: '1.5rem', margin: 0 }}>
-            <li>60 FROTH → Treasury (converts to FVIX)</li>
-            <li>20 FROTH → Creator Prize Pool</li>
-            <li>20 FROTH → Voter Prize Pool</li>
-          </ul>
-        </div>
+  // Show loading state
+  if (loading) {
+    return (
+      <div style={{ padding: '2rem', maxWidth: '1600px', margin: '0 auto' }}>
+        <LoadingSpinner message={loadingMessage} />
       </div>
+    );
+  }
 
-
-
-
-
-
-      {/* Leaderboard - Right Side */}
-      <div>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>
-          🏆 Today's Leaderboard
-        </h2>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          {submissions.slice(0, 3).map((sub, idx) => (
-            <div 
-              key={sub.id}
-              style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '1rem',
-                padding: '0.75rem',
-                background: idx === 0 ? '#fef3c7' : '#f9fafb',
-                border: '1px solid #ddd',
-                borderRadius: '8px'
-              }}
-            >
-              <div style={{ 
-                fontSize: '1.5rem', 
-                fontWeight: 'bold',
-                color: idx === 0 ? '#f59e0b' : '#666',
-                minWidth: '30px'
-              }}>
-                #{idx + 1}
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '14px', color: '#666' }}>
-                  {sub.creator}
-                </div>
-                <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#000' }}>
-                  {sub.votes} votes
-                </div>
-              </div>
-            </div>
-          ))}
-          
-          <button
-            onClick={() => alert('Navigate to Reader - Coming in Phase 2')}
-            style={{
-              marginTop: '0.5rem',
-              padding: '0.75rem',
-              background: '#3b82f6',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '500'
-            }}
-          >
-            View All Submissions →
-          </button>
-        </div>
-      </div>
-    </div>
-
-
-
-
-
-
-
-
-
-
-    {/* Create Your Entry */}
-    <div style={{ 
-        background: '#fff', 
-        border: '2px solid #ddd', 
-        borderRadius: '12px', 
-        padding: '2rem'
-      }}>
-        <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>
-          Create Your Entry
-        </h2>
-
-        {/* Background Selector */}
-        <div style={{ marginBottom: '2rem' }}>
-          <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', fontWeight: 'bold' }}>
-            Choose Background
-          </h3>
-          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-            {BACKGROUNDS.map(bg => (
-              <button
-                key={bg.id}
-                onClick={() => setSelectedBackground(bg.id)}
-                style={{
-                  width: '120px',
-                  height: '120px',
-                  border: selectedBackground === bg.id ? '4px solid #3b82f6' : '2px solid #ddd',
-                  borderRadius: '8px',
-                  padding: '4px',
-                  cursor: 'pointer',
-                  background: 'white',
-                  position: 'relative',
-                  overflow: 'hidden'
-                }}
-              >
-                <img 
-                  src={`/assets/comics/backgrounds/${bg.file}`}
-                  alt={bg.name}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-                <div style={{ 
-                  position: 'absolute', 
-                  bottom: 0, 
-                  left: 0, 
-                  right: 0, 
-                  background: 'rgba(0,0,0,0.7)',
-                  color: 'white',
-                  padding: '4px',
-                  fontSize: '12px',
-                  textAlign: 'center'
-                }}>
-                  {bg.name}
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Build Your Story Section */}
-        <div style={{ marginBottom: '2rem' }}>
-          <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', fontWeight: 'bold' }}>
-            Build Your Story
-          </h3>
-
-          {/* Panel Tab Selector - MOVED ABOVE PREVIEW */}
-          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
-            {[0, 1, 2, 3].map(i => (
-              <button
-                key={i}
-                onClick={() => setSelectedPanel(i)}
-                style={{
-                  flex: 1,
-                  padding: '1rem',
-                  background: selectedPanel === i ? '#3b82f6' : '#f3f4f6',
-                  color: selectedPanel === i ? 'white' : '#000',
-                  border: '2px solid',
-                  borderColor: selectedPanel === i ? '#3b82f6' : '#ddd',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontWeight: 'bold',
-                  fontSize: '14px'
-                }}
-              >
-                Panel {i + 1}
-                <br />
-                <small>({panelWordIndices[i].length}/10 words)</small>
-              </button>
-            ))}
-          </div>
-
-          {/* Live Preview */}
-          <ComicStrip 
-            characterIds={selectedCharacters}
-            backgroundId={selectedBackground}
-            wordCloudId={wordCloudId}
-            panelWords={userPanelWords}
-          />
-
-          {/* Character Dropdowns - DIRECTLY UNDER EACH PANEL */}
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(4, 1fr)', 
-            gap: '0.5rem',
-            marginTop: '1rem'
-          }}>
-            {[0, 1, 2, 3].map(i => (
-              <div key={i}>
-                <label style={{ 
-                  display: 'block', 
-                  marginBottom: '0.5rem', 
-                  fontSize: '12px',
-                  fontWeight: '500',
-                  textAlign: 'center'
-                }}>
-                  Panel {i + 1} Character:
-                </label>
-                <select
-                  value={selectedCharacters[i]}
-                  onChange={e => {
-                    const newChars = [...selectedCharacters];
-                    newChars[i] = parseInt(e.target.value);
-                    setSelectedCharacters(newChars);
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: '0.5rem',
-                    border: '1px solid #ddd',
-                    borderRadius: '6px',
-                    fontSize: '12px'
-                  }}
-                >
-                  {CHARACTERS.map(char => (
-                    <option key={char.id} value={char.id}>
-                      {char.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ))}
-          </div>
-
-          {/* Active Panel Word Management */}
-          <div style={{ 
-            marginTop: '2rem',
-            border: '2px solid #3b82f6', 
-            borderRadius: '8px', 
-            padding: '1.5rem',
-            background: '#f0f9ff'
-          }}>
-            <h4 style={{ fontWeight: 'bold', marginBottom: '0.75rem' }}>
-              Panel {selectedPanel + 1} - Words ({panelWordIndices[selectedPanel].length}/10)
-            </h4>
-            
-            {/* Word List for Active Panel */}
-            <div style={{ 
-              minHeight: '60px',
-              padding: '0.75rem',
-              background: 'white',
-              border: '1px solid #ddd',
-              borderRadius: '6px',
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '0.5rem',
-              alignItems: 'flex-start'
-            }}>
-              {panelWordIndices[selectedPanel].length === 0 ? (
-                <span style={{ color: '#9ca3af', fontSize: '14px' }}>
-                  Click words below to add them here...
-                </span>
-              ) : (
-                panelWordIndices[selectedPanel].map((wordIdx, pos) => (
-                  <button
-                    key={pos}
-                    onClick={() => handleRemoveWord(selectedPanel, pos)}
-                    style={{
-                      padding: '0.5rem 0.75rem',
-                      background: '#3b82f6',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '20px',
-                      cursor: 'pointer',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem'
-                    }}
-                  >
-                    {DAILY_WORDS[wordIdx]}
-                    <span style={{ fontSize: '12px', opacity: 0.8 }}>✕</span>
-                  </button>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-
-
-
-        {/* Word Bank */}
-        <div style={{ marginBottom: '2rem' }}>
-          <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', fontWeight: 'bold' }}>
-            FROTH Word Bank (Click to add to Panel {selectedPanel + 1})
-          </h3>
-          <div style={{ 
-  display: 'flex', 
-  flexWrap: 'wrap', 
-  gap: '0.5rem',
-  padding: '1.5rem',
-  background: '#f9fafb',
-  borderRadius: '8px',
-  border: '1px solid #ddd'
-}}>
-            {DAILY_WORDS.map((word: string, index: number) => (
-              <button
-                key={index}
-                onClick={() => handleAddWord(index)}
-                disabled={usedWordIndices.has(index)}
-                style={{
-                  padding: '0.5rem 1rem',
-                  background: usedWordIndices.has(index) ? '#e5e7eb' : '#3b82f6',
-                  color: usedWordIndices.has(index) ? '#9ca3af' : 'white',
-                  border: 'none',
-                  borderRadius: '20px',
-                  cursor: usedWordIndices.has(index) ? 'not-allowed' : 'pointer',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  opacity: usedWordIndices.has(index) ? 0.5 : 1,
-                  transition: 'all 0.2s'
-                }}
-              >
-                {word}
-              </button>
-            ))}
-          </div>
-          <p style={{ fontSize: '12px', color: '#666', marginTop: '0.5rem', textAlign: 'center' }}>
-            {usedWordIndices.size} / {DAILY_WORDS.length} words used
-          </p>
-        </div>
-
-        {/* Word Packs Preview - FROTH Pack Included! */}
-<div style={{ marginBottom: '2rem', padding: '1rem', background: '#f3f4f6', borderRadius: '8px', border: '1px solid #10b981' }}>
-  <h3 style={{ fontSize: '1rem', marginBottom: '0.5rem', fontWeight: 'bold', color: '#10b981' }}>
-    ✓ FROTH Essentials Pack - Included Free!
-  </h3>
-  <p style={{ fontSize: '14px', color: '#666', marginBottom: '0.75rem' }}>
-    You have access to 18 official KittyPunch ecosystem terms: Punch, PunchSwap, FVIX, Trenches, Vaults, and more!
-  </p>
-  
-  <div style={{ fontSize: '12px', color: '#888', marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid #e5e7eb' }}>
-    <strong>Additional packs coming soon:</strong> Degen Starter, Flow Culture, Market Master, Tournament Pro
-  </div>
-</div>
-
-
-        {/* Mint Section */}
-        <div style={{ 
-          background: '#f9fafb', 
-          border: '1px solid #ddd', 
-          borderRadius: '8px', 
-          padding: '1.5rem',
-          marginBottom: '1rem'
-        }}>
-         
-
-
-
-        <button
-          onClick={handleMint}
-          disabled={!address || !allPanelsHaveWords(panelWordIndices)}
+  // Show error if template failed to load
+  if (!dailyTemplate) {
+    return (
+      <div style={{ padding: '2rem', maxWidth: '1600px', margin: '0 auto', textAlign: 'center' }}>
+        <h2 style={{ color: '#ef4444', marginBottom: '1rem' }}>Failed to Load Tournament</h2>
+        <p>{error || "Unable to load tournament data"}</p>
+        <button 
+          onClick={() => window.location.reload()}
           style={{
-            width: '100%',
-            padding: '1rem',
-            background: address && allPanelsHaveWords(panelWordIndices) ? '#10b981' : '#9ca3af',
+            marginTop: '2rem',
+            padding: '1rem 2rem',
+            background: '#3b82f6',
             color: 'white',
             border: 'none',
             borderRadius: '8px',
-            fontSize: '1.2rem',
-            fontWeight: 'bold',
-            cursor: address && allPanelsHaveWords(panelWordIndices) ? 'pointer' : 'not-allowed'
+            cursor: 'pointer',
+            fontSize: '16px'
           }}
         >
-          {!address 
-            ? 'Connect Wallet to Mint' 
-            : !allPanelsHaveWords(panelWordIndices)
-            ? 'Add words to all 4 panels'
-            : 'Mint Your Comic (100 FROTH)'}
+          Retry
         </button>
       </div>
+    );
+  }
+
+  const totalPrizePool = Number(ethers.formatUnits(dailyTemplate.creatorPool + dailyTemplate.voterPool, 18));
+
+  return (
+    <div style={{ padding: '2rem', maxWidth: '1600px', margin: '0 auto' }}>
+      {/* Header + Leaderboard Row */}
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: '1fr 1fr', 
+        gap: '2rem', 
+        marginBottom: '3rem',
+        background: '#fff',
+        border: '2px solid #ddd',
+        borderRadius: '12px',
+        padding: '2rem'
+      }}>
+        {/* Tournament Info - Left Side */}
+        <div>
+          <h1 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '1rem' }}>
+            FROTH Daily Comic Tournament
+          </h1>
+          <div style={{ fontSize: '1.1rem', color: '#666', lineHeight: '1.8', marginBottom: '1.5rem' }}>
+            <div><strong>Day #{currentDay}</strong></div>
+            <div>Prize Pool: <strong style={{ color: '#10b981' }}>{totalPrizePool.toFixed(0)} FROTH</strong></div>
+            <div>
+              Time Remaining: <strong style={{ color: timeRemaining <= 3600 ? '#ef4444' : '#666' }}>
+                {formatTimeRemaining(timeRemaining)}
+              </strong>
+            </div>
+            <div style={{ fontSize: '14px', color: '#888', marginTop: '0.5rem' }}>
+              {Number(dailyTemplate.totalEntries)} submissions so far
+            </div>
+          </div>
+
+          {/* Entry Cost Breakdown */}
+          <div style={{ 
+            background: '#f9fafb', 
+            border: '1px solid #ddd', 
+            borderRadius: '8px', 
+            padding: '1rem'
+          }}>
+            <div style={{ fontWeight: 'bold', marginBottom: '0.5rem' }}>
+              Entry Cost: 100 FROTH
+            </div>
+            <ul style={{ fontSize: '14px', color: '#666', paddingLeft: '1.5rem', margin: 0 }}>
+              <li>60 FROTH → Treasury (converts to FVIX)</li>
+              <li>20 FROTH → Creator Prize Pool</li>
+              <li>20 FROTH → Voter Prize Pool</li>
+            </ul>
+          </div>
+
+          {/* Check Rewards Button */}
+          {address && (
+            <button
+              onClick={handleCheckRewards}
+              style={{
+                marginTop: '1rem',
+                width: '100%',
+                padding: '0.75rem',
+                background: '#10b981',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}
+            >
+              Check My Rewards 🎁
+            </button>
+          )}
+        </div>
+
+        {/* Leaderboard - Right Side */}
+        <div>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>
+            🏆 Today's Leaderboard
+          </h2>
+          
+          {submissions.length === 0 ? (
+            <div style={{ 
+              padding: '2rem', 
+              textAlign: 'center', 
+              color: '#666',
+              border: '1px solid #ddd',
+              borderRadius: '8px',
+              background: '#f9fafb'
+            }}>
+              No submissions yet. Be the first! 🚀
+            </div>
+          ) : (
+            <>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {submissions.slice(0, 3).map((sub, idx) => (
+                  <div 
+                    key={sub.tokenId}
+                    style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '1rem',
+                      padding: '0.75rem',
+                      background: idx === 0 ? '#fef3c7' : '#f9fafb',
+                      border: '1px solid #ddd',
+                      borderRadius: '8px'
+                    }}
+                  >
+                    <div style={{ 
+                      fontSize: '1.5rem', 
+                      fontWeight: 'bold',
+                      color: idx === 0 ? '#f59e0b' : '#666',
+                      minWidth: '30px'
+                    }}>
+                      #{idx + 1}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: '14px', color: '#666' }}>
+                        {truncateAddress(sub.creator)}
+                      </div>
+                      <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#000' }}>
+                        {sub.votes} votes
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                
+                {submissions.length > 3 && (
+                  <button
+                    onClick={() => setShowAllModal(true)}
+                    style={{
+                      marginTop: '0.5rem',
+                      padding: '0.75rem',
+                      background: '#3b82f6',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      fontWeight: '500'
+                    }}
+                  >
+                    View All {submissions.length} Submissions →
+                  </button>
+                )}
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
-      {/* View All Modal */}
+      {/* Error Display */}
+      {error && (
+        <div style={{
+          padding: '1rem',
+          background: '#fee2e2',
+          border: '2px solid #ef4444',
+          borderRadius: '8px',
+          color: '#991b1b',
+          marginBottom: '2rem',
+          fontSize: '14px'
+        }}>
+          ⚠️ {error}
+        </div>
+      )}
+
+      {/* Profile Gate Warning */}
+      {address && !hasProfile && (
+        <div style={{
+          padding: '1rem',
+          background: '#fef3c7',
+          border: '2px solid #f59e0b',
+          borderRadius: '8px',
+          color: '#92400e',
+          marginBottom: '2rem',
+          fontSize: '14px'
+        }}>
+          ℹ️ You need an ImmutableType Profile to submit comics. <a href="/profile/create" style={{ color: '#3b82f6', textDecoration: 'underline' }}>Create one here</a>
+        </div>
+      )}
+
+      {/* Submission Loading State */}
+      {submitting && (
+        <div style={{
+          padding: '2rem',
+          background: '#fff',
+          border: '2px solid #3b82f6',
+          borderRadius: '12px',
+          marginBottom: '2rem'
+        }}>
+          <LoadingSpinner message={submitMessage} />
+        </div>
+      )}
+
+      {/* Create Your Entry */}
+      {!submitting && (
+        <div style={{ 
+          background: '#fff', 
+          border: '2px solid #ddd', 
+          borderRadius: '12px', 
+          padding: '2rem'
+        }}>
+          <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>
+            Create Your Entry
+          </h2>
+
+          {/* Template Info */}
+          <div style={{
+            padding: '1rem',
+            background: '#f0f9ff',
+            border: '1px solid #3b82f6',
+            borderRadius: '8px',
+            marginBottom: '2rem',
+            fontSize: '14px'
+          }}>
+            <strong>Today's Template:</strong> Background {selectedBackground} ({BACKGROUNDS[selectedBackground].name}) with Characters {selectedCharacters.join(', ')}
+          </div>
+
+          {/* Build Your Story Section */}
+          <div style={{ marginBottom: '2rem' }}>
+            <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', fontWeight: 'bold' }}>
+              Build Your Story
+            </h3>
+
+            {/* Panel Tab Selector */}
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+              {[0, 1, 2, 3].map(i => (
+                <button
+                  key={i}
+                  onClick={() => setSelectedPanel(i)}
+                  style={{
+                    flex: 1,
+                    padding: '1rem',
+                    background: selectedPanel === i ? '#3b82f6' : '#f3f4f6',
+                    color: selectedPanel === i ? 'white' : '#000',
+                    border: '2px solid',
+                    borderColor: selectedPanel === i ? '#3b82f6' : '#ddd',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontWeight: 'bold',
+                    fontSize: '14px'
+                  }}
+                >
+                  Panel {i + 1}
+                  <br />
+                  <small>({panelWordIndices[i].length}/10 words)</small>
+                </button>
+              ))}
+            </div>
+
+            {/* Live Preview */}
+            <ComicStrip 
+              characterIds={selectedCharacters}
+              backgroundId={selectedBackground}
+              wordCloudId={wordCloudId}
+              panelWords={userPanelWords}
+            />
+
+            {/* Active Panel Word Management */}
+            <div style={{ 
+              marginTop: '2rem',
+              border: '2px solid #3b82f6', 
+              borderRadius: '8px', 
+              padding: '1.5rem',
+              background: '#f0f9ff'
+            }}>
+              <h4 style={{ fontWeight: 'bold', marginBottom: '0.75rem' }}>
+                Panel {selectedPanel + 1} - Words ({panelWordIndices[selectedPanel].length}/10)
+              </h4>
+              
+              {/* Word List for Active Panel */}
+              <div style={{ 
+                minHeight: '60px',
+                padding: '0.75rem',
+                background: 'white',
+                border: '1px solid #ddd',
+                borderRadius: '6px',
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '0.5rem',
+                alignItems: 'flex-start'
+              }}>
+                {panelWordIndices[selectedPanel].length === 0 ? (
+                  <span style={{ color: '#9ca3af', fontSize: '14px' }}>
+                    Click words below to add them here...
+                  </span>
+                ) : (
+                  panelWordIndices[selectedPanel].map((wordIdx, pos) => (
+                    <button
+                      key={pos}
+                      onClick={() => handleRemoveWord(selectedPanel, pos)}
+                      style={{
+                        padding: '0.5rem 0.75rem',
+                        background: '#3b82f6',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '20px',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem'
+                      }}
+                    >
+                      {DAILY_WORDS[wordIdx]}
+                      <span style={{ fontSize: '12px', opacity: 0.8 }}>✕</span>
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Word Bank */}
+          <div style={{ marginBottom: '2rem' }}>
+            <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', fontWeight: 'bold' }}>
+              FROTH Word Bank (Click to add to Panel {selectedPanel + 1})
+            </h3>
+            <div style={{ 
+              display: 'flex', 
+              flexWrap: 'wrap', 
+              gap: '0.5rem',
+              padding: '1.5rem',
+              background: '#f9fafb',
+              borderRadius: '8px',
+              border: '1px solid #ddd'
+            }}>
+              {DAILY_WORDS.map((word: string, index: number) => (
+                <button
+                  key={index}
+                  onClick={() => handleAddWord(index)}
+                  disabled={usedWordIndices.has(index)}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    background: usedWordIndices.has(index) ? '#e5e7eb' : '#3b82f6',
+                    color: usedWordIndices.has(index) ? '#9ca3af' : 'white',
+                    border: 'none',
+                    borderRadius: '20px',
+                    cursor: usedWordIndices.has(index) ? 'not-allowed' : 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    opacity: usedWordIndices.has(index) ? 0.5 : 1,
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  {word}
+                </button>
+              ))}
+            </div>
+            <p style={{ fontSize: '12px', color: '#666', marginTop: '0.5rem', textAlign: 'center' }}>
+              {usedWordIndices.size} / {DAILY_WORDS.length} words used
+            </p>
+          </div>
+
+          {/* Word Packs Preview */}
+          <div style={{ marginBottom: '2rem', padding: '1rem', background: '#f3f4f6', borderRadius: '8px', border: '1px solid #10b981' }}>
+            <h3 style={{ fontSize: '1rem', marginBottom: '0.5rem', fontWeight: 'bold', color: '#10b981' }}>
+              ✓ FROTH Essentials Pack - Included Free!
+            </h3>
+            <p style={{ fontSize: '14px', color: '#666', marginBottom: '0.75rem' }}>
+              You have access to 18 official KittyPunch ecosystem terms: Punch, PunchSwap, FVIX, Trenches, Vaults, and more!
+            </p>
+            
+            <div style={{ fontSize: '12px', color: '#888', marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid #e5e7eb' }}>
+              <strong>Additional packs coming soon:</strong> Degen Starter, Flow Culture, Market Master, Tournament Pro
+            </div>
+          </div>
+
+          {/* Mint Section */}
+          <div style={{ 
+            background: '#f9fafb', 
+            border: '1px solid #ddd', 
+            borderRadius: '8px', 
+            padding: '1.5rem',
+            marginBottom: '1rem'
+          }}>
+            <button
+              onClick={handleMint}
+              disabled={!address || !hasProfile || !allPanelsHaveWords(panelWordIndices) || timeRemaining <= 0}
+              style={{
+                width: '100%',
+                padding: '1rem',
+                background: (address && hasProfile && allPanelsHaveWords(panelWordIndices) && timeRemaining > 0) ? '#10b981' : '#9ca3af',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '1.2rem',
+                fontWeight: 'bold',
+                cursor: (address && hasProfile && allPanelsHaveWords(panelWordIndices) && timeRemaining > 0) ? 'pointer' : 'not-allowed'
+              }}
+            >
+              {!address 
+                ? 'Connect Wallet to Mint' 
+                : !hasProfile
+                ? 'Create Profile to Submit'
+                : timeRemaining <= 0
+                ? 'Submissions Closed'
+                : !allPanelsHaveWords(panelWordIndices)
+                ? 'Add words to all 4 panels'
+                : 'Mint Your Comic (100 FROTH)'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* View All Submissions Modal */}
       {showAllModal && (
         <div style={{
           position: 'fixed',
@@ -773,16 +1010,18 @@ export default function FrothComics() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 1000
+          zIndex: 1000,
+          padding: '2rem'
         }}>
           <div style={{
             background: 'white',
             borderRadius: '12px',
             padding: '2rem',
-            maxWidth: '900px',
+            maxWidth: '1200px',
             maxHeight: '80vh',
             overflow: 'auto',
-            position: 'relative'
+            position: 'relative',
+            width: '100%'
           }}>
             <button
               onClick={() => setShowAllModal(false)}
@@ -799,24 +1038,184 @@ export default function FrothComics() {
               ✕
             </button>
             
-            <h2 style={{ marginBottom: '2rem' }}>All Submissions</h2>
+            <h2 style={{ marginBottom: '2rem' }}>All Submissions ({submissions.length})</h2>
             
             {submissions.map((sub, idx) => {
               const subWords = getPanelWords(sub.wordIndices);
+              const isVoting = voting[sub.tokenId];
+              
               return (
-                <div key={sub.id} style={{ marginBottom: '2rem', borderBottom: '1px solid #ddd', paddingBottom: '2rem' }}>
-                  <div style={{ marginBottom: '1rem' }}>
-                    <strong>#{idx + 1}</strong> by {sub.creator} | {sub.votes} votes
+                <div key={sub.tokenId} style={{ marginBottom: '3rem', borderBottom: '1px solid #ddd', paddingBottom: '2rem' }}>
+                  <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <strong>#{idx + 1}</strong> by {truncateAddress(sub.creator)} | <strong>{sub.votes} votes</strong>
+                    </div>
+                    
+                    {/* Voting Controls */}
+                    {address && timeRemaining <= 0 && !dailyTemplate.finalized && (
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        <button
+                          onClick={() => handleVote(sub.tokenId, 1)}
+                          disabled={isVoting}
+                          style={{
+                            padding: '0.5rem 1rem',
+                            background: isVoting ? '#9ca3af' : '#3b82f6',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: isVoting ? 'not-allowed' : 'pointer',
+                            fontSize: '14px',
+                            fontWeight: '500'
+                          }}
+                        >
+                          {isVoting ? 'Voting...' : 'Vote +1'}
+                        </button>
+                        <button
+                          onClick={() => handleVote(sub.tokenId, 5)}
+                          disabled={isVoting}
+                          style={{
+                            padding: '0.5rem 1rem',
+                            background: isVoting ? '#9ca3af' : '#10b981',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: isVoting ? 'not-allowed' : 'pointer',
+                            fontSize: '14px',
+                            fontWeight: '500'
+                          }}
+                        >
+                          {isVoting ? 'Voting...' : 'Vote +5'}
+                        </button>
+                      </div>
+                    )}
                   </div>
                   <ComicStrip 
                     characterIds={sub.characterIds}
                     backgroundId={sub.backgroundId}
-                    wordCloudId={sub.wordCloudId}
+                    wordCloudId={wordCloudId}
                     panelWords={subWords}
                   />
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Rewards Modal */}
+      {showRewardsModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '12px',
+            padding: '2rem',
+            maxWidth: '500px',
+            width: '90%',
+            position: 'relative'
+          }}>
+            <button
+              onClick={() => setShowRewardsModal(false)}
+              style={{
+                position: 'absolute',
+                top: '1rem',
+                right: '1rem',
+                background: 'none',
+                border: 'none',
+                fontSize: '1.5rem',
+                cursor: 'pointer'
+              }}
+            >
+              ✕
+            </button>
+            
+            <h2 style={{ marginBottom: '2rem' }}>Your Rewards - Day {currentDay}</h2>
+            
+            <div style={{ marginBottom: '1.5rem' }}>
+              <div style={{ fontSize: '14px', color: '#666', marginBottom: '0.5rem' }}>
+                Creator Reward:
+              </div>
+              <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#10b981' }}>
+                {parseFloat(claimableRewards.creator).toFixed(2)} FROTH
+              </div>
+              {parseFloat(claimableRewards.creator) > 0 && (
+                <button
+                  onClick={() => handleClaimRewards('creator')}
+                  style={{
+                    marginTop: '0.5rem',
+                    padding: '0.75rem 1.5rem',
+                    background: '#10b981',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '500'
+                  }}
+                >
+                  Claim Creator Reward
+                </button>
+              )}
+            </div>
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <div style={{ fontSize: '14px', color: '#666', marginBottom: '0.5rem' }}>
+                Voter Reward:
+              </div>
+              <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#3b82f6' }}>
+                {parseFloat(claimableRewards.voter).toFixed(2)} FROTH
+              </div>
+              {parseFloat(claimableRewards.voter) > 0 && !claimableRewards.claimed && (
+                <button
+                  onClick={() => handleClaimRewards('voter')}
+                  style={{
+                    marginTop: '0.5rem',
+                    padding: '0.75rem 1.5rem',
+                    background: '#3b82f6',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '500'
+                  }}
+                >
+                  Claim Voter Reward
+                </button>
+              )}
+              {claimableRewards.claimed && (
+                <div style={{ 
+                  marginTop: '0.5rem', 
+                  color: '#666', 
+                  fontSize: '14px',
+                  fontStyle: 'italic' 
+                }}>
+                  Already claimed ✓
+                </div>
+              )}
+            </div>
+
+            {parseFloat(claimableRewards.creator) === 0 && parseFloat(claimableRewards.voter) === 0 && (
+              <div style={{ 
+                padding: '1rem', 
+                background: '#f9fafb', 
+                borderRadius: '8px',
+                textAlign: 'center',
+                color: '#666'
+              }}>
+                No rewards available for this day yet
+              </div>
+            )}
           </div>
         </div>
       )}
