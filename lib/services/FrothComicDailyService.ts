@@ -114,26 +114,42 @@ async getCurrentDay(): Promise<number> {
   return Math.floor((now - genesisTimestamp) / TOURNAMENT_DURATION);
 }
 
-  /**
+/**
    * Get daily template data for a specific day
+   * TEMPORARY: Hardcoded Day 0 data due to storage slot mismatch
    */
-  async getDailyTemplate(dayId: number): Promise<DailyTemplate> {
-    const contract = this.contract || this.readOnlyContract;
-    if (!contract) throw new Error('Service not initialized');
-
-    const template = await contract.getDailyTemplate(dayId);
-
+async getDailyTemplate(dayId: number): Promise<DailyTemplate> {
+  // Hardcoded Day 0 template with correct data from storage
+  if (dayId === 0) {
     return {
-      characterIds: template[0].map((id: bigint) => Number(id)),
-      backgroundId: Number(template[1]),
-      openTime: template[2],
-      closeTime: template[3],
-      creatorPool: template[4],
-      voterPool: template[5],
-      totalEntries: template[6],
-      finalized: template[7]
+      characterIds: [4, 11, 5, 3], // Impact, Block, Mask L, RG Saucer
+      backgroundId: 0, // West
+      openTime: BigInt(1761187495), // Genesis - 5 min
+      closeTime: BigInt(1761259795), // Genesis + 20h 5min
+      creatorPool: BigInt(0),
+      voterPool: BigInt(0),
+      totalEntries: BigInt(0),
+      finalized: false
     };
   }
+
+  // For other days, try the contract (will fix properly later)
+  const contract = this.contract || this.readOnlyContract;
+  if (!contract) throw new Error('Service not initialized');
+
+  const template = await contract.getDailyTemplate(dayId);
+
+  return {
+    characterIds: template[0].map((id: bigint) => Number(id)),
+    backgroundId: Number(template[1]),
+    openTime: template[2],
+    closeTime: template[3],
+    creatorPool: template[4],
+    voterPool: template[5],
+    totalEntries: template[6],
+    finalized: template[7]
+  };
+}
 
   /**
    * Get all submission token IDs for a specific day
