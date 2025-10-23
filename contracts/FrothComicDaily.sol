@@ -71,8 +71,8 @@ contract FrothComicDaily is
         uint256 dayId;
         uint8[4] characterIds;
         uint8 backgroundId;
-        uint256 openTime;
-        uint256 closeTime;
+        uint256 opensAt;
+        uint256 closesAt;
         uint256 totalEntries;
         uint256 creatorPool;
         uint256 voterPool;
@@ -88,7 +88,7 @@ contract FrothComicDaily is
         uint256 dayId;
         uint8[4] characterIds;
         uint8 backgroundId;
-        uint256[4][] wordIndices;
+        uint256[][] wordIndices;
         uint256 votes;
         uint256 timestamp;
         bool exists;
@@ -191,8 +191,8 @@ contract FrothComicDaily is
      */
     function canSubmitToDay(uint256 dayId) public view returns (bool) {
         DailyTemplate storage template = dailyTemplates[dayId];
-        return block.timestamp >= template.openTime && 
-               block.timestamp < template.closeTime &&
+        return block.timestamp >= template.opensAt && 
+               block.timestamp < template.closesAt &&
                !template.finalized;
     }
 
@@ -201,7 +201,7 @@ contract FrothComicDaily is
      */
     function canFinalizeDay(uint256 dayId) public view returns (bool) {
         DailyTemplate storage template = dailyTemplates[dayId];
-        return block.timestamp >= template.closeTime && !template.finalized;
+        return block.timestamp >= template.closesAt && !template.finalized;
     }
 
     /**
@@ -222,8 +222,8 @@ contract FrothComicDaily is
         
         // Calculate tournament times
         uint256 dayStart = genesisTimestamp + (dayId * TOURNAMENT_DURATION);
-        template.openTime = dayStart - OVERLAP_BUFFER;
-        template.closeTime = dayStart + TOURNAMENT_DURATION - OVERLAP_BUFFER;
+        template.opensAt = dayStart - OVERLAP_BUFFER;
+        template.closesAt = dayStart + TOURNAMENT_DURATION - OVERLAP_BUFFER;
         
         emit DailyTemplateGenerated(dayId, template.characterIds, template.backgroundId);
     }
@@ -246,8 +246,8 @@ contract FrothComicDaily is
         
         // Calculate tournament times
         uint256 dayStart = genesisTimestamp + (dayId * TOURNAMENT_DURATION);
-        template.openTime = dayStart - OVERLAP_BUFFER;
-        template.closeTime = dayStart + TOURNAMENT_DURATION - OVERLAP_BUFFER;
+        template.opensAt = dayStart - OVERLAP_BUFFER;
+        template.closesAt = dayStart + TOURNAMENT_DURATION - OVERLAP_BUFFER;
         
         // OPTIONAL seeding - only if treasury has approved and dailySeedAmount > 0
         if (dailySeedAmount > 0) {
@@ -313,7 +313,7 @@ contract FrothComicDaily is
      * @param wordIndices Array of 4 panels, each containing word indices
      */
     function submitEntry(
-        uint256[4][] calldata wordIndices
+        uint256[][] calldata wordIndices
     ) external nonReentrant whenNotPaused returns (uint256) {
         // Verify ProfileNFT ownership
         require(profileNFTContract.hasProfile(msg.sender), "Must have ProfileNFT");
@@ -327,6 +327,10 @@ contract FrothComicDaily is
         
         // Validate word indices structure
         require(wordIndices.length == 4, "Must have exactly 4 panels");
+        for (uint256 i = 0; i < 4; i++) {
+            require(wordIndices[i].length > 0, "Each panel must have at least 1 word");
+            require(wordIndices[i].length <= 10, "Each panel must have at most 10 words");
+        }
         for (uint256 i = 0; i < 4; i++) {
             require(wordIndices[i].length > 0, "Each panel must have at least 1 word");
             
@@ -404,7 +408,7 @@ contract FrothComicDaily is
         DailyTemplate storage template = dailyTemplates[dayId];
         
         // Validate timing (can vote after submission close, before finalization)
-        require(block.timestamp >= template.closeTime, "Voting not started");
+        require(block.timestamp >= template.closesAt, "Voting not started");
         require(!template.finalized, "Day already finalized");
         require(voteAmount > 0, "Must vote at least 1");
         
