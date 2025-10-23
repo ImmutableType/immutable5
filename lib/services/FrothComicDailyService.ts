@@ -90,16 +90,29 @@ export class FrothComicDailyService {
     console.log('✅ FrothComicDailyService initialized (read-only)');
   }
 
-  /**
-   * Get current day ID
+/**
+   * Get current day ID - reads directly from storage slot 8
    */
-  async getCurrentDay(): Promise<number> {
-    const contract = this.contract || this.readOnlyContract;
-    if (!contract) throw new Error('Service not initialized');
-
-    const dayId = await contract.getCurrentDay();
-    return Number(dayId);
+async getCurrentDay(): Promise<number> {
+  const provider = new ethers.JsonRpcProvider(FLOW_EVM_RPC);
+  
+  // genesisTimestamp is in storage slot 8
+  const genesisHex = await provider.getStorage(FROTH_COMIC_ADDRESS!, 8);
+  const genesisTimestamp = parseInt(genesisHex, 16);
+  
+  if (genesisTimestamp === 0) {
+    return 0;
   }
+  
+  const TOURNAMENT_DURATION = 20 * 60 * 60 + 5 * 60; // 20 hours 5 minutes in seconds
+  const now = Math.floor(Date.now() / 1000);
+  
+  if (now < genesisTimestamp) {
+    return 0;
+  }
+  
+  return Math.floor((now - genesisTimestamp) / TOURNAMENT_DURATION);
+}
 
   /**
    * Get daily template data for a specific day
