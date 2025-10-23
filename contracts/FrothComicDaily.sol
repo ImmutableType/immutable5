@@ -168,6 +168,12 @@ contract FrothComicDaily is
         _generateDailyTemplateNoSeed(0);
     }
 
+        function setGenesisTimestamp(uint256 timestamp) external onlyOwner {
+        require(genesisTimestamp == 0, "Already set");
+        genesisTimestamp = timestamp;
+        _generateDailyTemplateNoSeed(0);
+    }
+
     // ============================================
     // TOURNAMENT MANAGEMENT
     // ============================================
