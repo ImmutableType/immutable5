@@ -906,6 +906,65 @@ export default function FrothComics() {
             </div>
           </div>
 
+
+
+          {/* Character Selection */}
+          <div style={{ marginBottom: '2rem' }}>
+            <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', fontWeight: 'bold' }}>
+              Choose Your Characters
+            </h3>
+            
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(4, 1fr)', 
+              gap: '1rem',
+              padding: '1.5rem',
+              background: '#f9fafb',
+              borderRadius: '8px',
+              border: '1px solid #ddd'
+            }}>
+              {[0, 1, 2, 3].map(i => (
+                <div key={i}>
+                  <label style={{ 
+                    display: 'block', 
+                    marginBottom: '0.5rem', 
+                    fontWeight: '500',
+                    fontSize: '14px'
+                  }}>
+                    Panel {i + 1} Character:
+                  </label>
+                  <select
+                    value={selectedCharacters[i]}
+                    onChange={e => {
+                      const newChars = [...selectedCharacters];
+                      newChars[i] = parseInt(e.target.value);
+                      setSelectedCharacters(newChars);
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      borderRadius: '6px',
+                      border: '1px solid #ddd',
+                      background: 'white',
+                      fontSize: '14px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {CHARACTERS.map(char => (
+                      <option key={char.id} value={char.id}>
+                        {char.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Word Bank section continues below... */}
+
+
+
           {/* Word Bank */}
           <div style={{ marginBottom: '2rem' }}>
             <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', fontWeight: 'bold' }}>
