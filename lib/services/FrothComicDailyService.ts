@@ -114,43 +114,65 @@ export class FrothComicDailyService {
     return Math.floor((now - genesisTimestamp) / TOURNAMENT_DURATION);
   }
 
-  /**
-   * Get daily template data for a specific day
-   * TEMPORARY: Hardcoded Day 0 data due to storage slot mismatch
-   */
-  async getDailyTemplate(dayId: number): Promise<DailyTemplate> {
-    const contract = this.contract || this.readOnlyContract;
-    if (!contract) throw new Error('Service not initialized');
+/**
+ * Get daily template data for a specific day
+ * For uninitialized days, calculates expected open/close times
+ */
+async getDailyTemplate(dayId: number): Promise<DailyTemplate> {
+  const contract = this.contract || this.readOnlyContract;
+  if (!contract) throw new Error('Service not initialized');
 
-    const template = await contract.getDailyTemplate(dayId);
+  const template = await contract.getDailyTemplate(dayId);
 
-    // DailyTemplate struct order after upgrade:
-    // 0: dayId, 1: characterIds, 2: backgroundId, 3: opensAt, 4: closesAt,
-    // 5: totalEntries, 6: creatorPool, 7: voterPool, 8: treasuryCollected,
-    // 9: winners, 10: winningTokenIds, 11: finalized
-
+  // If template is uninitialized (opensAt = 0), calculate expected times
+  if (template[3] === BigInt(0)) {
+    const provider = new ethers.JsonRpcProvider(FLOW_EVM_RPC);
+    const genesisHex = await provider.getStorage(FROTH_COMIC_ADDRESS!, 8);
+    const genesisTimestamp = parseInt(genesisHex, 16);
+    
+    const TOURNAMENT_DURATION = 20 * 60 * 60 + 5 * 60; // 20h 5min
+    const OVERLAP_BUFFER = 5 * 60; // 5 min
+    
+    // Calculate expected times for this day
+    const dayStart = genesisTimestamp + (dayId * TOURNAMENT_DURATION);
+    const opensAt = BigInt(dayStart - OVERLAP_BUFFER);
+    const closesAt = BigInt(dayStart + TOURNAMENT_DURATION);
+    
     return {
-      characterIds: template[1].map((id: bigint) => Number(id)),
-      backgroundId: Number(template[2]),
-      openTime: template[3],
-      closeTime: template[4],
-      creatorPool: template[6],
-      voterPool: template[7],
-      totalEntries: template[5],
-      finalized: template[11]
+      characterIds: [0, 0, 0, 0], // Will be randomized on first submit
+      backgroundId: 0,
+      openTime: opensAt,
+      closeTime: closesAt,
+      creatorPool: template[6] || BigInt(0),
+      voterPool: template[7] || BigInt(0),
+      totalEntries: template[5] || BigInt(0),
+      finalized: template[11] || false
     };
   }
 
-  /**
-   * Get all submission token IDs for a specific day
-   */
-  async getDaySubmissions(dayId: number): Promise<string[]> {
-    const contract = this.contract || this.readOnlyContract;
-    if (!contract) throw new Error('Service not initialized');
+  // Template is initialized, return actual data
+  return {
+    characterIds: template[1].map((id: bigint) => Number(id)),
+    backgroundId: Number(template[2]),
+    openTime: template[3],
+    closeTime: template[4],
+    creatorPool: template[6],
+    voterPool: template[7],
+    totalEntries: template[5],
+    finalized: template[11]
+  };
+}
 
-    const tokenIds = await contract.getDaySubmissions(dayId);
-    return tokenIds.map((id: bigint) => id.toString());
-  }
+/**
+ * Get all submission token IDs for a specific day
+ */
+async getDaySubmissions(dayId: number): Promise<string[]> {
+  const contract = this.contract || this.readOnlyContract;
+  if (!contract) throw new Error('Service not initialized');
+
+  const tokenIds = await contract.getDaySubmissions(dayId);
+  return tokenIds.map((id: bigint) => id.toString());
+}
 
   /**
    * Get detailed submission data by token ID
