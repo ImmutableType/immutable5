@@ -119,35 +119,25 @@ export class FrothComicDailyService {
    * TEMPORARY: Hardcoded Day 0 data due to storage slot mismatch
    */
   async getDailyTemplate(dayId: number): Promise<DailyTemplate> {
-    // Hardcoded Day 0 template with correct data from storage
-    if (dayId === 0) {
-      return {
-        characterIds: [4, 11, 5, 3], // Impact, Block, Mask L, RG Saucer
-        backgroundId: 0, // West
-        openTime: BigInt(1761187495), // Genesis - 5 min
-        closeTime: BigInt(1761259795), // Genesis + 20h 5min
-        creatorPool: BigInt(0),
-        voterPool: BigInt(0),
-        totalEntries: BigInt(0),
-        finalized: false
-      };
-    }
-
-    // For other days, try the contract (will fix properly later)
     const contract = this.contract || this.readOnlyContract;
     if (!contract) throw new Error('Service not initialized');
 
     const template = await contract.getDailyTemplate(dayId);
 
+    // DailyTemplate struct order after upgrade:
+    // 0: dayId, 1: characterIds, 2: backgroundId, 3: opensAt, 4: closesAt,
+    // 5: totalEntries, 6: creatorPool, 7: voterPool, 8: treasuryCollected,
+    // 9: winners, 10: winningTokenIds, 11: finalized
+
     return {
-      characterIds: template[0].map((id: bigint) => Number(id)),
-      backgroundId: Number(template[1]),
-      openTime: template[2],
-      closeTime: template[3],
-      creatorPool: template[4],
-      voterPool: template[5],
-      totalEntries: template[6],
-      finalized: template[7]
+      characterIds: template[1].map((id: bigint) => Number(id)),
+      backgroundId: Number(template[2]),
+      openTime: template[3],
+      closeTime: template[4],
+      creatorPool: template[6],
+      voterPool: template[7],
+      totalEntries: template[5],
+      finalized: template[11]
     };
   }
 
