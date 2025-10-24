@@ -90,66 +90,66 @@ export class FrothComicDailyService {
     console.log('✅ FrothComicDailyService initialized (read-only)');
   }
 
-/**
+  /**
    * Get current day ID - reads directly from storage slot 8
    */
-async getCurrentDay(): Promise<number> {
-  const provider = new ethers.JsonRpcProvider(FLOW_EVM_RPC);
-  
-  // genesisTimestamp is in storage slot 8
-  const genesisHex = await provider.getStorage(FROTH_COMIC_ADDRESS!, 8);
-  const genesisTimestamp = parseInt(genesisHex, 16);
-  
-  if (genesisTimestamp === 0) {
-    return 0;
+  async getCurrentDay(): Promise<number> {
+    const provider = new ethers.JsonRpcProvider(FLOW_EVM_RPC);
+    
+    // genesisTimestamp is in storage slot 8
+    const genesisHex = await provider.getStorage(FROTH_COMIC_ADDRESS!, 8);
+    const genesisTimestamp = parseInt(genesisHex, 16);
+    
+    if (genesisTimestamp === 0) {
+      return 0;
+    }
+    
+    const TOURNAMENT_DURATION = 20 * 60 * 60 + 5 * 60; // 20 hours 5 minutes in seconds
+    const now = Math.floor(Date.now() / 1000);
+    
+    if (now < genesisTimestamp) {
+      return 0;
+    }
+    
+    return Math.floor((now - genesisTimestamp) / TOURNAMENT_DURATION);
   }
-  
-  const TOURNAMENT_DURATION = 20 * 60 * 60 + 5 * 60; // 20 hours 5 minutes in seconds
-  const now = Math.floor(Date.now() / 1000);
-  
-  if (now < genesisTimestamp) {
-    return 0;
-  }
-  
-  return Math.floor((now - genesisTimestamp) / TOURNAMENT_DURATION);
-}
 
-/**
+  /**
    * Get daily template data for a specific day
    * TEMPORARY: Hardcoded Day 0 data due to storage slot mismatch
    */
-async getDailyTemplate(dayId: number): Promise<DailyTemplate> {
-  // Hardcoded Day 0 template with correct data from storage
-  if (dayId === 0) {
+  async getDailyTemplate(dayId: number): Promise<DailyTemplate> {
+    // Hardcoded Day 0 template with correct data from storage
+    if (dayId === 0) {
+      return {
+        characterIds: [4, 11, 5, 3], // Impact, Block, Mask L, RG Saucer
+        backgroundId: 0, // West
+        openTime: BigInt(1761187495), // Genesis - 5 min
+        closeTime: BigInt(1761259795), // Genesis + 20h 5min
+        creatorPool: BigInt(0),
+        voterPool: BigInt(0),
+        totalEntries: BigInt(0),
+        finalized: false
+      };
+    }
+
+    // For other days, try the contract (will fix properly later)
+    const contract = this.contract || this.readOnlyContract;
+    if (!contract) throw new Error('Service not initialized');
+
+    const template = await contract.getDailyTemplate(dayId);
+
     return {
-      characterIds: [4, 11, 5, 3], // Impact, Block, Mask L, RG Saucer
-      backgroundId: 0, // West
-      openTime: BigInt(1761187495), // Genesis - 5 min
-      closeTime: BigInt(1761259795), // Genesis + 20h 5min
-      creatorPool: BigInt(0),
-      voterPool: BigInt(0),
-      totalEntries: BigInt(0),
-      finalized: false
+      characterIds: template[0].map((id: bigint) => Number(id)),
+      backgroundId: Number(template[1]),
+      openTime: template[2],
+      closeTime: template[3],
+      creatorPool: template[4],
+      voterPool: template[5],
+      totalEntries: template[6],
+      finalized: template[7]
     };
   }
-
-  // For other days, try the contract (will fix properly later)
-  const contract = this.contract || this.readOnlyContract;
-  if (!contract) throw new Error('Service not initialized');
-
-  const template = await contract.getDailyTemplate(dayId);
-
-  return {
-    characterIds: template[0].map((id: bigint) => Number(id)),
-    backgroundId: Number(template[1]),
-    openTime: template[2],
-    closeTime: template[3],
-    creatorPool: template[4],
-    voterPool: template[5],
-    totalEntries: template[6],
-    finalized: template[7]
-  };
-}
 
   /**
    * Get all submission token IDs for a specific day
@@ -164,6 +164,7 @@ async getDailyTemplate(dayId: number): Promise<DailyTemplate> {
 
   /**
    * Get detailed submission data by token ID
+   * ✅ FIXED: Updated for new uint256[][] wordIndices format
    */
   async getSubmission(tokenId: string): Promise<ComicSubmission> {
     const contract = this.contract || this.readOnlyContract;
@@ -171,15 +172,19 @@ async getDailyTemplate(dayId: number): Promise<DailyTemplate> {
 
     const submission = await contract.getSubmission(tokenId);
 
+    // Submission struct order after upgrade:
+    // 0: tokenId, 1: creator, 2: dayId, 3: characterIds, 
+    // 4: backgroundId, 5: wordIndices, 6: votes, 7: timestamp, 8: exists
+
     return {
-      creator: submission[0],
-      wordIndices: submission[1].map((panel: bigint[]) => 
+      creator: submission[1],
+      wordIndices: submission[5].map((panel: bigint[]) => 
         panel.map((idx: bigint) => Number(idx))
       ),
-      votes: submission[2],
-      timestamp: submission[3],
-      characterIds: submission[4].map((id: bigint) => Number(id)),
-      backgroundId: Number(submission[5])
+      votes: submission[6],
+      timestamp: submission[7],
+      characterIds: submission[3].map((id: bigint) => Number(id)),
+      backgroundId: Number(submission[4])
     };
   }
 
@@ -224,7 +229,7 @@ async getDailyTemplate(dayId: number): Promise<DailyTemplate> {
     const contract = this.contract || this.readOnlyContract;
     if (!contract) throw new Error('Service not initialized');
 
-    return await contract.VOTE_COST();
+    return await contract.voteCost();
   }
 
   /**
@@ -262,7 +267,7 @@ async getDailyTemplate(dayId: number): Promise<DailyTemplate> {
 
     if (event) {
       const parsed = this.contract.interface.parseLog(event);
-      const tokenId = parsed?.args[2].toString();
+      const tokenId = parsed?.args[0].toString();
       console.log(`✅ Entry submitted! Token ID: ${tokenId}`);
       return tokenId;
     }
