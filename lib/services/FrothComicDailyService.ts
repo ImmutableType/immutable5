@@ -246,23 +246,40 @@ async getDaySubmissions(dayId: number): Promise<string[]> {
 
   /**
    * Submit a comic entry (requires ProfileNFT and 100 FROTH)
+   * 🔧 FIXED: Check allowance first, do infinite approval if needed
    */
   async submitEntry(wordIndices: number[][]): Promise<string> {
     if (!this.contract || !this.frothToken) {
       throw new Error('Service not initialized with wallet');
     }
 
+    // Get signer address for allowance check
+    const signer = this.contract.runner as ethers.Signer;
+    const signerAddress = await signer.getAddress();
+
     // Step 1: Get entry fee
     const entryFee = await this.getEntryFee();
     console.log(`📝 Entry fee: ${ethers.formatUnits(entryFee, 18)} FROTH`);
 
-    // Step 2: Approve FROTH spending
-    console.log('💰 Approving FROTH...');
-    const approveTx = await this.frothToken.approve(FROTH_COMIC_ADDRESS, entryFee);
-    await approveTx.wait();
-    console.log('✅ FROTH approved');
+    // Step 2: Check current allowance
+    const currentAllowance = await this.frothToken.allowance(signerAddress, FROTH_COMIC_ADDRESS);
+    console.log(`📋 Current allowance: ${ethers.formatUnits(currentAllowance, 18)} FROTH`);
 
-    // Step 3: Submit entry
+    // Step 3: Approve FROTH if needed (do max approval for future entries)
+    if (currentAllowance < entryFee) {
+      console.log('💰 Approving FROTH (infinite approval)...');
+      const maxApproval = ethers.MaxUint256;
+      const approveTx = await this.frothToken.approve(FROTH_COMIC_ADDRESS, maxApproval);
+      const approveReceipt = await approveTx.wait();
+      console.log('✅ FROTH approved (infinite) - Receipt:', approveReceipt?.hash);
+      
+      // Small delay to ensure blockchain state is updated for gas estimation
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    } else {
+      console.log('✅ FROTH already approved (sufficient allowance)');
+    }
+
+    // Step 4: Submit entry
     console.log('🎨 Submitting entry...');
     const tx = await this.contract.submitEntry(wordIndices);
     const receipt = await tx.wait();
