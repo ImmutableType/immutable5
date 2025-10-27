@@ -286,8 +286,26 @@ async getDaySubmissions(dayId: number): Promise<string[]> {
       const approveReceipt = await approveTx.wait();
       console.log('✅ FROTH approved (infinite) - Receipt:', approveReceipt?.hash);
       
-      // Small delay to ensure blockchain state is updated
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Wait and verify the approval was registered
+      console.log('⏳ Waiting for blockchain state to propagate...');
+      let attempts = 0;
+      let verifiedAllowance = BigInt(0);
+      
+      while (attempts < 10) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        verifiedAllowance = await this.frothToken.allowance(signerAddress, FROTH_COMIC_ADDRESS);
+        console.log(`🔍 Verification attempt ${attempts + 1}: ${ethers.formatUnits(verifiedAllowance, 18)} FROTH`);
+        
+        if (verifiedAllowance >= entryFee) {
+          console.log('✅ Approval verified on-chain');
+          break;
+        }
+        attempts++;
+      }
+      
+      if (verifiedAllowance < entryFee) {
+        throw new Error(`Approval verification failed after ${attempts} attempts. Current allowance: ${ethers.formatUnits(verifiedAllowance, 18)} FROTH`);
+      }
     } else {
       console.log('✅ FROTH already has infinite approval');
     }
