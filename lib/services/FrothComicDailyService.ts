@@ -265,18 +265,31 @@ async getDaySubmissions(dayId: number): Promise<string[]> {
     const currentAllowance = await this.frothToken.allowance(signerAddress, FROTH_COMIC_ADDRESS);
     console.log(`📋 Current allowance: ${ethers.formatUnits(currentAllowance, 18)} FROTH`);
 
-    // Step 3: Approve FROTH if needed (do max approval for future entries)
-    if (currentAllowance < entryFee) {
-      console.log('💰 Approving FROTH (infinite approval)...');
-      const maxApproval = ethers.MaxUint256;
+    // Step 3: Check if we need infinite approval
+    // Only skip if already at max uint256 (infinite)
+    const maxApproval = ethers.MaxUint256;
+    const isInfiniteApproval = currentAllowance >= (maxApproval / BigInt(2)); // Check if > half of max (effectively infinite)
+    
+    if (!isInfiniteApproval) {
+      console.log('💰 Setting infinite FROTH approval...');
+      
+      // First, reset to 0 if there's an existing non-infinite approval
+      if (currentAllowance > BigInt(0)) {
+        console.log('🔄 Resetting existing approval to 0...');
+        const resetTx = await this.frothToken.approve(FROTH_COMIC_ADDRESS, 0);
+        await resetTx.wait();
+        console.log('✅ Approval reset');
+      }
+      
+      // Now set infinite approval
       const approveTx = await this.frothToken.approve(FROTH_COMIC_ADDRESS, maxApproval);
       const approveReceipt = await approveTx.wait();
       console.log('✅ FROTH approved (infinite) - Receipt:', approveReceipt?.hash);
       
-      // Small delay to ensure blockchain state is updated for gas estimation
+      // Small delay to ensure blockchain state is updated
       await new Promise(resolve => setTimeout(resolve, 2000));
     } else {
-      console.log('✅ FROTH already approved (sufficient allowance)');
+      console.log('✅ FROTH already has infinite approval');
     }
 
     // Step 4: Submit entry
