@@ -62,6 +62,13 @@ export interface Comic {
   votes: number;
 }
 
+export interface ComicSlotInfo {
+  tournamentEntries: number;
+  comicsSubmitted: number;
+  comicsRemaining: number;
+  maxAllowed: number;
+}
+
 export class FrothComicService {
   private signer: ethers.Signer | null = null;
   private tournament: ethers.Contract | null = null;
@@ -148,6 +155,24 @@ export class FrothComicService {
   
   async getEntryCount(dayId: number, address: string): Promise<number> {
     return Number(await this.readOnlyTournament.getEntryCount(dayId, address));
+  }
+  
+  async getUserComicsCount(dayId: number, address: string): Promise<number> {
+    return Number(await this.readOnlyComicNFT.getUserComicsForDay(dayId, address));
+  }
+  
+  async getComicSlotInfo(dayId: number, address: string): Promise<ComicSlotInfo> {
+    const tournamentEntries = await this.getEntryCount(dayId, address);
+    const comicsSubmitted = await this.getUserComicsCount(dayId, address);
+    const maxAllowed = tournamentEntries * 5;
+    const comicsRemaining = maxAllowed - comicsSubmitted;
+    
+    return {
+      tournamentEntries,
+      comicsSubmitted,
+      comicsRemaining,
+      maxAllowed
+    };
   }
   
   async getVoterReward(dayId: number, address: string): Promise<string> {

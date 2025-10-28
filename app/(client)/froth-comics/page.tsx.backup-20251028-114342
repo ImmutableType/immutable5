@@ -7,7 +7,7 @@ import { DAILY_WORDS } from '../../../lib/constants/wordBank';
 import { allPanelsHaveWords } from '../../../lib/utils/wordValidation';
 import { frothComicService } from '../../../lib/services/FrothComicService';
 import { ProfileNFTService } from '../../../lib/services/profile/ProfileNFT';
-import type { DayInfo, Comic, ComicSlotInfo } from '../../../lib/services/FrothComicService';
+import type { DayInfo, Comic } from '../../../lib/services/FrothComicService';
 
 // Helper function to wrap text into lines
 const wrapText = (text: string): string[] => {
@@ -268,8 +268,10 @@ export default function FrothComics() {
   const [currentDay, setCurrentDay] = useState<number>(0);
   const [dayInfo, setDayInfo] = useState<DayInfo | null>(null);
   const [submissions, setSubmissions] = useState<Comic[]>([]);
+  const [timeRemaining, setTimeRemaining] = useState<number>(0);
   const [hasProfile, setHasProfile] = useState<boolean>(false);
-  const [slotInfo, setSlotInfo] = useState<ComicSlotInfo | null>(null);
+  const [hasEntered, setHasEntered] = useState<boolean>(false);
+  const [entryCount, setEntryCount] = useState<number>(0);
   
   // Loading states
   const [loading, setLoading] = useState<boolean>(true);
@@ -277,12 +279,11 @@ export default function FrothComics() {
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [submitMessage, setSubmitMessage] = useState<string>("");
   const [voting, setVoting] = useState<{ [tokenId: string]: boolean }>({});
-  const [enteringTournament, setEnteringTournament] = useState<boolean>(false);
   
   // Error states
   const [error, setError] = useState<string>("");
   
-  // Visual selections
+  // Visual selections (hardcoded for now)
   const [selectedBackground, setSelectedBackground] = useState(0);
   const [selectedCharacters, setSelectedCharacters] = useState([0, 1, 2, 3]);
   const [wordCloudId] = useState(0);
@@ -296,7 +297,7 @@ export default function FrothComics() {
   const [currentSubmission, setCurrentSubmission] = useState(0);
   const [showAllModal, setShowAllModal] = useState(false);
   const [showRewardsModal, setShowRewardsModal] = useState(false);
-  const [claimableRewards, setClaimableRewards] = useState({ creator: "0", voter: "0", claimed: false });
+  const [claimableRewards, setClaimableRewards] = useState({ voter: "0", claimed: false });
 
   // Initialize wallet connection
   useEffect(() => {
@@ -332,9 +333,12 @@ export default function FrothComics() {
         const info = await frothComicService.getDayInfo(day);
         setDayInfo(info);
         
+        // Set time remaining
+        setTimeRemaining(info.secondsUntilNextPhase);
+        
         // Get submissions
         const comics = await frothComicService.getDayComics(day);
-        setSubmissions(comics);
+        setSubmissions(comics); // Already sorted by votes in service
         
         setLoading(false);
       } catch (err) {
@@ -347,9 +351,9 @@ export default function FrothComics() {
     loadTournamentData();
   }, []);
 
-  // Check profile ownership and load slot info when wallet connects
+  // Check profile ownership and entry status when wallet connects
   useEffect(() => {
-    const checkProfileAndSlots = async () => {
+    const checkProfile = async () => {
       if (!address || !signer) return;
       
       try {
@@ -361,25 +365,78 @@ export default function FrothComics() {
         // Initialize froth service with wallet
         await frothComicService.initialize(signer);
         
-        // Load slot info
-        const slots = await frothComicService.getComicSlotInfo(currentDay, address);
-        setSlotInfo(slots);
+        // Check if user has entered tournament
+        const day = await frothComicService.getCurrentDay();
+        const entered = await frothComicService.hasEntered(day, address);
+        setHasEntered(entered);
+        
+        // Get entry count
+        const count = await frothComicService.getEntryCount(day, address);
+        setEntryCount(count);
       } catch (err) {
         console.error("Error checking profile:", err);
       }
     };
     
-    checkProfileAndSlots();
-  }, [address, signer, currentDay]);
+    checkProfile();
+  }, [address, signer]);
 
-  // Reload slot info after submission or entry
-  const reloadSlotInfo = async () => {
-    if (!address) return;
+  // Update countdown timer
+  useEffect(() => {
+    if (timeRemaining <= 0) return;
+    
+    const interval = setInterval(() => {
+      setTimeRemaining(prev => Math.max(0, prev - 1));
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [timeRemaining]);
+
+  // Handle tournament entry
+  const handleEnterTournament = async () => {
+    if (!address || !signer) {
+      setError("Please connect your wallet");
+      return;
+    }
+    
+    if (!hasProfile) {
+      setError("You need an ImmutableType Profile to enter");
+      return;
+    }
+    
+    if (entryCount >= 5) {
+      setError("Maximum 5 entries per day reached");
+      return;
+    }
+    
     try {
-      const slots = await frothComicService.getComicSlotInfo(currentDay, address);
-      setSlotInfo(slots);
-    } catch (err) {
-      console.error("Error reloading slot info:", err);
+      setSubmitting(true);
+      setError("");
+      
+      setSubmitMessage("Approving 100 FROTH...");
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      setSubmitMessage("Entering tournament...");
+      await frothComicService.enterTournament(currentDay);
+      
+      setSubmitMessage("Success! You can now mint up to 5 comics 🎉");
+      
+      // Refresh entry status
+      const entered = await frothComicService.hasEntered(currentDay, address);
+      setHasEntered(entered);
+      const count = await frothComicService.getEntryCount(currentDay, address);
+      setEntryCount(count);
+      
+      setTimeout(() => {
+        setSubmitting(false);
+        setSubmitMessage("");
+      }, 3000);
+      
+    } catch (err: any) {
+      console.error("Entry error:", err);
+      setError(err.message || "Failed to enter tournament. Please try again.");
+      setSubmitting(false);
+      setSubmitMessage("");
     }
   };
 
@@ -419,49 +476,8 @@ export default function FrothComics() {
     );
   };
 
-  // Handle tournament entry
-  const handleEnterTournament = async () => {
-    if (!address || !signer) {
-      setError("Please connect your wallet");
-      return;
-    }
-    
-    if (!hasProfile) {
-      setError("You need an ImmutableType Profile to enter tournaments");
-      return;
-    }
-
-    if (!slotInfo) {
-      setError("Loading entry information...");
-      return;
-    }
-
-    if (slotInfo.tournamentEntries >= 5) {
-      setError("Maximum 5 tournament entries per day reached");
-      return;
-    }
-    
-    try {
-      setEnteringTournament(true);
-      setError("");
-      
-      await frothComicService.enterTournament(currentDay);
-      
-      // Reload slot info and day info
-      await reloadSlotInfo();
-      const info = await frothComicService.getDayInfo(currentDay);
-      setDayInfo(info);
-      
-      setEnteringTournament(false);
-    } catch (err: any) {
-      console.error("Tournament entry error:", err);
-      setError(err.message || "Failed to enter tournament. Please try again.");
-      setEnteringTournament(false);
-    }
-  };
-
-  // Handle comic submission
-  const handleMintComic = async () => {
+  // Handle comic minting
+  const handleMint = async () => {
     if (!address || !signer) {
       setError("Please connect your wallet");
       return;
@@ -471,9 +487,9 @@ export default function FrothComics() {
       setError("You need an ImmutableType Profile to submit comics");
       return;
     }
-
-    if (!slotInfo || slotInfo.comicsRemaining <= 0) {
-      setError("No comic slots available. Enter the tournament first.");
+    
+    if (!hasEntered) {
+      setError("You must enter the tournament first (100 FROTH)");
       return;
     }
     
@@ -483,7 +499,7 @@ export default function FrothComics() {
     }
     
     if (!dayInfo?.submissionOpen) {
-      setError("Submissions are closed for this day");
+      setError("Submissions are closed");
       return;
     }
     
@@ -491,8 +507,9 @@ export default function FrothComics() {
       setSubmitting(true);
       setError("");
       
-      setSubmitMessage("Submitting your comic to the blockchain...");
+      setSubmitMessage("Minting your comic to the blockchain...");
       
+      // Mint comic with hardcoded artwork values for now
       const tokenId = await frothComicService.mintComic(
         currentDay,
         selectedCharacters,
@@ -507,10 +524,9 @@ export default function FrothComics() {
       setPanelWordIndices([[], [], [], []]);
       setUsedWordIndices(new Set());
       
-      // Reload submissions and slot info
+      // Reload submissions
       const comics = await frothComicService.getDayComics(currentDay);
       setSubmissions(comics);
-      await reloadSlotInfo();
       
       setTimeout(() => {
         setSubmitting(false);
@@ -518,8 +534,8 @@ export default function FrothComics() {
       }, 3000);
       
     } catch (err: any) {
-      console.error("Submission error:", err);
-      setError(err.message || "Failed to submit comic. Please try again.");
+      console.error("Minting error:", err);
+      setError(err.message || "Failed to mint comic. Please try again.");
       setSubmitting(false);
       setSubmitMessage("");
     }
@@ -533,11 +549,20 @@ export default function FrothComics() {
     }
     
     if (!dayInfo?.votingOpen) {
-      setError("Voting is not open yet");
+      setError("Voting opens after submissions close");
       return;
     }
     
+    // Check if user would exceed 100 BUFFAFLOW limit
     try {
+      const currentVotes = await frothComicService.getUserVotesOnComic(tokenId, address);
+      const currentVotesNum = parseFloat(currentVotes);
+      
+      if (currentVotesNum + amount > 100) {
+        setError(`You can only vote up to 100 BUFFAFLOW per comic. You've already voted ${currentVotesNum.toFixed(2)}`);
+        return;
+      }
+      
       setVoting({ ...voting, [tokenId]: true });
       setError("");
       
@@ -564,11 +589,9 @@ export default function FrothComics() {
     
     try {
       const voterReward = await frothComicService.getVoterReward(currentDay, address);
-      
       setClaimableRewards({
-        creator: "0", // Creator rewards handled separately in finalization
         voter: voterReward,
-        claimed: false
+        claimed: parseFloat(voterReward) === 0
       });
       setShowRewardsModal(true);
     } catch (err) {
@@ -577,8 +600,8 @@ export default function FrothComics() {
     }
   };
 
-  // Claim voter reward
-  const handleClaimVoterReward = async () => {
+  // Claim rewards
+  const handleClaimRewards = async () => {
     if (!address || !signer) return;
     
     try {
@@ -612,7 +635,7 @@ export default function FrothComics() {
     );
   }
 
-  // Show error if day info failed to load
+  // Show error if dayInfo failed to load
   if (!dayInfo) {
     return (
       <div style={{ padding: '2rem', maxWidth: '1600px', margin: '0 auto', textAlign: 'center' }}>
@@ -637,9 +660,6 @@ export default function FrothComics() {
     );
   }
 
-  const totalPrizePool = Number(dayInfo.creatorPool) + Number(dayInfo.voterPool);
-  const canEnterAgain = slotInfo && slotInfo.comicsRemaining === 0 && slotInfo.tournamentEntries < 5;
-
   return (
     <div style={{ padding: '2rem', maxWidth: '1600px', margin: '0 auto' }}>
       {/* Header + Leaderboard Row */}
@@ -660,10 +680,14 @@ export default function FrothComics() {
           </h1>
           <div style={{ fontSize: '1.1rem', color: '#666', lineHeight: '1.8', marginBottom: '1.5rem' }}>
             <div><strong>Day #{currentDay}</strong></div>
-            <div>Prize Pool: <strong style={{ color: '#10b981' }}>{totalPrizePool.toFixed(0)} FROTH</strong></div>
             <div>
-              Time Remaining: <strong style={{ color: dayInfo.secondsUntilNextPhase <= 3600 ? '#ef4444' : '#666' }}>
-                {formatTimeRemaining(dayInfo.secondsUntilNextPhase)}
+              <strong style={{ color: '#f59e0b' }}>Creator Pool: {parseFloat(dayInfo.creatorPool).toFixed(0)} FROTH</strong>
+              {' • '}
+              <strong style={{ color: '#3b82f6' }}>Voter Pool: {parseFloat(dayInfo.voterPool).toFixed(0)} FROTH</strong>
+            </div>
+            <div>
+              Time Remaining: <strong style={{ color: timeRemaining <= 3600 ? '#ef4444' : '#666' }}>
+                {formatTimeRemaining(timeRemaining)}
               </strong>
             </div>
             <div style={{ fontSize: '14px', color: '#888', marginTop: '0.5rem' }}>
@@ -671,117 +695,25 @@ export default function FrothComics() {
             </div>
           </div>
 
-          {/* Entry Status - NEW */}
-          {address && slotInfo && (
-            <div style={{ 
-              background: '#f0f9ff', 
-              border: '2px solid #3b82f6', 
-              borderRadius: '8px', 
-              padding: '1rem',
-              marginBottom: '1rem'
-            }}>
-              <div style={{ fontWeight: 'bold', marginBottom: '0.5rem', color: '#1e40af' }}>
-                Entry Status
-              </div>
-              {slotInfo.tournamentEntries > 0 ? (
-                <>
-                  <div style={{ fontSize: '14px', color: '#666' }}>
-                    <strong>{slotInfo.comicsRemaining} of {slotInfo.maxAllowed} comics remaining</strong> ({slotInfo.tournamentEntries} tournament {slotInfo.tournamentEntries === 1 ? 'entry' : 'entries'})
-                  </div>
-                  {slotInfo.comicsRemaining === 0 && slotInfo.tournamentEntries < 5 && (
-                    <div style={{ fontSize: '12px', color: '#10b981', marginTop: '0.5rem' }}>
-                      ✓ All slots used - you can enter again!
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div style={{ fontSize: '14px', color: '#666' }}>
-                  No entries yet - enter the tournament to start!
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Entry Buttons */}
-          {address && hasProfile && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {/* Enter Tournament Button */}
-              {(!slotInfo || slotInfo.tournamentEntries === 0) && (
-                <button
-                  onClick={handleEnterTournament}
-                  disabled={enteringTournament || !dayInfo.submissionOpen}
-                  style={{
-                    width: '100%',
-                    padding: '1rem',
-                    background: (enteringTournament || !dayInfo.submissionOpen) ? '#9ca3af' : '#10b981',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: (enteringTournament || !dayInfo.submissionOpen) ? 'not-allowed' : 'pointer',
-                    fontSize: '16px',
-                    fontWeight: 'bold'
-                  }}
-                >
-                  {enteringTournament ? 'Entering...' : !dayInfo.submissionOpen ? 'Submissions Closed' : 'Enter Tournament (100 FROTH for 5 comics)'}
-                </button>
-              )}
-
-              {/* Enter Again Button */}
-              {slotInfo && slotInfo.tournamentEntries > 0 && (
-                <button
-                  onClick={handleEnterTournament}
-                  disabled={!canEnterAgain || enteringTournament || !dayInfo.submissionOpen}
-                  style={{
-                    width: '100%',
-                    padding: '1rem',
-                    background: (canEnterAgain && !enteringTournament && dayInfo.submissionOpen) ? '#10b981' : '#9ca3af',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: (canEnterAgain && !enteringTournament && dayInfo.submissionOpen) ? 'pointer' : 'not-allowed',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    position: 'relative'
-                  }}
-                  title={!canEnterAgain ? `Use all ${slotInfo.comicsRemaining} remaining comics before entering again` : ''}
-                >
-                  {enteringTournament ? 'Entering...' : 'Enter Again (100 FROTH for 5 more comics)'}
-                </button>
-              )}
-
-              {/* Explanation when button is disabled */}
-              {slotInfo && slotInfo.comicsRemaining > 0 && (
-                <div style={{ 
-                  fontSize: '12px', 
-                  color: '#666', 
-                  textAlign: 'center',
-                  padding: '0.5rem',
-                  background: '#fef3c7',
-                  borderRadius: '6px',
-                  border: '1px solid #f59e0b'
-                }}>
-                  💡 Submit your {slotInfo.comicsRemaining} remaining {slotInfo.comicsRemaining === 1 ? 'comic' : 'comics'} before buying more entries
-                </div>
-              )}
-            </div>
-          )}
-
           {/* Entry Cost Breakdown */}
           <div style={{ 
             background: '#f9fafb', 
             border: '1px solid #ddd', 
             borderRadius: '8px', 
             padding: '1rem',
-            marginTop: '1rem'
+            marginBottom: '1rem'
           }}>
             <div style={{ fontWeight: 'bold', marginBottom: '0.5rem' }}>
-              Entry Cost: 100 FROTH
+              Entry Cost: 100 FROTH = 5 Comics
             </div>
             <ul style={{ fontSize: '14px', color: '#666', paddingLeft: '1.5rem', margin: 0 }}>
-              <li>33 FROTH → Treasury (converts to FVIX)</li>
+              <li>33 FROTH → Treasury</li>
               <li>34 FROTH → Creator Prize Pool</li>
               <li>33 FROTH → Voter Prize Pool</li>
             </ul>
+            <div style={{ fontSize: '12px', color: '#888', marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid #e5e7eb' }}>
+              <strong>Pay once, mint 5 comics!</strong> Max 5 entries/day (25 comics total)
+            </div>
           </div>
 
           {/* Check Rewards Button */}
@@ -789,7 +721,6 @@ export default function FrothComics() {
             <button
               onClick={handleCheckRewards}
               style={{
-                marginTop: '1rem',
                 width: '100%',
                 padding: '0.75rem',
                 background: '#10b981',
@@ -852,7 +783,7 @@ export default function FrothComics() {
                         {truncateAddress(sub.creator)}
                       </div>
                       <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#000' }}>
-                        {sub.votes} votes
+                        {sub.votes.toFixed(2)} votes
                       </div>
                     </div>
                   </div>
@@ -908,7 +839,74 @@ export default function FrothComics() {
           marginBottom: '2rem',
           fontSize: '14px'
         }}>
-          ℹ️ You need an ImmutableType Profile to participate. <a href="/profile/create" style={{ color: '#3b82f6', textDecoration: 'underline' }}>Create one here</a>
+          ℹ️ You need an ImmutableType Profile to submit comics. <a href="/profile/create" style={{ color: '#3b82f6', textDecoration: 'underline' }}>Create one here</a>
+        </div>
+      )}
+
+      {/* Entry Status Display */}
+      {address && hasProfile && !hasEntered && (
+        <div style={{
+          padding: '2rem',
+          background: '#fff',
+          border: '2px solid #f59e0b',
+          borderRadius: '12px',
+          marginBottom: '2rem',
+          textAlign: 'center'
+        }}>
+          <h3 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>
+            Enter the Tournament
+          </h3>
+          <p style={{ color: '#666', marginBottom: '1.5rem' }}>
+            Pay 100 FROTH to enter and mint up to 5 comics today
+          </p>
+          <button
+            onClick={handleEnterTournament}
+            disabled={submitting || !dayInfo.submissionOpen}
+            style={{
+              padding: '1rem 2rem',
+              background: (submitting || !dayInfo.submissionOpen) ? '#9ca3af' : '#10b981',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '1.2rem',
+              fontWeight: 'bold',
+              cursor: (submitting || !dayInfo.submissionOpen) ? 'not-allowed' : 'pointer'
+            }}
+          >
+            {submitting ? 'Entering...' : !dayInfo.submissionOpen ? 'Submissions Closed' : 'Enter Tournament (100 FROTH)'}
+          </button>
+        </div>
+      )}
+
+      {/* Entry Count Display */}
+      {address && hasProfile && hasEntered && (
+        <div style={{
+          padding: '1rem',
+          background: '#f0f9ff',
+          border: '1px solid #3b82f6',
+          borderRadius: '8px',
+          marginBottom: '2rem',
+          fontSize: '14px'
+        }}>
+          <strong>Entry Status:</strong> You have {entryCount} tournament entr{entryCount === 1 ? 'y' : 'ies'} • {entryCount * 5} comics available to mint
+          {entryCount < 5 && dayInfo.submissionOpen && (
+            <button
+              onClick={handleEnterTournament}
+              disabled={submitting}
+              style={{
+                marginLeft: '1rem',
+                padding: '0.5rem 1rem',
+                background: '#3b82f6',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}
+            >
+              Enter Again (100 FROTH for 5 more comics)
+            </button>
+          )}
         </div>
       )}
 
@@ -925,8 +923,8 @@ export default function FrothComics() {
         </div>
       )}
 
-      {/* Create Your Entry */}
-      {!submitting && address && hasProfile && slotInfo && slotInfo.comicsRemaining > 0 && (
+      {/* Create Your Comic - ALWAYS VISIBLE */}
+      {!submitting && (
         <div style={{ 
           background: '#fff', 
           border: '2px solid #ddd', 
@@ -934,50 +932,8 @@ export default function FrothComics() {
           padding: '2rem'
         }}>
           <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>
-            Create Your Entry
+            Create Your Comic
           </h2>
-
-          {/* Character Selection */}
-          <div style={{ marginBottom: '2rem' }}>
-            <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', fontWeight: 'bold' }}>
-              Choose Characters for Each Panel
-            </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
-              {[0, 1, 2, 3].map(panelIdx => (
-                <div key={panelIdx} style={{ 
-                  border: '2px solid #ddd', 
-                  borderRadius: '8px', 
-                  padding: '1rem',
-                  background: '#f9fafb'
-                }}>
-                  <div style={{ fontWeight: 'bold', marginBottom: '0.5rem', fontSize: '14px' }}>
-                    Panel {panelIdx + 1}
-                  </div>
-                  <select
-                    value={selectedCharacters[panelIdx]}
-                    onChange={(e) => {
-                      const newChars = [...selectedCharacters];
-                      newChars[panelIdx] = Number(e.target.value);
-                      setSelectedCharacters(newChars);
-                    }}
-                    style={{
-                      width: '100%',
-                      padding: '0.5rem',
-                      borderRadius: '6px',
-                      border: '1px solid #ddd',
-                      fontSize: '14px'
-                    }}
-                  >
-                    {CHARACTERS.map(char => (
-                      <option key={char.id} value={char.id}>
-                        {char.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ))}
-            </div>
-          </div>
 
           {/* Build Your Story Section */}
           <div style={{ marginBottom: '2rem' }}>
@@ -1122,12 +1078,8 @@ export default function FrothComics() {
               ✓ FROTH Essentials Pack - Included Free!
             </h3>
             <p style={{ fontSize: '14px', color: '#666', marginBottom: '0.75rem' }}>
-              You have access to {DAILY_WORDS.length} official KittyPunch ecosystem terms: Punch, PunchSwap, FVIX, Trenches, Vaults, and more!
+              You have access to {DAILY_WORDS.length} official KittyPunch ecosystem terms!
             </p>
-            
-            <div style={{ fontSize: '12px', color: '#888', marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid #e5e7eb' }}>
-              <strong>Additional packs coming soon:</strong> Degen Starter, Flow Culture, Market Master, Tournament Pro
-            </div>
           </div>
 
           {/* Mint Section */}
@@ -1139,25 +1091,31 @@ export default function FrothComics() {
             marginBottom: '1rem'
           }}>
             <button
-              onClick={handleMintComic}
-              disabled={!allPanelsHaveWords(panelWordIndices) || !dayInfo.submissionOpen}
+              onClick={handleMint}
+              disabled={!address || !hasProfile || !hasEntered || !allPanelsHaveWords(panelWordIndices) || !dayInfo.submissionOpen}
               style={{
                 width: '100%',
                 padding: '1rem',
-                background: (allPanelsHaveWords(panelWordIndices) && dayInfo.submissionOpen) ? '#10b981' : '#9ca3af',
+                background: (address && hasProfile && hasEntered && allPanelsHaveWords(panelWordIndices) && dayInfo.submissionOpen) ? '#10b981' : '#9ca3af',
                 color: 'white',
                 border: 'none',
                 borderRadius: '8px',
                 fontSize: '1.2rem',
                 fontWeight: 'bold',
-                cursor: (allPanelsHaveWords(panelWordIndices) && dayInfo.submissionOpen) ? 'pointer' : 'not-allowed'
+                cursor: (address && hasProfile && hasEntered && allPanelsHaveWords(panelWordIndices) && dayInfo.submissionOpen) ? 'pointer' : 'not-allowed'
               }}
             >
-              {!dayInfo.submissionOpen
+              {!address
+                ? 'Connect Wallet to Mint'
+                : !hasProfile
+                ? 'Create Profile to Mint'
+                : !hasEntered
+                ? 'Enter Tournament First (100 FROTH)'
+                : !dayInfo.submissionOpen
                 ? 'Submissions Closed'
                 : !allPanelsHaveWords(panelWordIndices)
-                ? 'Add words to all 4 panels'
-                : `Mint Your Comic (${slotInfo.comicsRemaining} ${slotInfo.comicsRemaining === 1 ? 'slot' : 'slots'} remaining)`}
+                ? 'Add Words to All 4 Panels'
+                : `Mint Comic (Free - Entry Paid)`}
             </button>
           </div>
         </div>
@@ -1213,7 +1171,7 @@ export default function FrothComics() {
                 <div key={sub.tokenId} style={{ marginBottom: '3rem', borderBottom: '1px solid #ddd', paddingBottom: '2rem' }}>
                   <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                      <strong>#{idx + 1}</strong> by {truncateAddress(sub.creator)} | <strong>{sub.votes} votes</strong>
+                      <strong>#{idx + 1}</strong> by {truncateAddress(sub.creator)} | <strong>{sub.votes.toFixed(2)} votes</strong>
                     </div>
                     
                     {/* Voting Controls */}
@@ -1233,7 +1191,7 @@ export default function FrothComics() {
                             fontWeight: '500'
                           }}
                         >
-                          {isVoting ? 'Voting...' : 'Vote +1'}
+                          {isVoting ? 'Voting...' : 'Vote +1 BUFFAFLOW'}
                         </button>
                         <button
                           onClick={() => handleVote(sub.tokenId, 5)}
@@ -1249,7 +1207,7 @@ export default function FrothComics() {
                             fontWeight: '500'
                           }}
                         >
-                          {isVoting ? 'Voting...' : 'Vote +5'}
+                          {isVoting ? 'Voting...' : 'Vote +5 BUFFAFLOW'}
                         </button>
                       </div>
                     )}
@@ -1257,7 +1215,7 @@ export default function FrothComics() {
                   <ComicStrip 
                     characterIds={sub.characterIds}
                     backgroundId={sub.backgroundId}
-                    wordCloudId={wordCloudId}
+                    wordCloudId={sub.wordCloudId}
                     panelWords={subWords}
                   />
                 </div>
@@ -1315,7 +1273,7 @@ export default function FrothComics() {
               </div>
               {parseFloat(claimableRewards.voter) > 0 && !claimableRewards.claimed && (
                 <button
-                  onClick={handleClaimVoterReward}
+                  onClick={handleClaimRewards}
                   style={{
                     marginTop: '0.5rem',
                     padding: '0.75rem 1.5rem',
