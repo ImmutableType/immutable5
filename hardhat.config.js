@@ -1,5 +1,6 @@
 require("@nomicfoundation/hardhat-toolbox");
 require("@openzeppelin/hardhat-upgrades");
+require("@nomicfoundation/hardhat-verify");
 require("dotenv").config();
 
 module.exports = {
@@ -18,5 +19,23 @@ module.exports = {
       chainId: 747,
       accounts: [process.env.PRIVATE_KEY]
     }
+  },
+  etherscan: {
+    apiKey: {
+      flowMainnet: "abc"
+    },
+    customChains: [
+      {
+        network: "flowMainnet",
+        chainId: 747,
+        urls: {
+          apiURL: "https://evm.flowscan.io/api",
+          browserURL: "https://evm.flowscan.io"
+        }
+      }
+    ]
+  },
+  sourcify: {
+    enabled: false
   }
 };

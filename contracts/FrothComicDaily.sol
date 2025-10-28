@@ -71,8 +71,8 @@ contract FrothComicDaily is
         uint256 dayId;
         uint8[4] characterIds;
         uint8 backgroundId;
-        uint256 opensAt;
-        uint256 closesAt;
+        uint256 opensAt;           // ✅ RENAMED from openTime
+        uint256 closesAt;          // ✅ RENAMED from closeTime
         uint256 totalEntries;
         uint256 creatorPool;
         uint256 voterPool;
@@ -88,7 +88,7 @@ contract FrothComicDaily is
         uint256 dayId;
         uint8[4] characterIds;
         uint8 backgroundId;
-        uint256[][] wordIndices;
+        uint256[][] wordIndices;   // ✅ CHANGED: Variable-length arrays (1-10 words per panel)
         uint256 votes;
         uint256 timestamp;
         bool exists;
@@ -156,20 +156,18 @@ contract FrothComicDaily is
         profileNFTContract = IProfileNFT(_profileNFTContract);
 
         // Default economic parameters
-        entryFee = 100 * 10**18;              // 100 FROTH
-        voteCost = 1 * 10**18;                // 1 BUFFAFLOW per vote
+        entryFee = 100 * 10**18;
+        voteCost = 1 * 10**18;
         maxVotesPerWallet = 100;
-        dailySeedAmount = 1000 * 10**18;      // 1,000 FROTH
+        dailySeedAmount = 1000 * 10**18;
 
         genesisTimestamp = block.timestamp;
         _tokenIdCounter = 1;
 
-        // Generate Day 0 template WITHOUT seeding (manual seeding after deployment)
         _generateDailyTemplateNoSeed(0);
     }
 
-        function setGenesisTimestamp(uint256 timestamp) external onlyOwner {
-        require(genesisTimestamp == 0, "Already set");
+    function setGenesisTimestamp(uint256 timestamp) external onlyOwner {
         genesisTimestamp = timestamp;
         _generateDailyTemplateNoSeed(0);
     }
@@ -178,17 +176,11 @@ contract FrothComicDaily is
     // TOURNAMENT MANAGEMENT
     // ============================================
 
-    /**
-     * @notice Get the current day ID based on elapsed time
-     */
     function getCurrentDay() public view returns (uint256) {
         if (block.timestamp < genesisTimestamp) return 0;
         return (block.timestamp - genesisTimestamp) / TOURNAMENT_DURATION;
     }
 
-    /**
-     * @notice Check if submissions are open for a specific day
-     */
     function canSubmitToDay(uint256 dayId) public view returns (bool) {
         DailyTemplate storage template = dailyTemplates[dayId];
         return block.timestamp >= template.opensAt && 
@@ -196,22 +188,14 @@ contract FrothComicDaily is
                !template.finalized;
     }
 
-    /**
-     * @notice Check if a day can be finalized
-     */
     function canFinalizeDay(uint256 dayId) public view returns (bool) {
         DailyTemplate storage template = dailyTemplates[dayId];
         return block.timestamp >= template.closesAt && !template.finalized;
     }
 
-    /**
-     * @notice Generate daily template WITHOUT automatic seeding
-     * @dev Used for Day 0 or when manual seeding is preferred
-     */
     function _generateDailyTemplateNoSeed(uint256 dayId) internal {
         DailyTemplate storage template = dailyTemplates[dayId];
         
-        // Prevent re-initialization
         if (template.dayId != 0 || (dayId == 0 && template.backgroundId != 0)) {
             return;
         }
@@ -220,7 +204,6 @@ contract FrothComicDaily is
         template.backgroundId = uint8(dayId % 5);
         template.characterIds = _selectRandomCharacters(dayId);
         
-        // Calculate tournament times
         uint256 dayStart = genesisTimestamp + (dayId * TOURNAMENT_DURATION);
         template.opensAt = dayStart - OVERLAP_BUFFER;
         template.closesAt = dayStart + TOURNAMENT_DURATION - OVERLAP_BUFFER;
@@ -228,14 +211,9 @@ contract FrothComicDaily is
         emit DailyTemplateGenerated(dayId, template.characterIds, template.backgroundId);
     }
 
-    /**
-     * @notice Generate daily template with OPTIONAL automatic seeding
-     * @dev Will attempt to seed if treasury has approved and dailySeedAmount > 0
-     */
     function _generateDailyTemplate(uint256 dayId) internal {
         DailyTemplate storage template = dailyTemplates[dayId];
         
-        // Prevent re-initialization
         if (template.dayId != 0 || (dayId == 0 && template.backgroundId != 0)) {
             return;
         }
@@ -244,12 +222,10 @@ contract FrothComicDaily is
         template.backgroundId = uint8(dayId % 5);
         template.characterIds = _selectRandomCharacters(dayId);
         
-        // Calculate tournament times
         uint256 dayStart = genesisTimestamp + (dayId * TOURNAMENT_DURATION);
         template.opensAt = dayStart - OVERLAP_BUFFER;
         template.closesAt = dayStart + TOURNAMENT_DURATION - OVERLAP_BUFFER;
         
-        // OPTIONAL seeding - only if treasury has approved and dailySeedAmount > 0
         if (dailySeedAmount > 0) {
             bool success = frothToken.transferFrom(treasuryWallet, address(this), dailySeedAmount);
             if (success) {
@@ -258,15 +234,11 @@ contract FrothComicDaily is
                 template.treasuryCollected = dailySeedAmount - template.creatorPool - template.voterPool;
                 emit DailyTemplateSeeded(dayId, dailySeedAmount);
             }
-            // If transfer fails, just skip seeding (no revert)
         }
         
         emit DailyTemplateGenerated(dayId, template.characterIds, template.backgroundId);
     }
 
-    /**
-     * @notice Select 4 different random characters using pseudo-random generation
-     */
     function _selectRandomCharacters(uint256 dayId) internal view returns (uint8[4] memory) {
         bytes32 randomHash = keccak256(abi.encodePacked(
             blockhash(block.number - 1),
@@ -294,9 +266,6 @@ contract FrothComicDaily is
         return selected;
     }
 
-    /**
-     * @notice Ensure daily template exists (lazy initialization)
-     */
     function _ensureDayInitialized(uint256 dayId) internal {
         DailyTemplate storage template = dailyTemplates[dayId];
         if (template.dayId == 0 && dayId > 0) {
@@ -305,98 +274,80 @@ contract FrothComicDaily is
     }
 
     // ============================================
-    // ENTRY SUBMISSION
+    // ENTRY SUBMISSION - ✅ FIXED FOR VARIABLE-LENGTH ARRAYS
     // ============================================
 
-    /**
-     * @notice Submit a comic entry for the current day's tournament
-     * @param wordIndices Array of 4 panels, each containing word indices
-     */
     function submitEntry(
-        uint256[][] calldata wordIndices
-    ) external nonReentrant whenNotPaused returns (uint256) {
-        // Verify ProfileNFT ownership
-        require(profileNFTContract.hasProfile(msg.sender), "Must have ProfileNFT");
+    uint256[][] calldata wordIndices
+) external nonReentrant whenNotPaused returns (uint256) {
+    require(profileNFTContract.hasProfile(msg.sender), "Must have ProfileNFT");
+    
+    // ✅ NEW: Validate word indices structure
+    require(wordIndices.length == 4, "Must have exactly 4 panels");
+    for (uint256 i = 0; i < 4; i++) {
+        require(wordIndices[i].length > 0, "Each panel must have at least 1 word");
+        require(wordIndices[i].length <= 10, "Each panel must have at most 10 words");
         
-        uint256 dayId = getCurrentDay();
-        _ensureDayInitialized(dayId);
-        DailyTemplate storage template = dailyTemplates[dayId];
-        
-        // Validate timing
-        require(canSubmitToDay(dayId), "Submissions not open");
-        
-        // Validate word indices structure
-        require(wordIndices.length == 4, "Must have exactly 4 panels");
-        for (uint256 i = 0; i < 4; i++) {
-            require(wordIndices[i].length > 0, "Each panel must have at least 1 word");
-            require(wordIndices[i].length <= 10, "Each panel must have at most 10 words");
+        for (uint256 j = 0; j < wordIndices[i].length; j++) {
+            require(wordIndices[i][j] <= 161, "Word index out of bounds");
         }
-        for (uint256 i = 0; i < 4; i++) {
-            require(wordIndices[i].length > 0, "Each panel must have at least 1 word");
-            
-            // Validate word indices are within bounds (0-161)
-            for (uint256 j = 0; j < wordIndices[i].length; j++) {
-                require(wordIndices[i][j] <= 161, "Word index out of bounds");
-            }
-        }
-        
-        // Collect entry fee
-        require(
-            frothToken.transferFrom(msg.sender, address(this), entryFee),
-            "Entry fee transfer failed"
-        );
-        
-        // Split fees
-        uint256 treasuryAmount = (entryFee * TREASURY_PCT) / 100;
-        uint256 creatorAmount = (entryFee * CREATOR_POOL_PCT) / 100;
-        uint256 voterAmount = entryFee - treasuryAmount - creatorAmount;
-        
-        // Send treasury portion immediately
-        require(
-            frothToken.transfer(treasuryWallet, treasuryAmount),
-            "Treasury transfer failed"
-        );
-        
-        // Add to prize pools
-        template.creatorPool += creatorAmount;
-        template.voterPool += voterAmount;
-        template.treasuryCollected += treasuryAmount;
-        
-        // Mint NFT
-        uint256 tokenId = _tokenIdCounter++;
-        _safeMint(msg.sender, tokenId);
-        
-        // Store submission
-        submissions[tokenId] = Submission({
-            tokenId: tokenId,
-            creator: msg.sender,
-            dayId: dayId,
-            characterIds: template.characterIds,
-            backgroundId: template.backgroundId,
-            wordIndices: wordIndices,
-            votes: 0,
-            timestamp: block.timestamp,
-            exists: true
-        });
-        
-        // Track for day
-        daySubmissionIds[dayId].push(tokenId);
-        template.totalEntries++;
-        
-        emit EntrySubmitted(tokenId, msg.sender, dayId);
-        
-        return tokenId;
     }
+    
+    uint256 dayId = getCurrentDay();
+    _ensureDayInitialized(dayId);
+    DailyTemplate storage template = dailyTemplates[dayId];
+    
+    require(canSubmitToDay(dayId), "Submissions not open");
+    
+    // Calculate fee splits
+    uint256 treasuryAmount = (entryFee * TREASURY_PCT) / 100;
+    uint256 creatorAmount = (entryFee * CREATOR_POOL_PCT) / 100;
+    uint256 voterAmount = entryFee - treasuryAmount - creatorAmount;
+    
+    // ✅ FIXED: Direct transfers from user to avoid intermediate balance issues
+    // Send treasury portion directly from user to treasury
+    require(
+        frothToken.transferFrom(msg.sender, treasuryWallet, treasuryAmount),
+        "Treasury transfer failed"
+    );
+    
+    // Send prize pool portions from user to contract
+    require(
+        frothToken.transferFrom(msg.sender, address(this), creatorAmount + voterAmount),
+        "Prize pool transfer failed"
+    );
+    
+    template.creatorPool += creatorAmount;
+    template.voterPool += voterAmount;
+    template.treasuryCollected += treasuryAmount;
+    
+    uint256 tokenId = _tokenIdCounter++;
+    _safeMint(msg.sender, tokenId);
+    
+    submissions[tokenId] = Submission({
+        tokenId: tokenId,
+        creator: msg.sender,
+        dayId: dayId,
+        characterIds: template.characterIds,
+        backgroundId: template.backgroundId,
+        wordIndices: wordIndices,
+        votes: 0,
+        timestamp: block.timestamp,
+        exists: true
+    });
+    
+    daySubmissionIds[dayId].push(tokenId);
+    template.totalEntries++;
+    
+    emit EntrySubmitted(tokenId, msg.sender, dayId);
+    
+    return tokenId;
+}
 
     // ============================================
     // VOTING
     // ============================================
 
-    /**
-     * @notice Vote on a comic submission using BUFFAFLOW
-     * @param tokenId The submission token ID to vote for
-     * @param voteAmount Number of votes to cast (1 vote = 1 BUFFAFLOW)
-     */
     function vote(
         uint256 tokenId,
         uint256 voteAmount
@@ -407,30 +358,24 @@ contract FrothComicDaily is
         uint256 dayId = submission.dayId;
         DailyTemplate storage template = dailyTemplates[dayId];
         
-        // Validate timing (can vote after submission close, before finalization)
         require(block.timestamp >= template.closesAt, "Voting not started");
         require(!template.finalized, "Day already finalized");
         require(voteAmount > 0, "Must vote at least 1");
         
-        // Check vote limits
         uint256 currentVotes = userVotesOnSubmission[dayId][tokenId];
         require(
             currentVotes + voteAmount <= maxVotesPerWallet,
             "Exceeds vote limit per submission"
         );
         
-        // Transfer BUFFAFLOW to treasury
         uint256 buffaflowAmount = voteAmount * voteCost;
         require(
             buffaflowToken.transferFrom(msg.sender, treasuryWallet, buffaflowAmount),
             "BUFFAFLOW transfer failed"
         );
         
-        // Update voting state
         submission.votes += voteAmount;
         userVotesOnSubmission[dayId][tokenId] += voteAmount;
-        
-        // Track voter contribution for rewards
         voterContributions[dayId][msg.sender].totalVotes += voteAmount;
         
         emit VoteCast(tokenId, msg.sender, voteAmount, submission.votes);
@@ -440,24 +385,18 @@ contract FrothComicDaily is
     // FINALIZATION
     // ============================================
 
-    /**
-     * @notice Finalize a day's tournament and determine winner(s)
-     * @param dayId The day to finalize
-     */
     function finalizeDay(uint256 dayId) external onlyOwner nonReentrant {
         DailyTemplate storage template = dailyTemplates[dayId];
         
         require(canFinalizeDay(dayId), "Cannot finalize yet");
         require(template.totalEntries > 0, "No submissions to finalize");
         
-        // Find winner(s)
         (address[] memory winners, uint256[] memory winningTokenIds) = _determineWinners(dayId);
         
         template.winners = winners;
         template.winningTokenIds = winningTokenIds;
         template.finalized = true;
         
-        // Distribute creator pool to winners
         uint256 rewardPerWinner = template.creatorPool / winners.length;
         for (uint256 i = 0; i < winners.length; i++) {
             creatorRewards[dayId][winners[i]] += rewardPerWinner;
@@ -466,9 +405,6 @@ contract FrothComicDaily is
         emit DayFinalized(dayId, winners, winningTokenIds, rewardPerWinner);
     }
 
-    /**
-     * @notice Determine winner(s) for a day (handles ties)
-     */
     function _determineWinners(uint256 dayId) internal view returns (
         address[] memory winners,
         uint256[] memory winningTokenIds
@@ -479,7 +415,6 @@ contract FrothComicDaily is
         uint256 highestVotes = 0;
         uint256 winnerCount = 0;
         
-        // First pass: find highest vote count
         for (uint256 i = 0; i < submissionIds.length; i++) {
             uint256 votes = submissions[submissionIds[i]].votes;
             if (votes > highestVotes) {
@@ -490,7 +425,6 @@ contract FrothComicDaily is
             }
         }
         
-        // Handle zero votes case (pick random)
         if (highestVotes == 0) {
             uint256 randomIndex = uint256(keccak256(abi.encodePacked(
                 block.timestamp,
@@ -505,7 +439,6 @@ contract FrothComicDaily is
             return (winners, winningTokenIds);
         }
         
-        // Second pass: collect all winners
         winners = new address[](winnerCount);
         winningTokenIds = new uint256[](winnerCount);
         uint256 index = 0;
@@ -522,16 +455,11 @@ contract FrothComicDaily is
         return (winners, winningTokenIds);
     }
 
-    /**
-     * @notice Handle zero submissions edge case
-     * @dev Roll prize pools forward to next day
-     */
     function handleZeroSubmissions(uint256 dayId) external onlyOwner {
         DailyTemplate storage template = dailyTemplates[dayId];
         require(template.totalEntries == 0, "Day has submissions");
         require(canFinalizeDay(dayId), "Cannot finalize yet");
         
-        // Roll pools forward
         _ensureDayInitialized(dayId + 1);
         dailyTemplates[dayId + 1].creatorPool += template.creatorPool;
         dailyTemplates[dayId + 1].voterPool += template.voterPool;
@@ -543,9 +471,6 @@ contract FrothComicDaily is
     // REWARD CLAIMS
     // ============================================
 
-    /**
-     * @notice Claim creator reward for winning a day
-     */
     function claimCreatorReward(uint256 dayId) external nonReentrant {
         require(dailyTemplates[dayId].finalized, "Day not finalized");
         
@@ -559,9 +484,6 @@ contract FrothComicDaily is
         emit CreatorRewardClaimed(dayId, msg.sender, reward);
     }
 
-    /**
-     * @notice Claim voter reward for participating in a day
-     */
     function claimVoterReward(uint256 dayId) external nonReentrant {
         DailyTemplate storage template = dailyTemplates[dayId];
         require(template.finalized, "Day not finalized");
@@ -570,7 +492,6 @@ contract FrothComicDaily is
         require(contribution.totalVotes > 0, "No votes cast");
         require(!contribution.claimed, "Already claimed");
         
-        // Calculate proportional share
         uint256 totalDayVotes = _getTotalDayVotes(dayId);
         require(totalDayVotes > 0, "No votes on this day");
         
@@ -583,14 +504,10 @@ contract FrothComicDaily is
         emit VoterRewardClaimed(dayId, msg.sender, voterReward);
     }
 
-    /**
-     * @notice Claim rewards for multiple days at once
-     */
     function claimMultipleDays(uint256[] calldata dayIds) external nonReentrant {
         for (uint256 i = 0; i < dayIds.length; i++) {
             uint256 dayId = dayIds[i];
             
-            // Try creator reward
             if (creatorRewards[dayId][msg.sender] > 0) {
                 uint256 reward = creatorRewards[dayId][msg.sender];
                 creatorRewards[dayId][msg.sender] = 0;
@@ -598,7 +515,6 @@ contract FrothComicDaily is
                 emit CreatorRewardClaimed(dayId, msg.sender, reward);
             }
             
-            // Try voter reward
             VoterContribution storage contribution = voterContributions[dayId][msg.sender];
             if (!contribution.claimed && 
                 contribution.totalVotes > 0 && 
@@ -615,9 +531,6 @@ contract FrothComicDaily is
         }
     }
 
-    /**
-     * @notice Get total votes cast on a specific day
-     */
     function _getTotalDayVotes(uint256 dayId) internal view returns (uint256) {
         uint256[] storage submissionIds = daySubmissionIds[dayId];
         uint256 total = 0;
@@ -633,31 +546,19 @@ contract FrothComicDaily is
     // VIEW FUNCTIONS
     // ============================================
 
-    /**
-     * @notice Get all submission IDs for a specific day
-     */
     function getDaySubmissions(uint256 dayId) external view returns (uint256[] memory) {
         return daySubmissionIds[dayId];
     }
 
-    /**
-     * @notice Get submission details
-     */
     function getSubmission(uint256 tokenId) external view returns (Submission memory) {
         require(submissions[tokenId].exists, "Submission does not exist");
         return submissions[tokenId];
     }
 
-    /**
-     * @notice Get daily template details
-     */
     function getDailyTemplate(uint256 dayId) external view returns (DailyTemplate memory) {
         return dailyTemplates[dayId];
     }
 
-    /**
-     * @notice Check user's remaining votes for a submission
-     */
     function getRemainingVotes(uint256 tokenId, address user) external view returns (uint256) {
         Submission storage submission = submissions[tokenId];
         if (!submission.exists) return 0;
@@ -666,9 +567,6 @@ contract FrothComicDaily is
         return maxVotesPerWallet > used ? maxVotesPerWallet - used : 0;
     }
 
-    /**
-     * @notice Get claimable rewards for a user
-     */
     function getClaimableRewards(address user, uint256 dayId) external view returns (
         uint256 creatorReward,
         uint256 voterReward,
@@ -691,13 +589,9 @@ contract FrothComicDaily is
     // NFT METADATA
     // ============================================
 
-    /**
-     * @notice Get token URI for NFT metadata
-     */
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
         require(_exists(tokenId), "Token does not exist");
         
-        // Points to server endpoint for image generation
         return string(abi.encodePacked(
             "https://app.immutabletype.com/api/comic-metadata/",
             tokenId.toString()
@@ -708,10 +602,6 @@ contract FrothComicDaily is
     // ADMIN FUNCTIONS
     // ============================================
 
-    /**
-     * @notice Manually seed a day's prize pool
-     * @dev Treasury must approve contract before calling this
-     */
     function manualSeedDay(uint256 dayId, uint256 seedAmount) external onlyOwner nonReentrant {
         DailyTemplate storage template = dailyTemplates[dayId];
         require(template.dayId == dayId, "Day not initialized");
@@ -731,53 +621,32 @@ contract FrothComicDaily is
         emit DailyTemplateSeeded(dayId, seedAmount);
     }
 
-    /**
-     * @notice Update daily seed amount
-     */
     function setDailySeedAmount(uint256 newAmount) external onlyOwner {
         dailySeedAmount = newAmount;
         emit SeedAmountUpdated(newAmount);
     }
 
-    /**
-     * @notice Update entry fee
-     */
     function setEntryFee(uint256 newFee) external onlyOwner {
         entryFee = newFee;
         emit EntryFeeUpdated(newFee);
     }
 
-    /**
-     * @notice Update vote cost
-     */
     function setVoteCost(uint256 newCost) external onlyOwner {
         voteCost = newCost;
     }
 
-    /**
-     * @notice Update max votes per wallet
-     */
     function setMaxVotesPerWallet(uint256 newMax) external onlyOwner {
         maxVotesPerWallet = newMax;
     }
 
-    /**
-     * @notice Pause contract
-     */
     function pause() external onlyOwner {
         _pause();
     }
 
-    /**
-     * @notice Unpause contract
-     */
     function unpause() external onlyOwner {
         _unpause();
     }
 
-    /**
-     * @notice Emergency withdraw (only unclaimed funds)
-     */
     function emergencyWithdraw(address token, uint256 amount) external onlyOwner {
         IERC20(token).transfer(owner(), amount);
     }
