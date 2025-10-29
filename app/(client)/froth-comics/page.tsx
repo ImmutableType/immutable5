@@ -925,8 +925,10 @@ export default function FrothComics() {
         </div>
       )}
 
-      {/* Create Your Entry */}
-      {!submitting && address && hasProfile && slotInfo && slotInfo.comicsRemaining > 0 && (
+
+
+{/* Create Your Entry */}
+{!submitting && address && (
         <div style={{ 
           background: '#fff', 
           border: '2px solid #ddd', 
@@ -1130,7 +1132,7 @@ export default function FrothComics() {
             </div>
           </div>
 
-          {/* Mint Section */}
+          {/* Mint Section - WITH GATING */}
           <div style={{ 
             background: '#f9fafb', 
             border: '1px solid #ddd', 
@@ -1138,30 +1140,82 @@ export default function FrothComics() {
             padding: '1.5rem',
             marginBottom: '1rem'
           }}>
-            <button
-              onClick={handleMintComic}
-              disabled={!allPanelsHaveWords(panelWordIndices) || !dayInfo.submissionOpen}
-              style={{
-                width: '100%',
-                padding: '1rem',
-                background: (allPanelsHaveWords(panelWordIndices) && dayInfo.submissionOpen) ? '#10b981' : '#9ca3af',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: '1.2rem',
-                fontWeight: 'bold',
-                cursor: (allPanelsHaveWords(panelWordIndices) && dayInfo.submissionOpen) ? 'pointer' : 'not-allowed'
-              }}
-            >
-              {!dayInfo.submissionOpen
-                ? 'Submissions Closed'
-                : !allPanelsHaveWords(panelWordIndices)
-                ? 'Add words to all 4 panels'
-                : `Mint Your Comic (${slotInfo.comicsRemaining} ${slotInfo.comicsRemaining === 1 ? 'slot' : 'slots'} remaining)`}
-            </button>
+            {!hasProfile ? (
+              <div style={{ textAlign: 'center', padding: '1rem' }}>
+                <p style={{ color: '#666', marginBottom: '1rem', fontSize: '16px' }}>
+                  You need an ImmutableType Profile to participate
+                </p>
+                <a 
+                  href="/profile/create"
+                  style={{
+                    display: 'inline-block',
+                    padding: '1rem 2rem',
+                    background: '#3b82f6',
+                    color: 'white',
+                    textDecoration: 'none',
+                    borderRadius: '8px',
+                    fontWeight: 'bold',
+                    fontSize: '16px'
+                  }}
+                >
+                  Create Profile →
+                </a>
+              </div>
+            ) : !slotInfo || slotInfo.comicsRemaining === 0 ? (
+              <div style={{ textAlign: 'center', padding: '1rem' }}>
+                <p style={{ color: '#666', marginBottom: '1rem', fontSize: '16px' }}>
+                  Enter the tournament to submit comics
+                </p>
+                <button
+                  onClick={handleEnterTournament}
+                  disabled={enteringTournament || !dayInfo?.submissionOpen}
+                  style={{
+                    padding: '1rem 2rem',
+                    background: (enteringTournament || !dayInfo?.submissionOpen) ? '#9ca3af' : '#10b981',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: (enteringTournament || !dayInfo?.submissionOpen) ? 'not-allowed' : 'pointer',
+                    fontSize: '16px',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  {enteringTournament ? 'Entering...' : !dayInfo?.submissionOpen ? 'Submissions Closed' : 'Enter Tournament (100 FROTH)'}
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={handleMintComic}
+                disabled={!allPanelsHaveWords(panelWordIndices) || !dayInfo?.submissionOpen}
+                style={{
+                  width: '100%',
+                  padding: '1rem',
+                  background: (allPanelsHaveWords(panelWordIndices) && dayInfo?.submissionOpen) ? '#10b981' : '#9ca3af',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '1.2rem',
+                  fontWeight: 'bold',
+                  cursor: (allPanelsHaveWords(panelWordIndices) && dayInfo?.submissionOpen) ? 'pointer' : 'not-allowed'
+                }}
+              >
+                {!dayInfo?.submissionOpen
+                  ? 'Submissions Closed'
+                  : !allPanelsHaveWords(panelWordIndices)
+                  ? 'Add words to all 4 panels'
+                  : `Mint Your Comic (${slotInfo.comicsRemaining} ${slotInfo.comicsRemaining === 1 ? 'slot' : 'slots'} remaining)`}
+              </button>
+            )}
           </div>
         </div>
       )}
+
+
+
+
+
+
+
 
       {/* View All Submissions Modal */}
       {showAllModal && (
