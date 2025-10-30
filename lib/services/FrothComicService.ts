@@ -16,6 +16,8 @@ const TOURNAMENT_ABI = [
   "function hasEntered(uint256 dayId, address user) view returns (bool)",
   "function vote(uint256 comicTokenId, uint256 buffaflowAmount)",
   "function claimVoterReward(uint256 dayId)",
+  "function getCreatorReward(uint256 dayId, address user) view returns (uint256)",
+  "function claimCreatorReward(uint256 dayId)",
   "function getDayInfo(uint256 dayId) view returns (uint256 startTime, uint256 endTime, uint256 finalizationTime, uint256 creatorPool, uint256 voterPool, uint256 totalVotes, bool submissionOpen, bool votingOpen, bool finalized, uint256 secondsUntilNextPhase)",
   "function getVoterReward(uint256 dayId, address user) view returns (uint256)",
   "function getUserVotesOnComic(uint256 comicTokenId, address user) view returns (uint256)",
