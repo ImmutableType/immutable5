@@ -174,16 +174,43 @@ export class FrothComicService {
       maxAllowed
     };
   }
+
+
+
+
   
   async getVoterReward(dayId: number, address: string): Promise<string> {
     const reward = await this.readOnlyTournament.getVoterReward(dayId, address);
     return ethers.formatEther(reward);
+  }
+
+  async getCreatorReward(dayId: number, address: string): Promise<string> {
+    const reward = await this.readOnlyTournament.getCreatorReward(dayId, address);
+    return ethers.formatEther(reward);
+  }
+  
+  async claimCreatorReward(dayId: number) {
+    if (!this.tournament) {
+      throw new Error('Tournament contract not initialized');
+    }
+  
+    try {
+      const tx = await this.tournament.claimCreatorReward(dayId);
+      await tx.wait();
+      return tx.hash;
+    } catch (error) {
+      console.error('Error claiming creator reward:', error);
+      throw error;
+    }
   }
   
   async getUserVotesOnComic(tokenId: string, address: string): Promise<string> {
     const votes = await this.readOnlyTournament.getUserVotesOnComic(tokenId, address);
     return ethers.formatEther(votes);
   }
+
+
+
   
   async getDayComics(dayId: number): Promise<Comic[]> {
     const tokenIds = await this.readOnlyComicNFT.getDayComics(dayId);

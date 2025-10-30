@@ -581,10 +581,13 @@ export default function FrothComics() {
     }
     
     try {
-      const voterReward = await frothComicService.getVoterReward(currentDay, address);
+      // Check Day 363 (yesterday) for rewards
+      const dayToCheck = 363;
+      const creatorReward = await frothComicService.getCreatorReward(dayToCheck, address);
+      const voterReward = await frothComicService.getVoterReward(dayToCheck, address);
       
       setClaimableRewards({
-        creator: "0",
+        creator: creatorReward,
         voter: voterReward,
         claimed: false
       });
