@@ -843,7 +843,7 @@ export default function FrothComics() {
           </div>
 
           {/* Check Rewards Button */}
-          {address && dayInfo.finalized && (
+          {address && (
             <button
               onClick={handleCheckRewards}
               style={{
