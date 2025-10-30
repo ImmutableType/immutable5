@@ -603,7 +603,8 @@ export default function FrothComics() {
     if (!address || !signer) return;
     
     try {
-      await frothComicService.claimVoterReward(currentDay);
+      await frothComicService.claimVoterReward(363);  // Match the day we're checking
+
       
       // Refresh rewards
       await handleCheckRewards();
