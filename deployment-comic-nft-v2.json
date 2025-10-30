@@ -1,0 +1,10 @@
+{
+  "network": "Flow EVM Mainnet",
+  "chainId": 747,
+  "timestamp": "2025-10-30T04:26:21.183Z",
+  "contracts": {
+    "ComicNFT": "0x7AA01C6E9CF61751FFbED7aEA8d656ad5bE526d6",
+    "TournamentV2": "0xCC03Df3cC5c36BDd666d1B68260f45ce0B6c02e0",
+    "ProfileNFT": "0xDb742cD47D09Cf7e6f22F24289449C672Ef77934"
+  }
+}
