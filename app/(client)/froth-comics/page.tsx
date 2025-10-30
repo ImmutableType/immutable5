@@ -613,6 +613,21 @@ export default function FrothComics() {
     }
   };
 
+  // Claim creator reward
+  const handleClaimCreatorReward = async () => {
+    if (!address || !signer) return;
+    
+    try {
+      await frothComicService.claimCreatorReward(363);
+      
+      // Refresh rewards
+      await handleCheckRewards();
+    } catch (err: any) {
+      console.error("Claim error:", err);
+      setError(err.message || "Failed to claim rewards");
+    }
+  };
+
   const nextSubmission = () => {
     setCurrentSubmission((prev) => (prev + 1) % submissions.length);
   };
@@ -1420,7 +1435,34 @@ export default function FrothComics() {
               ✕
             </button>
             
-            <h2 style={{ marginBottom: '2rem' }}>Your Rewards - Day {currentDay}</h2>
+            <h2 style={{ marginBottom: '2rem' }}>Your Rewards - Day 363</h2>
+
+<div style={{ marginBottom: '1.5rem' }}>
+  <div style={{ fontSize: '14px', color: '#666', marginBottom: '0.5rem' }}>
+    Creator Reward:
+  </div>
+  <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#10b981' }}>
+    {parseFloat(claimableRewards.creator).toFixed(2)} FROTH
+  </div>
+  
+    <button
+    onClick={handleClaimCreatorReward}
+    disabled={parseFloat(claimableRewards.creator) === 0}
+    style={{
+      marginTop: '0.5rem',
+      padding: '0.75rem 1.5rem',
+      background: parseFloat(claimableRewards.creator) === 0 ? '#9ca3af' : '#10b981',
+      color: 'white',
+      border: 'none',
+      borderRadius: '8px',
+      cursor: parseFloat(claimableRewards.creator) === 0 ? 'not-allowed' : 'pointer',
+      fontSize: '14px',
+      fontWeight: '500'
+    }}
+  >
+    Claim Creator Reward ({parseFloat(claimableRewards.creator).toFixed(2)} FROTH)
+  </button>
+</div>
             
             <div style={{ marginBottom: '1.5rem' }}>
               <div style={{ fontSize: '14px', color: '#666', marginBottom: '0.5rem' }}>
@@ -1429,47 +1471,24 @@ export default function FrothComics() {
               <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#3b82f6' }}>
                 {parseFloat(claimableRewards.voter).toFixed(2)} FROTH
               </div>
-              {parseFloat(claimableRewards.voter) > 0 && !claimableRewards.claimed && (
                 <button
-                  onClick={handleClaimVoterReward}
-                  style={{
-                    marginTop: '0.5rem',
-                    padding: '0.75rem 1.5rem',
-                    background: '#3b82f6',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    fontWeight: '500'
-                  }}
-                >
-                  Claim Voter Reward
-                </button>
-              )}
-              {claimableRewards.claimed && (
-                <div style={{ 
-                  marginTop: '0.5rem', 
-                  color: '#666', 
+                onClick={handleClaimVoterReward}
+                disabled={parseFloat(claimableRewards.voter) === 0 || claimableRewards.claimed}
+                style={{
+                  marginTop: '0.5rem',
+                  padding: '0.75rem 1.5rem',
+                  background: (parseFloat(claimableRewards.voter) === 0 || claimableRewards.claimed) ? '#9ca3af' : '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: (parseFloat(claimableRewards.voter) === 0 || claimableRewards.claimed) ? 'not-allowed' : 'pointer',
                   fontSize: '14px',
-                  fontStyle: 'italic' 
-                }}>
-                  Already claimed ✓
-                </div>
-              )}
+                  fontWeight: '500'
+                }}
+              >
+                Claim Voter Reward ({parseFloat(claimableRewards.voter).toFixed(2)} FROTH)
+              </button>
             </div>
-
-            {parseFloat(claimableRewards.voter) === 0 && (
-              <div style={{ 
-                padding: '1rem', 
-                background: '#f9fafb', 
-                borderRadius: '8px',
-                textAlign: 'center',
-                color: '#666'
-              }}>
-                No rewards available for this day yet
-              </div>
-            )}
           </div>
         </div>
       )}
