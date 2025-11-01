@@ -1,3 +1,5 @@
+Output
+
 # ImmutableType - Decentralized Journalism Platform
 
 [![Flow EVM Mainnet](https://img.shields.io/badge/Flow-EVM%20Mainnet-00EF8B)](https://evm.flowscan.io)
@@ -30,8 +32,8 @@ All contracts are **deployed and operational on Flow EVM Mainnet**:
 | **ProfileNFTFixed** | `0xDb742cD47D09Cf7e6f22F24289449C672Ef77934` | Tiered transferable identity NFTs |
 | **TokenQualifierFixed** | `0xa27e2A0280127cf827876a4795d551865F930687` | Multi-token gating system |
 | **BookmarkNFT** | `0x6652801B89f9E3B4a8847Fd0C4F17e7dCd32dFF5` | On-chain source verification |
-| **FrothComicTournamentV2** | `0x57AA4E1B146C675c446310b4Ff92ed9e6E5c10FC` | Daily comic tournaments with voting |
-| **ComicNFT** | `0x14A7d9e732b5fC439786930Af90F93F73C4d566B` | Comic NFT minting (98% gas optimized) |
+| **FrothComicTournamentV3** | `0xEbeb586f068DD5fbB745d6df8C3C51810a2C18Cb` | Daily comic tournaments with voting |
+| **ComicNFT** | `0x75b32e83C7063ABC40c7a494A95eB0047E6aA1b7` | Comic NFT minting (98% gas optimized) |
 | **BUFFAFLOW Token** | `0xc8654a7a4bd671d4ceac6096a92a3170fa3b4798` | Voting token & fee bypass (ERC404) |
 | **Treasury Wallet** | `0x00000000000000000000000228B74E66CBD624Fc` | Platform treasury (EOA) |
 
@@ -183,8 +185,8 @@ npm run dev
 NEXT_PUBLIC_PROFILE_NFT_ADDRESS=0xDb742cD47D09Cf7e6f22F24289449C672Ef77934
 NEXT_PUBLIC_TOKEN_QUALIFIER_ADDRESS=0xa27e2A0280127cf827876a4795d551865F930687
 NEXT_PUBLIC_BOOKMARK_NFT_ADDRESS=0x6652801B89f9E3B4a8847Fd0C4F17e7dCd32dFF5
-NEXT_PUBLIC_FROTH_TOURNAMENT_ADDRESS=0x57AA4E1B146C675c446310b4Ff92ed9e6E5c10FC
-NEXT_PUBLIC_COMIC_NFT_ADDRESS=0x7AA01C6E9CF61751FFbED7aEA8d656ad5bE526d6
+NEXT_PUBLIC_FROTH_TOURNAMENT_ADDRESS=0xEbeb586f068DD5fbB745d6df8C3C51810a2C18Cb
+NEXT_PUBLIC_COMIC_NFT_ADDRESS=0x75b32e83C7063ABC40c7a494A95eB0047E6aA1b7
 NEXT_PUBLIC_BUFFAFLOW_ADDRESS=0xc8654a7a4bd671d4ceac6096a92a3170fa3b4798
 NEXT_PUBLIC_FLOW_EVM_CHAIN_ID=747
 NEXT_PUBLIC_FLOW_EVM_RPC_URL=https://mainnet.evm.nodes.onflow.org
@@ -195,7 +197,7 @@ NEXT_PUBLIC_FLOW_EVM_RPC_URL=https://mainnet.evm.nodes.onflow.org
 
 ## 📊 Current Metrics (Live on Mainnet)
 
-**Platform Activity** (as of October 31, 2025):
+**Platform Activity** (as of November 1, 2025):
 - ✅ All features operational on Flow EVM Mainnet
 - ✅ ProfileNFT contract deployed and minting
 - ✅ BookmarkNFT contract active with daily mints
@@ -226,16 +228,17 @@ We chose Flow EVM for strategic reasons:
 
 ## 🗺️ Roadmap
 
-### ✅ Phase 5 (Completed - October 2025)
+### ✅ Phase 5 (Completed - November 2025)
 - Desktop Web3 integration with MetaMask SDK
 - Tiered profile NFT system with multi-token gating
 - Bookmark collection system with Chrome extension
 - **FROTH Daily Comic Tournaments (LIVE)**
-  - FrothComicTournamentV2 contract deployed
+  - FrothComicTournamentV3 contract deployed (November 1, 2025)
   - ComicNFT with 98% gas optimization
+  - V3 Update: Updatable ComicNFT setter for configuration flexibility
   - MoonBuffaFLOW character integration
   - Daily tournament lifecycle operational
-  - First tournament completed successfully
+  - Multiple tournaments completed successfully
 - Production deployment on Railway
 - Dune Analytics dashboard
 
