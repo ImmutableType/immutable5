@@ -72,6 +72,15 @@ export default function Navigation() {
           <span>Reader</span>
         </Link>
 
+        <Link 
+          href="/froth-comics" 
+          className="nav-froth-link"
+          aria-label="FROTH Comics - Create and view comic tournaments"
+        >
+          <span className="nav-froth-icon">🎨</span>
+          <span>FROTH Comics</span>
+        </Link>
+
         <Link href="/about" className="nav-about-link">
           <span className="nav-about-icon">ℹ️</span>
           <span>About</span>
@@ -147,6 +156,15 @@ export default function Navigation() {
               >
                 <span className="nav-reader-icon">🗞️</span>
                 <span>Reader</span>
+              </Link>
+
+              <Link 
+                href="/froth-comics" 
+                className="mobile-menu-link"
+                onClick={closeMenu}
+              >
+                <span className="nav-froth-icon">🎨</span>
+                <span>FROTH Comics</span>
               </Link>
 
               <Link href="/about" className="mobile-menu-link" onClick={closeMenu}>
