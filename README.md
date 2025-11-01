@@ -31,7 +31,7 @@ All contracts are **deployed and operational on Flow EVM Mainnet**:
 | **TokenQualifierFixed** | `0xa27e2A0280127cf827876a4795d551865F930687` | Multi-token gating system |
 | **BookmarkNFT** | `0x6652801B89f9E3B4a8847Fd0C4F17e7dCd32dFF5` | On-chain source verification |
 | **FrothComicTournamentV2** | `0x57AA4E1B146C675c446310b4Ff92ed9e6E5c10FC` | Daily comic tournaments with voting |
-| **ComicNFT** | `0x7AA01C6E9CF61751FFbED7aEA8d656ad5bE526d6` | Comic NFT minting (98% gas optimized) |
+| **ComicNFT** | `0x14A7d9e732b5fC439786930Af90F93F73C4d566B` | Comic NFT minting (98% gas optimized) |
 | **BUFFAFLOW Token** | `0xc8654a7a4bd671d4ceac6096a92a3170fa3b4798` | Voting token & fee bypass (ERC404) |
 | **Treasury Wallet** | `0x00000000000000000000000228B74E66CBD624Fc` | Platform treasury (EOA) |
 
@@ -153,6 +153,7 @@ The video demonstration covers:
 3. Create your profile (3 FLOW or 100+ BUFFAFLOW)
 4. Start minting bookmark NFTs
 5. **Enter FROTH Daily Comic Tournament**
+https://app.immutabletype.com/froth-comics
    - Pay 100 FROTH to enter
    - Mint up to 5 comics using MoonBuffaFLOW characters
    - Vote with BUFFAFLOW on your favorite comics
