@@ -298,7 +298,16 @@ export default function FrothComics() {
   const [currentSubmission, setCurrentSubmission] = useState(0);
   const [showAllModal, setShowAllModal] = useState(false);
   const [showRewardsModal, setShowRewardsModal] = useState(false);
-  const [claimableRewards, setClaimableRewards] = useState({ creator: "0", voter: "0", claimed: false });
+  const [claimableRewards, setClaimableRewards] = useState<{
+    allDays: Array<{
+      day: number;
+      creatorReward: string;
+      voterReward: string;
+      voterClaimed: boolean;
+    }>;
+    totalCreator: string;
+    totalVoter: string;
+  }>({ allDays: [], totalCreator: "0", totalVoter: "0" });
 
   // Initialize wallet connection
   useEffect(() => {
@@ -581,51 +590,106 @@ export default function FrothComics() {
     }
     
     try {
-      // Check Day 363 (yesterday) for rewards
-      const dayToCheck = 363;
-      const creatorReward = await frothComicService.getCreatorReward(dayToCheck, address);
-      const voterReward = await frothComicService.getVoterReward(dayToCheck, address);
+      setLoadingMessage("Scanning for claimable rewards...");
+      
+      // Get current day to know the maximum day to check
+      const currentDay = await frothComicService.getCurrentDay();
+      
+      const daysWithRewards: Array<{
+        day: number;
+        creatorReward: string;
+        voterReward: string;
+        voterClaimed: boolean;
+      }> = [];
+      
+      let totalCreatorSum = 0;
+      let totalVoterSum = 0;
+      
+      // Scan all days from 0 to current day - 1 (yesterday and before)
+      for (let day = 0; day < currentDay; day++) {
+        try {
+          // Check if day is finalized
+          const dayInfo = await frothComicService.getDayInfo(day);
+          
+          if (dayInfo.finalized) {
+            // Get rewards for this user on this day
+            const creatorReward = await frothComicService.getCreatorReward(day, address);
+            const voterReward = await frothComicService.getVoterReward(day, address);
+            // Note: Contract doesn't expose voterClaimed status, so we show all voter rewards
+            const voterClaimed = false;
+            
+            const creatorAmount = parseFloat(creatorReward);
+            const voterAmount = parseFloat(voterReward);
+            
+            // Only include days with claimable rewards
+            if (creatorAmount > 0 || (voterAmount > 0 && !voterClaimed)) {
+              daysWithRewards.push({
+                day,
+                creatorReward,
+                voterReward,
+                voterClaimed
+              });
+              
+              totalCreatorSum += creatorAmount;
+              if (!voterClaimed) {
+                totalVoterSum += voterAmount;
+              }
+            }
+          }
+        } catch (err) {
+          // Skip days that error (not finalized, no data, etc.)
+          console.log(`Skipping day ${day}:`, err);
+        }
+      }
       
       setClaimableRewards({
-        creator: creatorReward,
-        voter: voterReward,
-        claimed: false
+        allDays: daysWithRewards,
+        totalCreator: totalCreatorSum.toFixed(2),
+        totalVoter: totalVoterSum.toFixed(2)
       });
+      
+      setLoadingMessage("");
       setShowRewardsModal(true);
     } catch (err) {
       console.error("Error checking rewards:", err);
       setError("Failed to check rewards");
+      setLoadingMessage("");
     }
   };
 
   // Claim voter reward
-  const handleClaimVoterReward = async () => {
+  const handleClaimVoterReward = async (dayId: number) => {
     if (!address || !signer) return;
     
     try {
-      await frothComicService.claimVoterReward(363);  // Match the day we're checking
-
+      setLoadingMessage(`Claiming voter reward for Day ${dayId}...`);
+      await frothComicService.claimVoterReward(dayId);
+      setLoadingMessage("");
       
       // Refresh rewards
       await handleCheckRewards();
     } catch (err: any) {
       console.error("Claim error:", err);
       setError(err.message || "Failed to claim rewards");
+      setLoadingMessage("");
     }
   };
 
   // Claim creator reward
-  const handleClaimCreatorReward = async () => {
+  const handleClaimCreatorReward = async (dayId: number) => {
     if (!address || !signer) return;
     
     try {
-      await frothComicService.claimCreatorReward(363);
+      setLoadingMessage(`Claiming creator reward for Day ${dayId}...`);
+      await frothComicService.claimCreatorReward(dayId);
+      setLoadingMessage("");
       
       // Refresh rewards
       await handleCheckRewards();
     } catch (err: any) {
       console.error("Claim error:", err);
       setError(err.message || "Failed to claim rewards");
+      setLoadingMessage("");
     }
   };
 
@@ -1436,60 +1500,134 @@ export default function FrothComics() {
               ✕
             </button>
             
-            <h2 style={{ marginBottom: '2rem' }}>Your Rewards - Day 363</h2>
+            <h2 style={{ marginBottom: '1.5rem' }}>Your Claimable Rewards</h2>
 
-<div style={{ marginBottom: '1.5rem' }}>
-  <div style={{ fontSize: '14px', color: '#666', marginBottom: '0.5rem' }}>
-    Creator Reward:
-  </div>
-  <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#10b981' }}>
-    {parseFloat(claimableRewards.creator).toFixed(2)} FROTH
-  </div>
-  
-    <button
-    onClick={handleClaimCreatorReward}
-    disabled={parseFloat(claimableRewards.creator) === 0}
-    style={{
-      marginTop: '0.5rem',
-      padding: '0.75rem 1.5rem',
-      background: parseFloat(claimableRewards.creator) === 0 ? '#9ca3af' : '#10b981',
-      color: 'white',
-      border: 'none',
-      borderRadius: '8px',
-      cursor: parseFloat(claimableRewards.creator) === 0 ? 'not-allowed' : 'pointer',
-      fontSize: '14px',
-      fontWeight: '500'
-    }}
-  >
-    Claim Creator Reward ({parseFloat(claimableRewards.creator).toFixed(2)} FROTH)
-  </button>
-</div>
-            
-            <div style={{ marginBottom: '1.5rem' }}>
-              <div style={{ fontSize: '14px', color: '#666', marginBottom: '0.5rem' }}>
-                Voter Reward:
+            {claimableRewards.allDays.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
+                No claimable rewards found. Keep playing to earn rewards!
               </div>
-              <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#3b82f6' }}>
-                {parseFloat(claimableRewards.voter).toFixed(2)} FROTH
-              </div>
-                <button
-                onClick={handleClaimVoterReward}
-                disabled={parseFloat(claimableRewards.voter) === 0 || claimableRewards.claimed}
-                style={{
-                  marginTop: '0.5rem',
-                  padding: '0.75rem 1.5rem',
-                  background: (parseFloat(claimableRewards.voter) === 0 || claimableRewards.claimed) ? '#9ca3af' : '#3b82f6',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: (parseFloat(claimableRewards.voter) === 0 || claimableRewards.claimed) ? 'not-allowed' : 'pointer',
-                  fontSize: '14px',
-                  fontWeight: '500'
-                }}
-              >
-                Claim Voter Reward ({parseFloat(claimableRewards.voter).toFixed(2)} FROTH)
-              </button>
-            </div>
+            ) : (
+              <>
+                {/* Totals Summary */}
+                <div style={{ 
+                  marginBottom: '1.5rem', 
+                  padding: '1rem', 
+                  background: '#f8fafc', 
+                  borderRadius: '8px'
+                }}>
+                  <div style={{ fontSize: '14px', color: '#666', marginBottom: '0.5rem' }}>
+                    Total Claimable:
+                  </div>
+                  <div style={{ display: 'flex', gap: '2rem' }}>
+                    <div>
+                      <div style={{ fontSize: '12px', color: '#666' }}>Creator</div>
+                      <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#10b981' }}>
+                        {claimableRewards.totalCreator} FROTH
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '12px', color: '#666' }}>Voter</div>
+                      <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#3b82f6' }}>
+                        {claimableRewards.totalVoter} FROTH
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Individual Day Rewards */}
+                <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                  {claimableRewards.allDays.map(dayReward => (
+                    <div key={dayReward.day} style={{
+                      marginBottom: '1rem',
+                      padding: '1rem',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '8px'
+                    }}>
+                      <h3 style={{ marginBottom: '0.75rem', color: '#334155' }}>
+                        Day #{dayReward.day}
+                      </h3>
+                      
+                      {/* Creator Reward */}
+                      {parseFloat(dayReward.creatorReward) > 0 && (
+                        <div style={{ marginBottom: '0.75rem' }}>
+                          <div style={{ 
+                            display: 'flex', 
+                            justifyContent: 'space-between', 
+                            alignItems: 'center' 
+                          }}>
+                            <div>
+                              <div style={{ fontSize: '12px', color: '#666' }}>Creator Reward</div>
+                              <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#10b981' }}>
+                                {parseFloat(dayReward.creatorReward).toFixed(2)} FROTH
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => handleClaimCreatorReward(dayReward.day)}
+                              style={{
+                                padding: '0.5rem 1rem',
+                                background: '#10b981',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                fontSize: '14px',
+                                fontWeight: '500'
+                              }}
+                            >
+                              Claim Creator
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Voter Reward */}
+                      {parseFloat(dayReward.voterReward) > 0 && (
+                        <div>
+                          <div style={{ 
+                            display: 'flex', 
+                            justifyContent: 'space-between', 
+                            alignItems: 'center' 
+                          }}>
+                            <div>
+                              <div style={{ fontSize: '12px', color: '#666' }}>Voter Reward</div>
+                              <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#3b82f6' }}>
+                                {parseFloat(dayReward.voterReward).toFixed(2)} FROTH
+                              </div>
+                            </div>
+                            {dayReward.voterClaimed ? (
+                              <div style={{
+                                padding: '0.5rem 1rem',
+                                color: '#666',
+                                fontSize: '14px',
+                                fontStyle: 'italic'
+                              }}>
+                                Already claimed ✓
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => handleClaimVoterReward(dayReward.day)}
+                                style={{
+                                  padding: '0.5rem 1rem',
+                                  background: '#3b82f6',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: '6px',
+                                  cursor: 'pointer',
+                                  fontSize: '14px',
+                                  fontWeight: '500'
+                                }}
+                              >
+                                Claim Voter
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
