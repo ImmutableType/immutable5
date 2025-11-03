@@ -583,7 +583,7 @@ export default function FrothComics() {
   };
 
   // Check rewards
-  const handleCheckRewards = async () => {
+  const handleCheckRewards = async (daysToScan: number = 30) => {
     if (!address) {
       setError("Please connect your wallet");
       return;
@@ -592,7 +592,7 @@ export default function FrothComics() {
     try {
       // Open modal immediately with empty state
       setShowRewardsModal(true);
-      setLoadingMessage("Scanning blockchain for claimable rewards...");
+      setLoadingMessage(`Scanning last ${daysToScan} days for rewards...`);
       
       // Get current day to know the maximum day to check
       const currentDay = await frothComicService.getCurrentDay();
@@ -607,10 +607,12 @@ export default function FrothComics() {
       let totalCreatorSum = 0;
       let totalVoterSum = 0;
       
-      // Scan all days from 0 to current day - 1 (yesterday and before)
-      for (let day = 0; day < currentDay; day++) {
+      // Scan backwards from current day - 1 (yesterday) for specified number of days
+      const startDay = Math.max(0, currentDay - daysToScan);
+      
+      for (let day = currentDay - 1; day >= startDay; day--) {
         try {
-          setLoadingMessage(`Scanning Day ${day}...`);
+          setLoadingMessage(`Scanning Day ${day}... (${currentDay - 1 - day + 1}/${Math.min(daysToScan, currentDay)})`);
           
           // Check if day is finalized
           const dayInfo = await frothComicService.getDayInfo(day);
@@ -645,6 +647,9 @@ export default function FrothComics() {
           console.log(`Skipping day ${day}:`, err);
         }
       }
+      
+      // Sort by day descending (most recent first)
+      daysWithRewards.sort((a, b) => b.day - a.day);
       
       setClaimableRewards({
         allDays: daysWithRewards,
@@ -913,7 +918,7 @@ export default function FrothComics() {
           {/* Check Rewards Button */}
           {address && (
             <button
-              onClick={handleCheckRewards}
+              onClick={() => handleCheckRewards()}
               style={{
                 marginTop: '1rem',
                 width: '100%',
@@ -1503,7 +1508,65 @@ export default function FrothComics() {
               ✕
             </button>
             
-            <h2 style={{ marginBottom: '1.5rem' }}>Your Claimable Rewards</h2>
+            <h2 style={{ marginBottom: '1rem' }}>Your Claimable Rewards</h2>
+
+            {!loadingMessage && (
+              <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => handleCheckRewards(30)}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    background: '#f1f5f9',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '0.875rem'
+                  }}
+                >
+                  Last 30 Days
+                </button>
+                <button
+                  onClick={() => handleCheckRewards(60)}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    background: '#f1f5f9',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '0.875rem'
+                  }}
+                >
+                  Last 60 Days
+                </button>
+                <button
+                  onClick={() => handleCheckRewards(90)}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    background: '#f1f5f9',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '0.875rem'
+                  }}
+                >
+                  Last 90 Days
+                </button>
+                <button
+                  onClick={() => handleCheckRewards(999999)}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    background: '#fff7ed',
+                    border: '1px solid #fb923c',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '0.875rem',
+                    color: '#c2410c'
+                  }}
+                >
+                  Full Scan (Slow)
+                </button>
+              </div>
+            )}
 
             {loadingMessage ? (
               <div style={{ textAlign: 'center', padding: '3rem', color: '#666' }}>
