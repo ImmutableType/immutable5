@@ -308,6 +308,13 @@ export default function FrothComics() {
     totalCreator: string;
     totalVoter: string;
   }>({ allDays: [], totalCreator: "0", totalVoter: "0" });
+  
+  // Finalization states
+  const [finalizableDays, setFinalizableDays] = useState<Array<{
+    day: number;
+    comicCount: number;
+  }>>([]);
+  const [finalizingDay, setFinalizingDay] = useState<number | null>(null);
 
   // Initialize wallet connection
   useEffect(() => {
@@ -376,6 +383,9 @@ export default function FrothComics() {
         // Load slot info
         const slots = await frothComicService.getComicSlotInfo(currentDay, address);
         setSlotInfo(slots);
+        
+        // Check for finalizable days
+        checkFinalizableDays();
       } catch (err) {
         console.error("Error checking profile:", err);
       }
@@ -700,6 +710,68 @@ export default function FrothComics() {
       setLoadingMessage("");
     }
   };
+
+  // Check for finalizable days (days with user's comics that aren't finalized)
+  const checkFinalizableDays = async () => {
+    if (!address) return;
+    
+    try {
+      const currentDay = await frothComicService.getCurrentDay();
+      const daysToCheck: Array<{ day: number; comicCount: number }> = [];
+      
+      // Check last 30 days for user's comics that need finalization
+      for (let day = Math.max(0, currentDay - 30); day < currentDay; day++) {
+        const dayInfo = await frothComicService.getDayInfo(day);
+        
+        // Day must be closed but not finalized
+        if (!dayInfo.submissionOpen && !dayInfo.votingOpen && !dayInfo.finalized) {
+          // Check if user has comics on this day
+          const comicSlotInfo = await frothComicService.getComicSlotInfo(day, address);
+          if (comicSlotInfo.comicsSubmitted > 0) {
+            daysToCheck.push({
+              day,
+              comicCount: comicSlotInfo.comicsSubmitted
+            });
+          }
+        }
+      }
+      
+      setFinalizableDays(daysToCheck);
+    } catch (err) {
+      console.error("Error checking finalizable days:", err);
+    }
+  };
+
+  // Finalize a tournament day
+  const handleFinalizeDay = async (dayId: number) => {
+    if (!signer) return;
+    
+    try {
+      setFinalizingDay(dayId);
+      setError("");
+      
+      await frothComicService.initialize(signer);
+      const tournament = await frothComicService.getTournamentContract();
+      
+      const tx = await tournament.finalizeDay(dayId);
+      await tx.wait();
+      
+      setFinalizingDay(null);
+      
+      // Refresh the finalizable days list
+      await checkFinalizableDays();
+      
+      // Show success message
+      setLoadingMessage(`✅ Day ${dayId} finalized! You earned BUFFAFLOW rewards.`);
+      setTimeout(() => setLoadingMessage(""), 3000);
+      
+    } catch (err: any) {
+      console.error("Finalize error:", err);
+      setError(err.message || "Failed to finalize day");
+      setFinalizingDay(null);
+    }
+  };
+
 
   const nextSubmission = () => {
     setCurrentSubmission((prev) => (prev + 1) % submissions.length);
@@ -1040,6 +1112,77 @@ export default function FrothComics() {
           )}
         </div>
       </div>
+
+      {/* Finalize Tournament Days Section */}
+      {address && finalizableDays.length > 0 && (
+        <div style={{
+          marginTop: '2rem',
+          padding: '1.5rem',
+          background: '#fff7ed',
+          border: '2px solid #fb923c',
+          borderRadius: '12px'
+        }}>
+          <h3 style={{
+            fontSize: '1.25rem',
+            fontWeight: 'bold',
+            marginBottom: '1rem',
+            color: '#c2410c'
+          }}>
+            ⚡ Finalize Tournaments & Earn BUFFAFLOW
+          </h3>
+          <p style={{
+            fontSize: '0.875rem',
+            color: '#9a3412',
+            marginBottom: '1rem'
+          }}>
+            These tournaments are complete but need finalization. Help the community and earn BUFFAFLOW rewards!
+          </p>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {finalizableDays.map(({ day, comicCount }) => (
+              <div
+                key={day}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '1rem',
+                  background: 'white',
+                  border: '1px solid #fdba74',
+                  borderRadius: '8px'
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: 'bold', fontSize: '1rem' }}>
+                    Day #{day}
+                  </div>
+                  <div style={{ fontSize: '0.875rem', color: '#666' }}>
+                    You have {comicCount} comic{comicCount > 1 ? 's' : ''} in this tournament
+                  </div>
+                </div>
+                
+                <button
+                  onClick={() => handleFinalizeDay(day)}
+                  disabled={finalizingDay === day}
+                  style={{
+                    padding: '0.75rem 1.5rem',
+                    background: finalizingDay === day ? '#9ca3af' : '#fb923c',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: finalizingDay === day ? 'not-allowed' : 'pointer',
+                    fontSize: '0.875rem',
+                    fontWeight: '600',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  {finalizingDay === day ? 'Finalizing...' : 'Finalize & Earn 🦬'}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Error Display */}
       {error && (

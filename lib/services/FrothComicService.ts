@@ -206,6 +206,13 @@ export class FrothComicService {
     }
   }
   
+  getTournamentContract() {
+    if (!this.tournament) {
+      throw new Error('Tournament contract not initialized');
+    }
+    return this.tournament;
+  }
+  
   async getUserVotesOnComic(tokenId: string, address: string): Promise<string> {
     const votes = await this.readOnlyTournament.getUserVotesOnComic(tokenId, address);
     return ethers.formatEther(votes);
