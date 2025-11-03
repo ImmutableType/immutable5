@@ -590,7 +590,9 @@ export default function FrothComics() {
     }
     
     try {
-      setLoadingMessage("Scanning for claimable rewards...");
+      // Open modal immediately with empty state
+      setShowRewardsModal(true);
+      setLoadingMessage("Scanning blockchain for claimable rewards...");
       
       // Get current day to know the maximum day to check
       const currentDay = await frothComicService.getCurrentDay();
@@ -608,6 +610,8 @@ export default function FrothComics() {
       // Scan all days from 0 to current day - 1 (yesterday and before)
       for (let day = 0; day < currentDay; day++) {
         try {
+          setLoadingMessage(`Scanning Day ${day}...`);
+          
           // Check if day is finalized
           const dayInfo = await frothComicService.getDayInfo(day);
           
@@ -649,7 +653,6 @@ export default function FrothComics() {
       });
       
       setLoadingMessage("");
-      setShowRewardsModal(true);
     } catch (err) {
       console.error("Error checking rewards:", err);
       setError("Failed to check rewards");
@@ -1502,7 +1505,15 @@ export default function FrothComics() {
             
             <h2 style={{ marginBottom: '1.5rem' }}>Your Claimable Rewards</h2>
 
-            {claimableRewards.allDays.length === 0 ? (
+            {loadingMessage ? (
+              <div style={{ textAlign: 'center', padding: '3rem', color: '#666' }}>
+                <div style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>🔍</div>
+                <div style={{ fontSize: '1rem', fontWeight: '500' }}>{loadingMessage}</div>
+                <div style={{ fontSize: '0.875rem', marginTop: '0.5rem', opacity: 0.7 }}>
+                  This may take a minute...
+                </div>
+              </div>
+            ) : claimableRewards.allDays.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
                 No claimable rewards found. Keep playing to earn rewards!
               </div>
