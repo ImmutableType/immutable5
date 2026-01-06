@@ -6,6 +6,13 @@ const nextConfig = {
   // Railway handles .env.production automatically
   eslint: {
     ignoreDuringBuilds: true
+  },
+  
+  // Exclude archive directory from build
+  experimental: {
+    outputFileTracingExcludes: {
+      '*': ['./archive/**/*']
+    }
   }
 }
 
