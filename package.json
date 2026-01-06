@@ -15,7 +15,7 @@
     "@react-native-async-storage/async-storage": "^2.2.0",
     "canvas-confetti": "^1.9.3",
     "ethers": "^6.15.0",
-    "next": "15.5.2",
+    "next": "15.5.9",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "viem": "^2.37.3"
@@ -38,7 +38,7 @@
     "chai": "^4.5.0",
     "dotenv": "^17.2.2",
     "eslint": "^9",
-    "eslint-config-next": "15.5.2",
+    "eslint-config-next": "15.5.9",
     "hardhat": "^2.19.5",
     "hardhat-gas-reporter": "^1.0.10",
     "solidity-coverage": "^0.8.16",
