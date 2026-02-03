@@ -125,7 +125,8 @@ const CreateProfilePage: React.FC = () => {
 
   useEffect(() => {
     if (selectedAuth === 'wallet' && !isConnected && !isConnecting) {
-      connectWallet()
+      // Show wallet selector modal instead of auto-connecting
+      setShowWalletSelector(true)
       
       // Show return instructions after 3 seconds on mobile
       if (typeof window !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
@@ -134,12 +135,13 @@ const CreateProfilePage: React.FC = () => {
         }, 3000)
       }
     }
-  }, [selectedAuth, isConnected, isConnecting, connectWallet])
+  }, [selectedAuth, isConnected, isConnecting])
 
-  // Hide return instructions when connected
+  // Hide return instructions and close wallet selector when connected
   useEffect(() => {
     if (isConnected) {
       setShowReturnInstructions(false)
+      setShowWalletSelector(false)
     }
   }, [isConnected])
 
