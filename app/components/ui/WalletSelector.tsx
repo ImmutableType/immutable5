@@ -181,7 +181,10 @@ export function WalletSelector({ onClose }: WalletSelectorProps) {
           <div style={{ padding: '1rem', textAlign: 'center', color: '#666', fontSize: '0.875rem' }}>
             <p>If you have a wallet installed, try clicking the buttons above.</p>
             <p style={{ marginTop: '0.5rem' }}>
-              Install <a href="https://metamask.io" target="_blank" rel="noopener noreferrer">MetaMask</a> or Flow Wallet extension to get started.
+              Install <a href="https://metamask.io" target="_blank" rel="noopener noreferrer">MetaMask</a> or <strong>Flow EVM Wallet</strong> extension to get started.
+            </p>
+            <p style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#999' }}>
+              ⚠️ Note: This app requires <strong>Flow EVM</strong> wallets (Ethereum-compatible). Cadence/native Flow wallets are not supported.
             </p>
           </div>
         )}

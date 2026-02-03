@@ -225,11 +225,19 @@ export function useUnifiedWallet(): UnifiedWalletReturn {
         } else {
           // Check for Flow Wallet in window object as fallback
           const win = window as any
-          if (win.flowWallet || win.fcl_extensions) {
+          
+          // Check if they have Cadence/native Flow wallet (not compatible with Flow EVM)
+          if (win.fcl || win.fcl_extensions) {
+            console.log('⚠️ Detected Flow FCL (Cadence wallet) - not compatible with Flow EVM')
+            throw new Error('You appear to have a Cadence/native Flow wallet installed. This app requires Flow EVM wallet (Ethereum-compatible). Please install the Flow Wallet extension for Flow EVM support, or use MetaMask with Flow EVM network configured.')
+          }
+          
+          if (win.flowWallet) {
             console.log('⚠️ Flow Wallet detected in window object but not via EIP-6963')
             throw new Error('Flow Wallet is installed but not responding via EIP-6963. Please refresh the page or try reconnecting.')
           }
-          throw new Error('Flow Wallet not detected. Please ensure the Flow Wallet extension is installed and enabled, then refresh the page.')
+          
+          throw new Error('Flow EVM Wallet not detected. Please install the Flow Wallet extension (for Flow EVM, not Cadence) or use MetaMask with Flow EVM network configured. Note: Cadence/native Flow wallets are not compatible with this app.')
         }
       }
       
