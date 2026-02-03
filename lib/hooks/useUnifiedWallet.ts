@@ -58,17 +58,25 @@ export function useUnifiedWallet(): UnifiedWalletReturn {
     
     // Check available wallets and mobile device
     if (typeof window !== 'undefined') {
-      // Initialize EIP-6963 discovery
+      // Initialize EIP-6963 discovery immediately
       import('../web3/eip6963').then(({ initEIP6963Discovery }) => {
         initEIP6963Discovery()
         
-        // Give wallets time to announce, then check availability
-        setTimeout(() => {
+        // Check availability immediately, then again after delay for wallets that announce late
+        const checkWallets = () => {
           setAvailableWallets({
             metamask: isMetaMaskAvailable(),
             flowWallet: isFlowWalletAvailable()
           })
-        }, 1000)
+        }
+        
+        // Initial check
+        checkWallets()
+        
+        // Check again after delay for wallets that announce late
+        setTimeout(checkWallets, 500)
+        setTimeout(checkWallets, 1000)
+        setTimeout(checkWallets, 2000)
       })
       
       // Check if mobile device
