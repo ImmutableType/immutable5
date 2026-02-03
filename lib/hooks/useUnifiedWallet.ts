@@ -166,9 +166,10 @@ export function useUnifiedWallet(): UnifiedWalletReturn {
     
     // Set up event listeners
     if (mmProvider.on) {
-      mmProvider.on('accountsChanged', (accounts: string[]) => {
-        if (accounts.length > 0) {
-          setAddress(accounts[0])
+      mmProvider.on('accountsChanged', (accounts: unknown) => {
+        const accountsArray = accounts as string[]
+        if (accountsArray && accountsArray.length > 0) {
+          setAddress(accountsArray[0])
         } else {
           setAddress(null)
           setWalletType(null)
@@ -233,9 +234,10 @@ export function useUnifiedWallet(): UnifiedWalletReturn {
       
       // Set up event listeners if available
       if (flowProvider.on) {
-        flowProvider.on('accountsChanged', (accounts: string[]) => {
-          if (accounts.length > 0) {
-            setAddress(accounts[0])
+        flowProvider.on('accountsChanged', (accounts: unknown) => {
+          const accountsArray = accounts as string[]
+          if (accountsArray && accountsArray.length > 0) {
+            setAddress(accountsArray[0])
           } else {
             setAddress(null)
             setWalletType(null)
