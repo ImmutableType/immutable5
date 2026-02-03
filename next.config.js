@@ -9,10 +9,8 @@ const nextConfig = {
   },
   
   // Exclude archive directory from build
-  experimental: {
-    outputFileTracingExcludes: {
-      '*': ['./archive/**/*']
-    }
+  outputFileTracingExcludes: {
+    '*': ['./archive/**/*']
   }
 }
 

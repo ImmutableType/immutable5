@@ -37,30 +37,40 @@ export class ProfileNFTService {
   }
 
   // Wallet-connected initialization for profile management
-  async initialize(): Promise<void> {
+  // Accepts optional provider to support both MetaMask and Flow Wallet
+  async initialize(provider?: BrowserProvider): Promise<void> {
     console.log('ProfileNFT: Initializing service...')
     
-    const sdkProvider = MMSDK.getProvider()
-    console.log('ProfileNFT: SDK provider available:', !!sdkProvider)
-    
-    if (!sdkProvider) {
-      throw new Error('MetaMask provider not available - please connect wallet first')
-    }
-    
-    // Test if provider is actually functional
-    try {
-      const accounts = await sdkProvider.request({ method: 'eth_accounts' }) as string[]
-      console.log('ProfileNFT: Provider accounts check:', accounts)
+    if (provider) {
+      // Use provided provider (from unified wallet hook)
+      console.log('ProfileNFT: Using provided provider (unified wallet)')
+      this.provider = provider
+    } else {
+      // Fall back to MetaMask SDK for backward compatibility
+      console.log('ProfileNFT: Using MetaMask SDK provider')
+      const sdkProvider = MMSDK.getProvider()
+      console.log('ProfileNFT: SDK provider available:', !!sdkProvider)
       
-      if (accounts.length === 0) {
-        throw new Error('No accounts connected - please reconnect wallet')
+      if (!sdkProvider) {
+        throw new Error('Wallet provider not available - please connect wallet first')
       }
-    } catch (error) {
-      console.error('ProfileNFT: Provider test failed:', error)
-      throw new Error('Provider connection test failed - please reconnect wallet')
+      
+      // Test if provider is actually functional
+      try {
+        const accounts = await sdkProvider.request({ method: 'eth_accounts' }) as string[]
+        console.log('ProfileNFT: Provider accounts check:', accounts)
+        
+        if (accounts.length === 0) {
+          throw new Error('No accounts connected - please reconnect wallet')
+        }
+      } catch (error) {
+        console.error('ProfileNFT: Provider test failed:', error)
+        throw new Error('Provider connection test failed - please reconnect wallet')
+      }
+      
+      this.provider = new ethers.BrowserProvider(sdkProvider)
     }
     
-    this.provider = new ethers.BrowserProvider(sdkProvider)
     this.contract = new ethers.Contract(
       this.contractAddress,
       PROFILE_NFT_ABI,
@@ -202,7 +212,7 @@ export class ProfileNFTService {
     }
   }
 
-  async createBasicProfile(profileData: ProfileData, address: string): Promise<ProfileCreationResult> {
+  async createBasicProfile(profileData: ProfileData, address: string, provider?: BrowserProvider): Promise<ProfileCreationResult> {
     try {
       console.log('=== PROFILE CREATION DEBUG START ===')
       console.log('1. Profile data received:', profileData)
@@ -213,7 +223,7 @@ export class ProfileNFTService {
       this.provider = null
       this.contract = null
       
-      await this.initialize()
+      await this.initialize(provider)
       
       console.log('4. Testing network connection...')
       const network = await this.provider!.getNetwork()

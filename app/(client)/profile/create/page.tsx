@@ -1,12 +1,13 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react'
-import { useDirectWallet } from '../../../../lib/hooks/useDirectWallet'
+import { useUnifiedWallet } from '../../../../lib/hooks/useUnifiedWallet'
 import { tokenQualifierService } from '../../../../lib/services/profile/TokenQualifier'
 import confetti from 'canvas-confetti'
 import Image from 'next/image'
 import { Modal } from '../../../components/ui/Modal'
 import { HowToModalContent } from '../../../components/features/registration/HowToModal'
+import { WalletSelector } from '../../../components/ui/WalletSelector'
 
 type AuthMethod = 'wallet' | null
 
@@ -54,18 +55,32 @@ const CreateProfilePage: React.FC = () => {
   const { 
     address, 
     isConnected, 
-    connectWallet, 
-    isMobileDevice, 
-    isConnecting
-  } = useDirectWallet()
+    connectWallet,
+    isConnecting,
+    isMobileDevice,
+    availableWallets,
+    provider
+  } = useUnifiedWallet()
+  
+  const [showWalletSelector, setShowWalletSelector] = useState(false)
+
+  // Auto-select wallet auth if already connected (e.g., redirected from Navigation)
+  useEffect(() => {
+    if (isConnected && address && !selectedAuth) {
+      console.log('✅ Profile Create - Wallet already connected, auto-selecting wallet auth')
+      setSelectedAuth('wallet')
+    }
+  }, [isConnected, address, selectedAuth])
 
   const checkBuffaflowQualification = useCallback(async () => {
-    if (!address) return
+    if (!address || !provider) return
     
     setIsCheckingQualification(true)
     
     try {
       console.log('Starting qualification check...')
+      // Initialize with unified wallet provider
+      await tokenQualifierService.initialize(provider)
       const status = await tokenQualifierService.checkQualification(address)
       setQualificationStatus(status)
       
@@ -100,6 +115,14 @@ const CreateProfilePage: React.FC = () => {
     }
   }, [creationState.status])
 
+  // Auto-select wallet auth if already connected (e.g., redirected from Navigation)
+  useEffect(() => {
+    if (isConnected && address && !selectedAuth) {
+      console.log('✅ Profile Create - Wallet already connected, auto-selecting wallet auth')
+      setSelectedAuth('wallet')
+    }
+  }, [isConnected, address, selectedAuth])
+
   useEffect(() => {
     if (selectedAuth === 'wallet' && !isConnected && !isConnecting) {
       connectWallet()
@@ -121,10 +144,10 @@ const CreateProfilePage: React.FC = () => {
   }, [isConnected])
 
   useEffect(() => {
-    if (isConnected && address && selectedAuth === 'wallet') {
+    if (isConnected && address && provider && selectedAuth === 'wallet') {
       checkBuffaflowQualification()
     }
-  }, [isConnected, address, selectedAuth, checkBuffaflowQualification])
+  }, [isConnected, address, provider, selectedAuth, checkBuffaflowQualification])
 
   // Check if user already has a profile
   useEffect(() => {
@@ -192,7 +215,13 @@ const CreateProfilePage: React.FC = () => {
     e.preventDefault()
     
     if (!validateForm(formData)) return
-    if (!address) return
+    if (!address || !provider) {
+      setCreationState({ 
+        status: 'error', 
+        error: 'Wallet provider not available. Please reconnect your wallet.' 
+      })
+      return
+    }
     
     setCreationState({ status: 'preparing' })
     
@@ -203,7 +232,8 @@ const CreateProfilePage: React.FC = () => {
       
       setCreationState({ status: 'pending' })
       
-      const result = await profileNFTService.createBasicProfile(formData, address)
+      // Pass the unified wallet provider to support both MetaMask and Flow Wallet
+      const result = await profileNFTService.createBasicProfile(formData, address, provider)
       
       if (result.success) {
         setCreationState({
@@ -244,16 +274,6 @@ const CreateProfilePage: React.FC = () => {
     return `Create Identity Profile (${feeText})`
   }
 
-  if (typeof window === 'undefined') {
-    return (
-      <div className="profile-container profile-centered">
-        <div className="profile-card">
-          <h1 className="profile-title">Loading ImmutableType...</h1>
-        </div>
-      </div>
-    )
-  }
-
   // Mobile browser detection - show message immediately before anything else
   if (isMobileDevice) {
     return (
@@ -276,17 +296,17 @@ const CreateProfilePage: React.FC = () => {
     )
   }
 
-    // Show loading while checking for existing profile
-    if (checkingExistingProfile) {
-      return (
-        <div className="profile-container profile-centered">
-          <div className="profile-card">
-            <h1 className="profile-title">Checking Profile Status...</h1>
-            <p className="profile-subtitle">Please wait while we verify your account...</p>
-          </div>
+  // Show loading while checking for existing profile
+  if (checkingExistingProfile) {
+    return (
+      <div className="profile-container profile-centered">
+        <div className="profile-card">
+          <h1 className="profile-title">Loading...</h1>
+          <p className="profile-subtitle">Please wait while we verify your account...</p>
         </div>
-      )
-    }
+      </div>
+    )
+  }
 
   // Block users who already have a profile
   if (hasExistingProfile) {
@@ -324,12 +344,27 @@ const CreateProfilePage: React.FC = () => {
             </p>
 
             <button
-              onClick={() => setSelectedAuth('wallet')}
+              onClick={() => setShowWalletSelector(true)}
               className="btn btn-primary btn-icon"
             >
-              <span style={{ fontSize: '1.25rem' }}>🦊</span>
-              Connect with MetaMask
+              <span style={{ fontSize: '1.25rem' }}>🔗</span>
+              Connect Wallet
             </button>
+            
+            <Modal
+              isOpen={showWalletSelector}
+              onClose={() => setShowWalletSelector(false)}
+              title="Connect Wallet"
+            >
+              <WalletSelector 
+                onClose={() => {
+                  setShowWalletSelector(false)
+                  if (isConnected) {
+                    setSelectedAuth('wallet')
+                  }
+                }} 
+              />
+            </Modal>
 
             <div style={{ 
               textAlign: 'center', 
@@ -368,17 +403,17 @@ const CreateProfilePage: React.FC = () => {
           
           {!showReturnInstructions ? (
             <p className="profile-subtitle">
-              Please approve the wallet connection in MetaMask and ensure you&apos;re connected to the Flow EVM network
+              Please approve the wallet connection and ensure you&apos;re connected to the Flow EVM network
             </p>
           ) : (
             <>
               <p className="profile-subtitle">
-                Connected to MetaMask? Please return to this app to continue creating your profile.
+                Connected to your wallet? Please return to this app to continue creating your profile.
               </p>
               <div className="alert alert-info" style={{ marginTop: '1rem' }}>
                 <div className="alert-title">📱 On Mobile?</div>
                 <div className="alert-subtitle">
-                  After connecting in MetaMask app, manually return to this browser tab to continue.
+                  After connecting in your wallet app, manually return to this browser tab to continue.
                 </div>
               </div>
             </>

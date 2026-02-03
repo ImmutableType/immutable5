@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { MintedBookmark, MintedBookmarkService } from '../../../../lib/services/blockchain/MintedBookmarkService';
+import { useUnifiedWallet } from '../../../../lib/hooks/useUnifiedWallet';
 
 interface MintedBookmarksProps {
   userAddress?: string;
@@ -16,8 +17,9 @@ export function MintedBookmarks({ userAddress, profileId, profileOwnerAddress }:
   const [totalBookmarksCount, setTotalBookmarksCount] = useState(0);
   const [displayCount, setDisplayCount] = useState(5); // NEW: Pagination
   const [hasMore, setHasMore] = useState(false); // NEW: Track if more bookmarks exist
-  const [connecting, setConnecting] = useState(false); // NEW: Connection loading state
 
+  // Use unified wallet hook for wallet connection state
+  const { isConnected } = useUnifiedWallet();
   const mintedBookmarkService = new MintedBookmarkService();
 
   useEffect(() => {
@@ -65,20 +67,8 @@ export function MintedBookmarks({ userAddress, profileId, profileOwnerAddress }:
     });
   };
 
-  const connectWallet = () => {
-    if (window.ethereum) {
-      setConnecting(true);
-      window.ethereum.request({ method: 'eth_requestAccounts' }).then(() => {
-        // Wait briefly for connection to establish, then refresh
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
-      }).catch((error) => {
-        console.error('Wallet connection failed:', error);
-        setConnecting(false);
-      });
-    }
-  };
+  // Wallet connection is now handled globally via Navigation component
+  // No need for local connection handler
 
   const formatDate = (timestamp: number) => {
     return new Date(timestamp * 1000).toLocaleDateString('en-US', {
@@ -115,9 +105,9 @@ export function MintedBookmarks({ userAddress, profileId, profileOwnerAddress }:
           <div className="connect-icon">🔗</div>
           <h3>Connect Wallet to View Bookmarks</h3>
           <p>This user has bookmark NFT collections. Connect your wallet to view their curated bookmarks.</p>
-          <button onClick={connectWallet} className="connect-button" disabled={connecting}>
-            {connecting ? 'Connecting...' : 'Connect Wallet'}
-          </button>
+          <div className="browse-note" style={{ marginBottom: '1rem' }}>
+            <strong>Connect your wallet</strong> using the "Connect Wallet" button in the navigation bar to view your bookmarks.
+          </div>
           <div className="browse-note">
             Or continue browsing publicly:
             <br />• View profile information

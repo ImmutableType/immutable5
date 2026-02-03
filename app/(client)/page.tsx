@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useDirectWallet } from '../../lib/hooks/useDirectWallet'
+import { useUnifiedWallet } from '../../lib/hooks/useUnifiedWallet'
 
 export default function HomePage() {
   const router = useRouter()
-  const { address, isConnected } = useDirectWallet()
+  const { address, isConnected } = useUnifiedWallet()
   const [checking, setChecking] = useState(true)
 
   useEffect(() => {

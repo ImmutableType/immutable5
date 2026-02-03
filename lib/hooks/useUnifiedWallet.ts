@@ -1,0 +1,378 @@
+'use client'
+
+import { useState, useEffect, useCallback } from 'react'
+import { SDKProvider } from '@metamask/sdk'
+import { MMSDK } from '../web3/metamask'
+import { 
+  isFlowWalletAvailable, 
+  getFlowWalletProvider, 
+  isMetaMaskAvailable,
+} from '../web3/eip6963'
+import { ethers } from 'ethers'
+
+// Flow EVM Mainnet configuration
+const FLOW_EVM_MAINNET = {
+  chainId: `0x${parseInt(process.env.NEXT_PUBLIC_FLOW_EVM_CHAIN_ID || '747').toString(16)}`, // 0x2eb
+  chainName: 'Flow EVM Mainnet',
+  rpcUrls: [process.env.NEXT_PUBLIC_FLOW_EVM_RPC_URL || 'https://mainnet.evm.nodes.onflow.org'],
+  blockExplorerUrls: ['https://evm.flowscan.io'],
+  nativeCurrency: {
+    name: 'Flow',
+    symbol: 'FLOW',
+    decimals: 18
+  }
+}
+
+export type WalletType = 'metamask' | 'flow-wallet' | null
+
+export interface UnifiedWalletReturn {
+  address: string | null
+  isConnected: boolean
+  walletType: WalletType
+  connectWallet: (walletType: 'metamask' | 'flow-wallet') => Promise<void>
+  disconnect: () => void
+  isConnecting: boolean
+  isClient: boolean
+  isMobileDevice: boolean
+  availableWallets: {
+    metamask: boolean
+    flowWallet: boolean
+  }
+  provider: ethers.BrowserProvider | null
+}
+
+export function useUnifiedWallet(): UnifiedWalletReturn {
+  const [address, setAddress] = useState<string | null>(null)
+  const [walletType, setWalletType] = useState<WalletType>(null)
+  const [isConnecting, setIsConnecting] = useState(false)
+  const [isClient, setIsClient] = useState(false)
+  const [provider, setProvider] = useState<ethers.BrowserProvider | null>(null)
+  const [availableWallets, setAvailableWallets] = useState({
+    metamask: false,
+    flowWallet: false
+  })
+  const [isMobileDevice, setIsMobileDevice] = useState(false)
+
+  useEffect(() => {
+    setIsClient(true)
+    
+    // Check available wallets and mobile device
+    if (typeof window !== 'undefined') {
+      // Initialize EIP-6963 discovery
+      import('../web3/eip6963').then(({ initEIP6963Discovery }) => {
+        initEIP6963Discovery()
+        
+        // Give wallets time to announce, then check availability
+        setTimeout(() => {
+          setAvailableWallets({
+            metamask: isMetaMaskAvailable(),
+            flowWallet: isFlowWalletAvailable()
+          })
+        }, 1000)
+      })
+      
+      // Check if mobile device
+      const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+      setIsMobileDevice(mobile)
+    }
+  }, [])
+
+  const ensureCorrectNetwork = async (provider: SDKProvider | any) => {
+    try {
+      const currentChainId = await provider.request({ method: 'eth_chainId' }) as string
+      const targetChainId = FLOW_EVM_MAINNET.chainId
+      
+      // Normalize chain IDs for comparison (handle both hex and decimal)
+      const normalizeChainId = (id: string | number): string => {
+        if (typeof id === 'number') return `0x${id.toString(16)}`
+        if (id.startsWith('0x')) return id.toLowerCase()
+        return `0x${parseInt(id).toString(16)}`
+      }
+      
+      const currentNormalized = normalizeChainId(currentChainId)
+      const targetNormalized = normalizeChainId(targetChainId)
+      
+      console.log('=== NETWORK CHECK ===')
+      console.log('Current chain ID:', currentChainId, `(normalized: ${currentNormalized})`)
+      console.log('Target chain ID:', targetChainId, `(normalized: ${targetNormalized})`)
+      
+      if (currentNormalized !== targetNormalized) {
+        console.log(`🔄 Switching to Flow EVM Mainnet ${targetChainId}`)
+        
+        try {
+          await provider.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: targetChainId }],
+          })
+          console.log('✅ Network switch successful')
+        } catch (error: unknown) {
+          const err = error as { code?: number; message?: string }
+          if (err.code === 4902) {
+            console.log('➕ Adding Flow EVM Mainnet to wallet...')
+            await provider.request({
+              method: 'wallet_addEthereumChain',
+              params: [FLOW_EVM_MAINNET]
+            })
+            console.log('✅ Network added successfully')
+          } else {
+            console.error('❌ Network switch failed:', err.message)
+            throw new Error(`Failed to switch to Flow EVM Mainnet: ${err.message}`)
+          }
+        }
+        
+        // Wait for network stabilization
+        await new Promise(resolve => setTimeout(resolve, 2000))
+      } else {
+        console.log('✅ Already on Flow EVM Mainnet')
+      }
+    } catch (error) {
+      console.error('❌ Network switching error:', error)
+      throw error
+    }
+  }
+
+  const connectMetaMask = async () => {
+    console.log('🔌 Connecting with MetaMask...')
+    
+    const accounts = await MMSDK.connect()
+    if (!accounts || accounts.length === 0) {
+      throw new Error('No accounts returned from MetaMask')
+    }
+    
+    const mmProvider = MMSDK.getProvider()
+    if (!mmProvider) {
+      throw new Error('MetaMask provider not available')
+    }
+    
+    await ensureCorrectNetwork(mmProvider)
+    
+    const finalAccounts = await mmProvider.request({ method: 'eth_accounts' }) as string[]
+    if (finalAccounts.length === 0) {
+      throw new Error('No accounts available after connection')
+    }
+    
+    const browserProvider = new ethers.BrowserProvider(mmProvider)
+    setProvider(browserProvider)
+    setAddress(finalAccounts[0])
+    setWalletType('metamask')
+    
+    // Set up event listeners
+    if (mmProvider.on) {
+      mmProvider.on('accountsChanged', (accounts: string[]) => {
+        if (accounts.length > 0) {
+          setAddress(accounts[0])
+        } else {
+          setAddress(null)
+          setWalletType(null)
+          setProvider(null)
+        }
+      })
+      
+      mmProvider.on('chainChanged', () => {
+        // Optionally handle chain changes
+      })
+    }
+    
+    console.log('✅ MetaMask connected:', finalAccounts[0])
+  }
+
+  const connectFlowWallet = async () => {
+    console.log('🔌 Connecting with Flow Wallet (EIP-6963)...')
+    
+    try {
+      // Initialize EIP-6963 discovery if not already done
+      const { initEIP6963Discovery } = await import('../web3/eip6963')
+      initEIP6963Discovery()
+      
+      // Give wallets time to announce
+      await new Promise(resolve => setTimeout(resolve, 500))
+      
+      const flowProvider = getFlowWalletProvider()
+      console.log('🔍 Flow Wallet provider result:', flowProvider ? 'Found' : 'Not found')
+      
+      if (!flowProvider) {
+        throw new Error('Flow Wallet not available. Please install Flow Wallet extension and refresh the page.')
+      }
+      
+      console.log('✅ Flow Wallet provider found, requesting accounts...')
+      
+      // Request account access
+      const accounts = await flowProvider.request({ 
+        method: 'eth_requestAccounts' 
+      }) as string[]
+      
+      console.log('📋 Accounts from request:', accounts)
+      
+      if (!accounts || accounts.length === 0) {
+        throw new Error('No accounts returned from Flow Wallet')
+      }
+      
+      console.log('✅ Accounts received, ensuring correct network...')
+      await ensureCorrectNetwork(flowProvider)
+      
+      const finalAccounts = await flowProvider.request({ method: 'eth_accounts' }) as string[]
+      console.log('📋 Final accounts:', finalAccounts)
+      
+      if (finalAccounts.length === 0) {
+        throw new Error('No accounts available after connection')
+      }
+      
+      console.log('✅ Creating ethers provider...')
+      const browserProvider = new ethers.BrowserProvider(flowProvider as any, 'any')
+      setProvider(browserProvider)
+      setAddress(finalAccounts[0])
+      setWalletType('flow-wallet')
+      
+      // Set up event listeners if available
+      if (flowProvider.on) {
+        flowProvider.on('accountsChanged', (accounts: string[]) => {
+          if (accounts.length > 0) {
+            setAddress(accounts[0])
+          } else {
+            setAddress(null)
+            setWalletType(null)
+            setProvider(null)
+          }
+        })
+        
+        flowProvider.on('chainChanged', () => {
+          // Optionally handle chain changes
+        })
+      }
+      
+      console.log('✅ Flow Wallet connected successfully:', finalAccounts[0])
+    } catch (error: unknown) {
+      console.error('❌ Flow Wallet connection error:', error)
+      const err = error as { code?: number; message?: string; stack?: string }
+      console.error('Error details:', {
+        code: err.code,
+        message: err.message,
+        stack: err.stack
+      })
+      throw error
+    }
+  }
+
+  const connectWallet = useCallback(async (type: 'metamask' | 'flow-wallet') => {
+    if (!isClient) return
+
+    setIsConnecting(true)
+    
+    try {
+      if (type === 'metamask') {
+        await connectMetaMask()
+      } else if (type === 'flow-wallet') {
+        await connectFlowWallet()
+      } else {
+        throw new Error('Invalid wallet type')
+      }
+    } catch (error: unknown) {
+      console.error('=== WALLET CONNECTION FAILED ===')
+      console.error('❌ Error details:', error)
+      
+      const err = error as { code?: number; message?: string }
+      if (err.code === 4001) {
+        console.log('👤 User rejected connection')
+        return
+      }
+      
+      throw error
+    } finally {
+      setIsConnecting(false)
+    }
+  }, [isClient])
+
+  const disconnect = useCallback(() => {
+    console.log('🔌 Disconnecting wallet...')
+    setAddress(null)
+    setWalletType(null)
+    setProvider(null)
+  }, [])
+
+  // Check for existing connection on mount
+  useEffect(() => {
+    if (!isClient) return
+
+    const checkExistingConnection = async () => {
+      try {
+        // Initialize EIP-6963 discovery first
+        const { initEIP6963Discovery } = await import('../web3/eip6963')
+        initEIP6963Discovery()
+        await new Promise(resolve => setTimeout(resolve, 500))
+        
+        // Normalize chain IDs for comparison
+        const normalizeChainId = (id: string | number): string => {
+          if (typeof id === 'number') return `0x${id.toString(16)}`
+          if (id.startsWith('0x')) return id.toLowerCase()
+          return `0x${parseInt(id).toString(16)}`
+        }
+        const targetChainIdNormalized = normalizeChainId(FLOW_EVM_MAINNET.chainId)
+
+        // Check MetaMask first
+        const mmProvider = MMSDK.getProvider()
+        if (mmProvider) {
+          const accounts = await mmProvider.request({ method: 'eth_accounts' }) as string[]
+          if (accounts.length > 0) {
+            const chainId = await mmProvider.request({ method: 'eth_chainId' }) as string
+            const currentChainIdNormalized = normalizeChainId(chainId)
+            console.log('🔍 Checking MetaMask connection:', {
+              chainId,
+              normalized: currentChainIdNormalized,
+              target: targetChainIdNormalized,
+              match: currentChainIdNormalized === targetChainIdNormalized
+            })
+            if (currentChainIdNormalized === targetChainIdNormalized) {
+              const browserProvider = new ethers.BrowserProvider(mmProvider)
+              setProvider(browserProvider)
+              setAddress(accounts[0])
+              setWalletType('metamask')
+              console.log('✅ Restored MetaMask connection')
+              return
+            }
+          }
+        }
+        
+        // Check Flow Wallet via EIP-6963
+        const flowProvider = getFlowWalletProvider()
+        if (flowProvider) {
+          const accounts = await flowProvider.request({ method: 'eth_accounts' }) as string[]
+          if (accounts.length > 0) {
+            const chainId = await flowProvider.request({ method: 'eth_chainId' }) as string
+            const currentChainIdNormalized = normalizeChainId(chainId)
+            console.log('🔍 Checking Flow Wallet connection:', {
+              chainId,
+              normalized: currentChainIdNormalized,
+              target: targetChainIdNormalized,
+              match: currentChainIdNormalized === targetChainIdNormalized
+            })
+            if (currentChainIdNormalized === targetChainIdNormalized) {
+              const browserProvider = new ethers.BrowserProvider(flowProvider as any, 'any')
+              setProvider(browserProvider)
+              setAddress(accounts[0])
+              setWalletType('flow-wallet')
+              console.log('✅ Restored Flow Wallet connection')
+              return
+            }
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error checking existing connection:', error)
+      }
+    }
+
+    setTimeout(checkExistingConnection, 500)
+  }, [isClient])
+
+  return {
+    address,
+    isConnected: !!address,
+    walletType,
+    connectWallet,
+    disconnect,
+    isConnecting,
+    isClient,
+    isMobileDevice,
+    availableWallets,
+    provider
+  }
+}

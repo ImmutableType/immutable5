@@ -5,6 +5,7 @@ import { BookmarkCollection, BookmarkItem, ParsedExtensionData } from '../../../
 import { BookmarkCard } from '../../ui/cards/BookmarkCard';
 import ChromeExtensionParser from './ChromeExtensionParser';
 import { MintedBookmarkService } from '../../../../lib/services/blockchain/MintedBookmarkService';
+import { useUnifiedWallet } from '../../../../lib/hooks/useUnifiedWallet';
 
 interface BookmarkCollectionProps {
   userAddress?: string;
@@ -20,6 +21,9 @@ export function BookmarkCollectionManager({ userAddress, isOwner }: BookmarkColl
   const [userQualified, setUserQualified] = useState(false);
   const [remainingMints, setRemainingMints] = useState(0);
   const [loading, setLoading] = useState(false);
+  
+  // Use unified wallet hook to support both MetaMask and Flow Wallet
+  const { address, provider, isConnected } = useUnifiedWallet()
 
   // Form states for manual bookmark entry
   const [newBookmark, setNewBookmark] = useState<BookmarkItem>({
@@ -33,10 +37,10 @@ export function BookmarkCollectionManager({ userAddress, isOwner }: BookmarkColl
 
   useEffect(() => {
     loadCollections();
-    if (userAddress) {
+    if (userAddress && provider && isConnected) {
       checkUserStatus();
     }
-  }, [userAddress]);
+  }, [userAddress, provider, isConnected]);
 
   const loadCollections = () => {
     const stored = localStorage.getItem('bookmarkCollections');
@@ -51,11 +55,11 @@ export function BookmarkCollectionManager({ userAddress, isOwner }: BookmarkColl
   };
 
   const checkUserStatus = async () => {
-    if (!userAddress) return;
-
+    if (!userAddress || !provider || !isConnected) return;
+    
     setLoading(true);
     try {
-      await mintedBookmarkService.initialize();
+      await mintedBookmarkService.initialize(provider);
       const qualified = await mintedBookmarkService.isUserQualified(userAddress);
       const remaining = await mintedBookmarkService.getUserRemainingMints(userAddress);
       

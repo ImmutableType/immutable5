@@ -21,12 +21,21 @@ export class BookmarkNFTService {
   private provider: ethers.BrowserProvider | null = null;
   private readOnlyContract: ethers.Contract | null = null;
 
-  async initialize(): Promise<void> {
-    if (typeof window === 'undefined' || !window.ethereum) {
-      throw new Error('MetaMask not available');
+  // Accepts optional provider to support both MetaMask and Flow Wallet
+  async initialize(provider?: ethers.BrowserProvider): Promise<void> {
+    if (provider) {
+      // Use provided provider (from unified wallet hook)
+      console.log('BookmarkNFTService: Using provided provider (unified wallet)');
+      this.provider = provider;
+    } else {
+      // Fall back to window.ethereum for backward compatibility
+      console.log('BookmarkNFTService: Using window.ethereum provider');
+      if (typeof window === 'undefined' || !window.ethereum) {
+        throw new Error('Wallet provider not available - please connect wallet first');
+      }
+      this.provider = new ethers.BrowserProvider(window.ethereum);
     }
-
-    this.provider = new ethers.BrowserProvider(window.ethereum);
+    
     const signer = await this.provider.getSigner();
     this.contract = new ethers.Contract(CONTRACTS.BOOKMARK_NFT, BOOKMARK_NFT_ABI, signer);
     

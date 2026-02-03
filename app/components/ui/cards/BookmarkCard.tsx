@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { BookmarkCollection, BookmarkItem } from '../../../../lib/types/bookmark';
 import { BookmarkNFTService, BookmarkData } from '../../../../lib/services/bookmark/BookmarkNFTService';
+import { useUnifiedWallet } from '../../../../lib/hooks/useUnifiedWallet';
 
 interface BookmarkCardProps {
   collection: BookmarkCollection;
@@ -15,29 +16,29 @@ export function BookmarkCard({ collection, onDelete, onEdit, userAddress }: Book
   const [isMinting, setIsMinting] = useState(false);
   const [mintError, setMintError] = useState<string | null>(null);
   const [mintSuccess, setMintSuccess] = useState<string | null>(null);
+  
+  // Use unified wallet hook to support both MetaMask and Flow Wallet
+  const { address, isConnected, provider } = useUnifiedWallet()
 
   const handleMint = async () => {
     console.log('Mint button clicked');
     
-    // Get wallet address directly from ethereum provider
-    let currentAddress = userAddress; // First try the prop
-    
-    if (!currentAddress && window.ethereum) {
-      try {
-        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-        if (accounts.length > 0) {
-          currentAddress = accounts[0];
-        }
-      } catch (error) {
-        console.error('Error getting accounts:', error);
-      }
-    }
+    // Use address from unified wallet hook, fallback to prop
+    const currentAddress = address || userAddress;
     
     console.log('Wallet address:', currentAddress);
+    console.log('Is connected:', isConnected);
+    console.log('Provider available:', !!provider);
     
-    if (!currentAddress) {
+    if (!currentAddress || !isConnected) {
       console.log('No wallet connected');
       setMintError('Please connect your wallet first');
+      return
+    }
+    
+    if (!provider) {
+      console.log('No provider available');
+      setMintError('Wallet provider not available. Please reconnect your wallet.');
       return;
     }
 
@@ -64,8 +65,8 @@ export function BookmarkCard({ collection, onDelete, onEdit, userAddress }: Book
       console.log('Creating BookmarkNFTService...');
       const bookmarkService = new BookmarkNFTService();
       
-      console.log('Initializing service...');
-      await bookmarkService.initialize();
+      console.log('Initializing service with unified wallet provider...');
+      await bookmarkService.initialize(provider);
       console.log('Service initialized successfully');
 
       // Check if user is qualified

@@ -2,57 +2,116 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { useDirectWallet } from '../../../lib/hooks/useDirectWallet'
+import { usePathname, useRouter } from 'next/navigation'
+import { useUnifiedWallet } from '../../../lib/hooks/useUnifiedWallet'
 import { ShareButton } from '../ui/ShareButton'
+import { WalletSelector } from '../ui/WalletSelector'
+import { Modal } from '../ui/Modal'
 
 export default function Navigation() {
-  const { address, isConnected, connectWallet } = useDirectWallet()
+  const { address, isConnected, walletType } = useUnifiedWallet()
   const [profileId, setProfileId] = useState<string | null>(null)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [showWalletSelector, setShowWalletSelector] = useState(false)
+  const [hasCheckedProfile, setHasCheckedProfile] = useState(false)
   const pathname = usePathname()
+  const router = useRouter()
+
+  // Debug logging
+  useEffect(() => {
+    console.log('🔍 Navigation - Wallet state:', {
+      address,
+      isConnected,
+      walletType,
+      showWalletSelector
+    })
+  }, [address, isConnected, walletType, showWalletSelector])
 
   // Close menu on route change
   useEffect(() => {
     setIsMobileMenuOpen(false)
   }, [pathname])
 
-  // Get user's profile ID when wallet connects
+  // Get user's profile ID when wallet connects and redirect if no profile
   useEffect(() => {
     async function loadProfileId() {
       if (!isConnected || !address) {
+        console.log('🔍 Navigation - Profile check skipped: not connected or no address')
         setProfileId(null)
+        setHasCheckedProfile(false)
         return
       }
 
+      // Only check once per connection to avoid multiple redirects
+      if (hasCheckedProfile) {
+        console.log('⏸️ Navigation - Profile already checked for this connection')
+        return
+      }
+
+      console.log('🔍 Navigation - Starting profile check for address:', address)
+      console.log('🔍 Navigation - Current pathname:', pathname)
+
       try {
+        setHasCheckedProfile(true)
         const { profileNFTService } = await import('../../../lib/services/profile/ProfileNFT')
         await profileNFTService.initializeReadOnly()
         
+        console.log('🔍 Navigation - Checking if profile exists...')
         const hasProfile = await profileNFTService.hasProfile(address)
+        console.log('🔍 Navigation - Profile check result:', hasProfile)
         
         if (hasProfile) {
+          console.log('✅ Navigation - Profile exists, loading profile data...')
           const profileData = await profileNFTService.getProfileByAddress(address)
           if (profileData?.profileId) {
+            console.log('✅ Navigation - Profile ID found:', profileData.profileId)
             setProfileId(profileData.profileId)
+          } else {
+            console.log('⚠️ Navigation - Profile exists but no profileId returned')
+          }
+        } else {
+          // No profile found - redirect to create profile page
+          // Only redirect if not already on the create profile page to avoid loops
+          console.log('🔍 Navigation - No profile found, checking if should redirect...')
+          console.log('🔍 Navigation - pathname:', pathname, 'should redirect:', pathname !== '/profile/create')
+          
+          if (pathname !== '/profile/create') {
+            console.log('✅ Navigation - No profile found, redirecting to /profile/create')
+            router.push('/profile/create')
+          } else {
+            console.log('⏸️ Navigation - Already on /profile/create, skipping redirect')
           }
         }
       } catch (error) {
-        console.error('Failed to load profile ID:', error)
+        console.error('❌ Navigation - Failed to load profile ID:', error)
+        setHasCheckedProfile(false) // Allow retry on error
+        // On error, don't redirect - let user stay on current page
       }
     }
 
     loadProfileId()
+  }, [isConnected, address, router, pathname, hasCheckedProfile])
+  
+  // Reset check flag when wallet disconnects or address changes
+  useEffect(() => {
+    if (!isConnected || !address) {
+      setHasCheckedProfile(false)
+    }
   }, [isConnected, address])
 
-  const handleConnect = async () => {
-    try {
-      await connectWallet()
-      setIsMobileMenuOpen(false)
-    } catch (error) {
-      console.error('Connection failed:', error)
-    }
+  const handleConnect = () => {
+    console.log('🔍 Navigation - handleConnect called')
+    setShowWalletSelector(true)
+    setIsMobileMenuOpen(false)
   }
+
+  // Close wallet selector when connected
+  useEffect(() => {
+    if (isConnected && showWalletSelector) {
+      console.log('✅ Navigation - Wallet connected, closing selector')
+      setShowWalletSelector(false)
+    }
+  }, [isConnected, showWalletSelector])
 
   const closeMenu = () => setIsMobileMenuOpen(false)
 
@@ -110,6 +169,15 @@ export default function Navigation() {
             </button>
           )}
         </div>
+
+        {/* Wallet Selector Modal */}
+        <Modal
+          isOpen={showWalletSelector}
+          onClose={() => setShowWalletSelector(false)}
+          title="Connect Wallet"
+        >
+          <WalletSelector onClose={() => setShowWalletSelector(false)} />
+        </Modal>
 
         {/* Mobile Menu Button */}
         <button

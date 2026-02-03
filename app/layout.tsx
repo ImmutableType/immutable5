@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { FlowWalletDebugger } from "../lib/web3/flowWalletDebug";
 
 export const metadata: Metadata = {
   title: "ImmutableType",
@@ -13,7 +14,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="antialiased">
+      <body className="antialiased" suppressHydrationWarning>
+        <FlowWalletDebugger />
         {children}
       </body>
     </html>

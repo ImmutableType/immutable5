@@ -30,8 +30,8 @@ The platform uses smart contracts (Solidity) for on-chain logic and a Next.js fr
 ## Prerequisites
 
 - **Node.js** 18+ and npm
-- **MetaMask** wallet extension
-- **Flow EVM Network** configured in MetaMask:
+- **Wallet Extension** (MetaMask or Flow Wallet)
+- **Flow EVM Network** configured in your wallet:
   - Network Name: Flow EVM Mainnet
   - RPC URL: `https://mainnet.evm.nodes.onflow.org`
   - Chain ID: `747`

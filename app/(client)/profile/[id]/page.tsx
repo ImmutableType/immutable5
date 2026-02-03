@@ -10,6 +10,7 @@ import BuyBuffaflow from '../../../../app/components/features/buffaflow/BuyBuffa
 import { Modal } from '../../../../app/components/ui/Modal'
 import { GlobalFeedTrigger } from '../../../../app/components/features/bookmarks/GlobalFeedTrigger'
 import { GlobalBookmarkFeed } from '../../../../app/components/features/bookmarks/GlobalBookmarkFeed'
+import { useUnifiedWallet } from '../../../../lib/hooks/useUnifiedWallet'
 
 interface ProfileDisplayData {
   tier: number
@@ -31,8 +32,10 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null)
   const [isOwner, setIsOwner] = useState(false)
   const [checkingOwnership, setCheckingOwnership] = useState(true)
-  const [walletAddress, setWalletAddress] = useState<string | null>(null)
   const [showGlobalFeed, setShowGlobalFeed] = useState(false)
+  
+  // Use unified wallet hook to support both MetaMask and Flow Wallet
+  const { address, isConnected, provider } = useUnifiedWallet()
 
   const loadProfile = useCallback(async () => {
     try {
@@ -59,31 +62,24 @@ export default function ProfilePage() {
     try {
       setCheckingOwnership(true)
       
-      // Check if accounts are already connected, don't request new ones
-      const accounts = await window.ethereum?.request({ method: 'eth_accounts' }) || []
-      
-      if (accounts.length > 0) {
-        // Only initialize if already connected
-        await profileNFTService.initialize()
+      // Check if wallet is connected using unified wallet hook
+      if (isConnected && address && provider) {
+        // Initialize with unified wallet provider
+        await profileNFTService.initialize(provider)
         const ownershipResult = await profileNFTService.isProfileOwner(profileId)
         setIsOwner(ownershipResult)
-        
-        const currentAddress = await profileNFTService.getCurrentAddress()
-        setWalletAddress(currentAddress)
       } else {
-        // Not connected - don't trigger connection modal
+        // Not connected - viewing in public mode
         setIsOwner(false)
-        setWalletAddress(null)
       }
       
     } catch (error) {
       console.log('Wallet not connected, viewing in public mode')
       setIsOwner(false)
-      setWalletAddress(null)
     } finally {
       setCheckingOwnership(false)
     }
-  }, [profileId])
+  }, [profileId, isConnected, address, provider])
 
   useEffect(() => {
     loadProfile()
@@ -321,7 +317,7 @@ export default function ProfilePage() {
 
   // Bookmark URLs Tab Content (only for profile owners)
   const bookmarkContent = (
-    <BookmarkCollectionManager isOwner={isOwner} userAddress={walletAddress || undefined} />
+    <BookmarkCollectionManager isOwner={isOwner} userAddress={address || undefined} />
   )
 
   // In the tabs configuration section, add the new tab:
@@ -338,7 +334,7 @@ export default function ProfilePage() {
         label: 'Minted Bookmarks',
         icon: '📚',
         content: <MintedBookmarks 
-  userAddress={walletAddress || undefined} 
+  userAddress={address || undefined} 
   profileId={profileId}
   profileOwnerAddress={profile.did.split(':')[4]} // Extract address from DID
 />
@@ -460,7 +456,7 @@ export default function ProfilePage() {
           {/* Global Feed Trigger - Only for connected users */}
           <GlobalFeedTrigger 
             onOpenFeed={() => setShowGlobalFeed(true)}
-            isConnected={!!walletAddress}
+            isConnected={isConnected}
           />
           
           <a href="https://immutabletype.com"

@@ -10,15 +10,23 @@ const FROTH_ABI = ["function balanceOf(address) view returns (uint256)"];
 export class TokenQualifierService {
   private provider: BrowserProvider | null = null
 
-  async initialize(): Promise<void> {
-    // Use shared MetaMask SDK instance
-    const sdkProvider = MMSDK.getProvider()
-    
-    if (!sdkProvider) {
-      throw new Error('MetaMask provider not available - please connect wallet first')
+  // Accepts optional provider to support both MetaMask and Flow Wallet
+  async initialize(provider?: BrowserProvider): Promise<void> {
+    if (provider) {
+      // Use provided provider (from unified wallet hook)
+      console.log('TokenQualifier: Using provided provider (unified wallet)')
+      this.provider = provider
+    } else {
+      // Fall back to MetaMask SDK for backward compatibility
+      console.log('TokenQualifier: Using MetaMask SDK provider')
+      const sdkProvider = MMSDK.getProvider()
+      
+      if (!sdkProvider) {
+        throw new Error('Wallet provider not available - please connect wallet first')
+      }
+      
+      this.provider = new ethers.BrowserProvider(sdkProvider)
     }
-    
-    this.provider = new ethers.BrowserProvider(sdkProvider)
   }
 
   // Add timeout wrapper for contract calls

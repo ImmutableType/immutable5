@@ -27,8 +27,9 @@ export class MintedBookmarkService {
     this.bookmarkNFTService = new BookmarkNFTService();
   }
 
-  async initialize(): Promise<void> {
-    await this.bookmarkNFTService.initialize();
+  // Accepts optional provider to support both MetaMask and Flow Wallet
+  async initialize(provider?: import('ethers').BrowserProvider): Promise<void> {
+    await this.bookmarkNFTService.initialize(provider);
   }
 
     // ADD THIS METHOD HERE:

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { ethers } from 'ethers'
+import { useUnifiedWallet } from '../../../../lib/hooks/useUnifiedWallet'
 
 const BUFFAFLOW_CONTRACT_ADDRESS = '0xc8654a7a4bd671d4ceac6096a92a3170fa3b4798'
 const WFLOW_CONTRACT_ADDRESS = '0xd3bF53DAC106A0290B0483EcBC89d40FcC961f3e' // Wrapped FLOW on Flow EVM
@@ -25,43 +26,34 @@ export default function BuyBuffaflow({ isOwnProfile = false }: BuyBuffaflowProps
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Use unified wallet hook to support both MetaMask and Flow Wallet
+  const { address, isConnected, provider } = useUnifiedWallet()
+
   // Check wallet connection and balances ONLY on own profile
   useEffect(() => {
-    if (isOwnProfile) {
+    if (isOwnProfile && isConnected && address && provider) {
       checkWalletAndBalances()
+    } else if (isOwnProfile && !isConnected) {
+      // Reset balances if not connected
+      setWalletAddress(null)
+      setFlowBalance(null)
+      setWflowBalance(null)
+      setBuffaflowBalance(null)
     }
-  }, [isOwnProfile])
+  }, [isOwnProfile, isConnected, address, provider])
 
   const checkWalletAndBalances = async () => {
+    if (!address || !provider) {
+      setError('Wallet not connected')
+      return
+    }
+
     try {
       setIsLoading(true)
       setError(null)
 
-      // Check if MetaMask is installed
-      if (typeof window.ethereum === 'undefined') {
-        setError('MetaMask not detected')
-        return
-      }
-
-      // Get connected accounts
-      const accounts = await window.ethereum.request({ 
-        method: 'eth_accounts' 
-      })
-
-      if (accounts.length === 0) {
-        // No wallet connected
-        setWalletAddress(null)
-        setFlowBalance(null)
-        setWflowBalance(null)
-        setBuffaflowBalance(null)
-        return
-      }
-
-      const address = accounts[0]
+      // Use address from unified wallet
       setWalletAddress(address)
-
-      // Create provider
-      const provider = new ethers.BrowserProvider(window.ethereum)
 
       // Get native FLOW balance
       const nativeBalance = await provider.getBalance(address)
@@ -102,30 +94,8 @@ export default function BuyBuffaflow({ isOwnProfile = false }: BuyBuffaflowProps
     }
   }
 
-  const handleConnectWallet = async () => {
-    try {
-      setIsLoading(true)
-      setError(null)
-
-      if (typeof window.ethereum === 'undefined') {
-        setError('MetaMask not installed')
-        return
-      }
-
-      // Request account access
-      await window.ethereum.request({ 
-        method: 'eth_requestAccounts' 
-      })
-
-      // Recheck balances after connection
-      await checkWalletAndBalances()
-    } catch (err) {
-      console.error('Error connecting wallet:', err)
-      setError('Failed to connect wallet')
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  // Wallet connection is now handled globally via Navigation component
+  // No need for local connection handler
 
   const handleFlowFunClick = () => {
     window.open('https://flowfun.xyz/collection/6893c3f9fc44a8bb9e159eb4/token', '_blank', 'noopener,noreferrer')
@@ -151,7 +121,7 @@ export default function BuyBuffaflow({ isOwnProfile = false }: BuyBuffaflowProps
       margin: '0 auto'
     }}>
       {/* Wallet Balance Card - ONLY SHOWN ON OWN PROFILE */}
-      {isOwnProfile && walletAddress && (
+      {isOwnProfile && address && (
         <div style={{
           background: isQualified 
             ? 'linear-gradient(135deg, var(--color-success-50) 0%, var(--color-success-100) 100%)'
@@ -312,7 +282,7 @@ export default function BuyBuffaflow({ isOwnProfile = false }: BuyBuffaflowProps
                 color: 'var(--color-text-tertiary)',
                 fontFamily: 'monospace'
               }}>
-                Wallet: {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+                Wallet: {address.slice(0, 6)}...{address.slice(-4)}
               </p>
             </>
           )}
@@ -347,8 +317,8 @@ export default function BuyBuffaflow({ isOwnProfile = false }: BuyBuffaflowProps
         </div>
       )}
 
-      {/* Connect Wallet Button - ONLY SHOWN ON OWN PROFILE */}
-      {isOwnProfile && !walletAddress && (
+      {/* Connect Wallet Message - ONLY SHOWN ON OWN PROFILE */}
+      {isOwnProfile && !address && (
         <div style={{
           background: 'var(--color-primary-50)',
           padding: '1.5rem',
@@ -360,36 +330,10 @@ export default function BuyBuffaflow({ isOwnProfile = false }: BuyBuffaflowProps
           <p style={{
             fontSize: 'var(--text-sm)',
             color: 'var(--color-text-secondary)',
-            marginBottom: '1rem'
+            marginBottom: '0.5rem'
           }}>
-            Connect your wallet to check your balances
+            Connect your wallet using the "Connect Wallet" button in the navigation bar to check your balances
           </p>
-          <button
-            onClick={handleConnectWallet}
-            disabled={isLoading}
-            style={{
-              background: 'var(--color-primary-600)',
-              color: 'white',
-              border: 'none',
-              padding: '0.75rem 1.5rem',
-              borderRadius: '8px',
-              fontSize: 'var(--text-sm)',
-              fontWeight: '600',
-              cursor: 'pointer',
-              transition: 'background-color 0.2s ease',
-              opacity: isLoading ? 0.6 : 1
-            }}
-            onMouseEnter={(e) => {
-              if (!isLoading) {
-                e.currentTarget.style.backgroundColor = 'var(--color-primary-700)'
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'var(--color-primary-600)'
-            }}
-          >
-            {isLoading ? 'Connecting...' : '🦊 Connect MetaMask'}
-          </button>
         </div>
       )}
 
