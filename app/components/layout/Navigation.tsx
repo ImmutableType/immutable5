@@ -17,15 +17,16 @@ export default function Navigation() {
   const pathname = usePathname()
   const router = useRouter()
 
-  // Debug logging
+  // Debug logging - log all state changes
   useEffect(() => {
-    console.log('🔍 Navigation - Wallet state:', {
+    console.log('🔍 Navigation - Wallet state changed:', {
       address,
       isConnected,
       walletType,
-      showWalletSelector
+      showWalletSelector,
+      hasCheckedProfile
     })
-  }, [address, isConnected, walletType, showWalletSelector])
+  }, [address, isConnected, walletType, showWalletSelector, hasCheckedProfile])
 
   // Close menu on route change
   useEffect(() => {
@@ -35,10 +36,12 @@ export default function Navigation() {
   // Get user's profile ID when wallet connects and redirect if no profile
   useEffect(() => {
     async function loadProfileId() {
+      console.log('🔍 Navigation - loadProfileId called', { isConnected, address, hasCheckedProfile })
+      
       if (!isConnected || !address) {
-        console.log('🔍 Navigation - Profile check skipped: not connected or no address')
+        console.log('🔍 Navigation - Profile check skipped: not connected or no address', { isConnected, address })
         setProfileId(null)
-        setHasCheckedProfile(false)
+        // Don't reset hasCheckedProfile here - only reset when disconnected
         return
       }
 
@@ -89,7 +92,12 @@ export default function Navigation() {
       }
     }
 
-    loadProfileId()
+    // Add a small delay to ensure state has propagated
+    const timer = setTimeout(() => {
+      loadProfileId()
+    }, 100)
+
+    return () => clearTimeout(timer)
   }, [isConnected, address, router, pathname, hasCheckedProfile])
   
   // Reset check flag when wallet disconnects or address changes
