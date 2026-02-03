@@ -40,12 +40,20 @@ function onAnnounceProvider(event: Event) {
   const customEvent = event as CustomEvent<EIP6963ProviderDetail>;
   const { info, provider } = customEvent.detail;
 
-  if (!info?.rdns || !provider) return;
+  if (!info?.rdns || !provider) {
+    console.warn('[EIP-6963] Received invalid provider announcement:', { info, hasProvider: !!provider });
+    return;
+  }
 
   // Store by RDNS for stable identification (uuid changes each session)
   discoveredProviders.set(info.rdns, { info, provider });
 
   console.log(`[EIP-6963] Wallet announced: ${info.name} (${info.rdns})`);
+  
+  // Special handling for Flow Wallet
+  if (info.rdns === WALLET_RDNS.FLOW_WALLET || info.name.toLowerCase().includes('flow')) {
+    console.log(`[EIP-6963] ✅ Flow Wallet detected: ${info.name} (${info.rdns})`);
+  }
 }
 
 /**
@@ -54,7 +62,12 @@ function onAnnounceProvider(event: Event) {
  */
 export function initEIP6963Discovery(): void {
   if (typeof window === 'undefined') return;
-  if (isListening) return;
+  if (isListening) {
+    console.log('[EIP-6963] Already initialized, requesting providers again...');
+    // Request again in case wallets weren't ready the first time
+    window.dispatchEvent(new Event('eip6963:requestProvider'));
+    return;
+  }
 
   // Listen for wallet announcements
   window.addEventListener('eip6963:announceProvider', onAnnounceProvider);
@@ -64,6 +77,17 @@ export function initEIP6963Discovery(): void {
 
   isListening = true;
   console.log('[EIP-6963] Discovery initialized');
+  
+  // Request again after a delay to catch wallets that load late
+  setTimeout(() => {
+    window.dispatchEvent(new Event('eip6963:requestProvider'));
+    console.log('[EIP-6963] Re-requesting providers for late-loading wallets');
+  }, 1000);
+  
+  setTimeout(() => {
+    window.dispatchEvent(new Event('eip6963:requestProvider'));
+    console.log('[EIP-6963] Final provider request');
+  }, 3000);
 }
 
 /**

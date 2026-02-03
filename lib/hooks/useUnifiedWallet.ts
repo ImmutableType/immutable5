@@ -190,17 +190,47 @@ export function useUnifiedWallet(): UnifiedWalletReturn {
     
     try {
       // Initialize EIP-6963 discovery if not already done
-      const { initEIP6963Discovery } = await import('../web3/eip6963')
+      const { initEIP6963Discovery, getAllProviders } = await import('../web3/eip6963')
       initEIP6963Discovery()
       
-      // Give wallets time to announce
-      await new Promise(resolve => setTimeout(resolve, 500))
+      // Give wallets time to announce - try multiple times
+      let flowProvider = null
+      for (let i = 0; i < 5; i++) {
+        await new Promise(resolve => setTimeout(resolve, 300))
+        flowProvider = getFlowWalletProvider()
+        if (flowProvider) {
+          console.log(`✅ Flow Wallet found after ${i + 1} attempts`)
+          break
+        }
+        
+        // Log all discovered providers for debugging
+        const allProviders = getAllProviders()
+        console.log(`🔍 Attempt ${i + 1}: Discovered providers:`, allProviders.map(p => p.info.name))
+      }
       
-      const flowProvider = getFlowWalletProvider()
       console.log('🔍 Flow Wallet provider result:', flowProvider ? 'Found' : 'Not found')
       
       if (!flowProvider) {
-        throw new Error('Flow Wallet not available. Please install Flow Wallet extension and refresh the page.')
+        // Check if Flow Wallet might be installed but not announcing
+        const allProviders = getAllProviders()
+        const flowProviders = allProviders.filter(p => 
+          p.info.name.toLowerCase().includes('flow') || 
+          p.info.rdns.includes('flow')
+        )
+        
+        if (flowProviders.length > 0) {
+          console.log('⚠️ Found Flow-related providers:', flowProviders.map(p => p.info.name))
+          // Try using the first Flow-related provider
+          flowProvider = flowProviders[0].provider
+        } else {
+          // Check for Flow Wallet in window object as fallback
+          const win = window as any
+          if (win.flowWallet || win.fcl_extensions) {
+            console.log('⚠️ Flow Wallet detected in window object but not via EIP-6963')
+            throw new Error('Flow Wallet is installed but not responding via EIP-6963. Please refresh the page or try reconnecting.')
+          }
+          throw new Error('Flow Wallet not detected. Please ensure the Flow Wallet extension is installed and enabled, then refresh the page.')
+        }
       }
       
       console.log('✅ Flow Wallet provider found, requesting accounts...')
