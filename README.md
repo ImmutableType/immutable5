@@ -205,7 +205,31 @@ npx hardhat run scripts/deploy-profile.js --network localhost
 
 ## Documentation
 
-- [Architecture Documentation](docs/architecture.md) - Detailed system architecture
+Comprehensive technical documentation is available in the [`docs/`](./docs/) directory:
+
+### Getting Started
+- **[Getting Started Guide](./docs/getting-started.md)** - Quick start for new developers
+- **[Installation & Setup](./docs/installation.md)** - Detailed setup instructions
+- **[Development Guide](./docs/development.md)** - Development workflow and best practices
+
+### Architecture & Integration
+- **[System Architecture](./docs/architecture.md)** - High-level system design
+- **[Wallet Integration](./docs/wallet-integration.md)** - Multi-wallet support guide
+- **[EIP-6963 Implementation](./docs/eip6963.md)** - Wallet discovery implementation
+- **[Smart Contracts](./docs/smart-contracts.md)** - Smart contract documentation
+- **[Service Layer](./docs/services.md)** - Service architecture and patterns
+
+### API Reference
+- **[Service API](./docs/api/services.md)** - Service layer API reference
+- **[Hooks API](./docs/api/hooks.md)** - React hooks API reference
+
+### Deployment & Contributing
+- **[Deployment Guide](./docs/deployment.md)** - Production deployment instructions
+- **[Environment Configuration](./docs/environment.md)** - Environment variables guide
+- **[Contributing Guidelines](./docs/contributing.md)** - How to contribute
+- **[Troubleshooting](./docs/troubleshooting.md)** - Common issues and solutions
+
+**Start here**: [Documentation Index](./docs/README.md)
 
 ---
 
