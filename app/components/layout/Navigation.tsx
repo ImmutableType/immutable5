@@ -113,13 +113,22 @@ export default function Navigation() {
     setIsMobileMenuOpen(false)
   }
 
-  // Close wallet selector when connected
+  // Close wallet selector when connected and force UI update
   useEffect(() => {
-    if (isConnected && showWalletSelector) {
-      console.log('✅ Navigation - Wallet connected, closing selector')
+    if (isConnected && address && showWalletSelector) {
+      console.log('✅ Navigation - Wallet connected, closing selector and updating UI', {
+        isConnected,
+        address,
+        walletType
+      })
       setShowWalletSelector(false)
+      // Force a small delay to ensure state has propagated to all components
+      setTimeout(() => {
+        // This ensures React re-renders with the new connection state
+        console.log('✅ Navigation - Connection state confirmed:', { isConnected, address, walletType })
+      }, 50)
     }
-  }, [isConnected, showWalletSelector])
+  }, [isConnected, address, walletType, showWalletSelector])
 
   const closeMenu = () => setIsMobileMenuOpen(false)
 

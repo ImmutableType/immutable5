@@ -160,9 +160,29 @@ export function useUnifiedWallet(): UnifiedWalletReturn {
     }
     
     const browserProvider = new ethers.BrowserProvider(mmProvider)
+    
+    // Update all state synchronously to ensure React re-renders
+    const connectedAddress = finalAccounts[0]
     setProvider(browserProvider)
-    setAddress(finalAccounts[0])
+    setAddress(connectedAddress)
     setWalletType('metamask')
+    
+    // Force a state update by using a callback to ensure React detects the change
+    // This ensures the UI updates immediately after connection
+    setTimeout(() => {
+      // Verify the connection is still active
+      mmProvider.request({ method: 'eth_accounts' }).then((accounts: unknown) => {
+        const accountsArray = accounts as string[]
+        if (accountsArray && accountsArray.length > 0 && accountsArray[0] === connectedAddress) {
+          // Connection is still valid, ensure state is set
+          setAddress(accountsArray[0])
+          setWalletType('metamask')
+          setProvider(browserProvider)
+        }
+      }).catch((error: unknown) => {
+        console.error('❌ Error verifying MetaMask connection:', error)
+      })
+    }, 100)
     
     // Set up event listeners
     if (mmProvider.on) {
@@ -170,6 +190,7 @@ export function useUnifiedWallet(): UnifiedWalletReturn {
         const accountsArray = accounts as string[]
         if (accountsArray && accountsArray.length > 0) {
           setAddress(accountsArray[0])
+          setWalletType('metamask')
         } else {
           setAddress(null)
           setWalletType(null)
@@ -182,7 +203,7 @@ export function useUnifiedWallet(): UnifiedWalletReturn {
       })
     }
     
-    console.log('✅ MetaMask connected:', finalAccounts[0])
+    console.log('✅ MetaMask connected:', connectedAddress)
   }
 
   const connectFlowWallet = async () => {
@@ -266,9 +287,29 @@ export function useUnifiedWallet(): UnifiedWalletReturn {
       
       console.log('✅ Creating ethers provider...')
       const browserProvider = new ethers.BrowserProvider(flowProvider as any, 'any')
+      
+      // Update all state synchronously to ensure React re-renders
+      const connectedAddress = finalAccounts[0]
       setProvider(browserProvider)
-      setAddress(finalAccounts[0])
+      setAddress(connectedAddress)
       setWalletType('flow-wallet')
+      
+      // Force a state update by using a callback to ensure React detects the change
+      // This ensures the UI updates immediately after connection
+      setTimeout(() => {
+        // Verify the connection is still active
+        flowProvider.request({ method: 'eth_accounts' }).then((accounts: unknown) => {
+          const accountsArray = accounts as string[]
+          if (accountsArray && accountsArray.length > 0 && accountsArray[0] === connectedAddress) {
+            // Connection is still valid, ensure state is set
+            setAddress(accountsArray[0])
+            setWalletType('flow-wallet')
+            setProvider(browserProvider)
+          }
+        }).catch((error: unknown) => {
+          console.error('❌ Error verifying Flow Wallet connection:', error)
+        })
+      }, 100)
       
       // Set up event listeners if available
       if (flowProvider.on) {
@@ -276,6 +317,7 @@ export function useUnifiedWallet(): UnifiedWalletReturn {
           const accountsArray = accounts as string[]
           if (accountsArray && accountsArray.length > 0) {
             setAddress(accountsArray[0])
+            setWalletType('flow-wallet')
           } else {
             setAddress(null)
             setWalletType(null)
@@ -288,7 +330,7 @@ export function useUnifiedWallet(): UnifiedWalletReturn {
         })
       }
       
-      console.log('✅ Flow Wallet connected successfully:', finalAccounts[0])
+      console.log('✅ Flow Wallet connected successfully:', connectedAddress)
     } catch (error: unknown) {
       console.error('❌ Flow Wallet connection error:', error)
       const err = error as { code?: number; message?: string; stack?: string }
@@ -411,9 +453,12 @@ export function useUnifiedWallet(): UnifiedWalletReturn {
     setTimeout(checkExistingConnection, 500)
   }, [isClient])
 
+  // Compute isConnected based on both address and walletType to ensure accurate state
+  const isConnected = !!(address && walletType)
+
   return {
     address,
-    isConnected: !!address,
+    isConnected,
     walletType,
     connectWallet,
     disconnect,
