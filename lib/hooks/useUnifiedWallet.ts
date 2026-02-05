@@ -398,28 +398,45 @@ export function useUnifiedWallet(): UnifiedWalletReturn {
         }
         const targetChainIdNormalized = normalizeChainId(FLOW_EVM_MAINNET.chainId)
 
-        // Check MetaMask first
-        const mmProvider = MMSDK.getProvider()
-        if (mmProvider) {
-          const accounts = await mmProvider.request({ method: 'eth_accounts' }) as string[]
-          if (accounts.length > 0) {
-            const chainId = await mmProvider.request({ method: 'eth_chainId' }) as string
-            const currentChainIdNormalized = normalizeChainId(chainId)
-            console.log('🔍 Checking MetaMask connection:', {
-              chainId,
-              normalized: currentChainIdNormalized,
-              target: targetChainIdNormalized,
-              match: currentChainIdNormalized === targetChainIdNormalized
-            })
-            if (currentChainIdNormalized === targetChainIdNormalized) {
-              const browserProvider = new ethers.BrowserProvider(mmProvider)
-              setProvider(browserProvider)
-              setAddress(accounts[0])
-              setWalletType('metamask')
-              console.log('✅ Restored MetaMask connection')
-              return
+        // Check MetaMask first (gracefully handle if not installed)
+        try {
+          const mmProvider = MMSDK.getProvider()
+          if (mmProvider) {
+            try {
+              const accounts = await mmProvider.request({ method: 'eth_accounts' }) as string[]
+              if (accounts.length > 0) {
+                const chainId = await mmProvider.request({ method: 'eth_chainId' }) as string
+                const currentChainIdNormalized = normalizeChainId(chainId)
+                console.log('🔍 Checking MetaMask connection:', {
+                  chainId,
+                  normalized: currentChainIdNormalized,
+                  target: targetChainIdNormalized,
+                  match: currentChainIdNormalized === targetChainIdNormalized
+                })
+                if (currentChainIdNormalized === targetChainIdNormalized) {
+                  const browserProvider = new ethers.BrowserProvider(mmProvider)
+                  setProvider(browserProvider)
+                  setAddress(accounts[0])
+                  setWalletType('metamask')
+                  console.log('✅ Restored MetaMask connection')
+                  return
+                }
+              }
+            } catch (mmError: unknown) {
+              // MetaMask not installed or not connected - this is fine, continue to Flow Wallet
+              const err = mmError as { message?: string }
+              if (err.message?.includes('MetaMask') || err.message?.includes('eth_requestAccounts')) {
+                // Silently continue - MetaMask not available is expected for Flow Wallet users
+                console.log('ℹ️ MetaMask not available, checking Flow Wallet...')
+              } else {
+                // Unexpected error, log it but continue
+                console.warn('⚠️ MetaMask check failed:', err.message)
+              }
             }
           }
+        } catch (mmInitError: unknown) {
+          // MetaMask SDK initialization error - continue to Flow Wallet
+          console.log('ℹ️ MetaMask SDK not available, checking Flow Wallet...')
         }
         
         // Check Flow Wallet via EIP-6963
@@ -445,8 +462,16 @@ export function useUnifiedWallet(): UnifiedWalletReturn {
             }
           }
         }
-      } catch (error) {
-        console.error('❌ Error checking existing connection:', error)
+      } catch (error: unknown) {
+        // Only log unexpected errors - MetaMask not being installed is expected for Flow Wallet users
+        const err = error as { message?: string }
+        if (err.message?.includes('MetaMask') || err.message?.includes('eth_requestAccounts')) {
+          // This is expected when MetaMask isn't installed - don't log as error
+          console.log('ℹ️ MetaMask not available during connection check (this is normal for Flow Wallet users)')
+        } else {
+          // Unexpected error - log it
+          console.error('❌ Error checking existing connection:', error)
+        }
       }
     }
 
