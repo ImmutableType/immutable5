@@ -81,28 +81,99 @@ export class ProfileNFTService {
     console.log('ProfileNFT: Service initialized successfully')
   }
 
-  async getProfile(profileId: string): Promise<ProfileDisplayData> {
-    if (!this.contract) {
-      // Default to read-only mode for profile viewing
+  /**
+   * Retry helper with exponential backoff
+   */
+  private async retryWithBackoff<T>(
+    fn: () => Promise<T>,
+    maxRetries: number = 3,
+    baseDelay: number = 1000
+  ): Promise<T> {
+    let lastError: Error | null = null
+    
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        return await fn()
+      } catch (error: unknown) {
+        lastError = error as Error
+        const errorMessage = lastError.message.toLowerCase()
+        
+        // Don't retry on "not found" or "invalid" errors - these are real errors
+        if (errorMessage.includes('not found') || 
+            errorMessage.includes('invalid') ||
+            errorMessage.includes('revert') ||
+            errorMessage.includes('execution reverted')) {
+          throw lastError
+        }
+        
+        // Don't retry on last attempt
+        if (attempt === maxRetries - 1) {
+          throw lastError
+        }
+        
+        // Exponential backoff: 1s, 2s, 4s
+        const delay = baseDelay * Math.pow(2, attempt)
+        console.log(`ProfileNFT: Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms delay. Error: ${lastError.message}`)
+        await new Promise(resolve => setTimeout(resolve, delay))
+      }
+    }
+    
+    throw lastError || new Error('Failed after retries')
+  }
+
+  async getProfile(profileId: string, useConnectedProvider: boolean = false, connectedProvider?: BrowserProvider): Promise<ProfileDisplayData> {
+    // If we have a connected provider, prefer it over public RPC (better rate limits)
+    if (useConnectedProvider && connectedProvider && !this.contract) {
+      console.log('ProfileNFT: Using connected wallet provider for better rate limits')
+      this.provider = connectedProvider
+      this.contract = new ethers.Contract(
+        this.contractAddress,
+        PROFILE_NFT_ABI,
+        this.provider
+      )
+      this.isReadOnly = false
+    } else if (!this.contract) {
+      // Default to read-only mode for public profile viewing
       await this.initializeReadOnly()
     }
 
-    try {
-      const profileData = await this.contract!.getProfile(profileId)
-      return {
-        tier: Number(profileData.tier),
-        did: profileData.did,
-        displayName: profileData.displayName,
-        bio: profileData.bio,
-        location: profileData.location,
-        avatarUrl: profileData.avatarUrl,
-        createdAt: Number(profileData.createdAt),
-        isActive: profileData.isActive
+    // Use retry logic with exponential backoff for RPC rate limiting
+    return this.retryWithBackoff(async () => {
+      try {
+        const profileData = await this.contract!.getProfile(profileId)
+        return {
+          tier: Number(profileData.tier),
+          did: profileData.did,
+          displayName: profileData.displayName,
+          bio: profileData.bio,
+          location: profileData.location,
+          avatarUrl: profileData.avatarUrl,
+          createdAt: Number(profileData.createdAt),
+          isActive: profileData.isActive
+        }
+      } catch (error: unknown) {
+        const err = error as Error
+        const errorMessage = err.message.toLowerCase()
+        
+        // Check if it's a rate limit error
+        if (errorMessage.includes('rate limit') || 
+            errorMessage.includes('too many requests') ||
+            errorMessage.includes('429') ||
+            errorMessage.includes('timeout') ||
+            errorMessage.includes('network')) {
+          throw new Error('RPC_RATE_LIMIT')
+        }
+        
+        // Check if profile doesn't exist
+        if (errorMessage.includes('not found') || 
+            errorMessage.includes('invalid token') ||
+            errorMessage.includes('nonexistent token')) {
+          throw new Error('PROFILE_NOT_FOUND')
+        }
+        
+        throw new Error(`Failed to get profile: ${err.message}`)
       }
-    } catch (error: unknown) {
-      const err = error as Error
-      throw new Error(`Failed to get profile: ${err.message}`)
-    }
+    }, 3, 1000) // 3 retries, starting with 1s delay
   }
 
   // Get current connected wallet address (only works if wallet-connected)

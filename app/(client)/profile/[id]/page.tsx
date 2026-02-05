@@ -37,38 +37,114 @@ export default function ProfilePage() {
   // Use unified wallet hook to support both MetaMask and Flow Wallet
   const { address, isConnected, provider } = useUnifiedWallet()
 
+  // Cache key for localStorage
+  const cacheKey = `profile_${profileId}`
+  const cacheTimestampKey = `profile_${profileId}_timestamp`
+  const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
+
+  // Load from cache if available and fresh
+  const loadFromCache = useCallback((): ProfileDisplayData | null => {
+    if (typeof window === 'undefined') return null
+    
+    try {
+      const cached = localStorage.getItem(cacheKey)
+      const timestamp = localStorage.getItem(cacheTimestampKey)
+      
+      if (cached && timestamp) {
+        const age = Date.now() - parseInt(timestamp, 10)
+        if (age < CACHE_DURATION) {
+          console.log('Profile: Loading from cache (age:', Math.round(age / 1000), 's)')
+          return JSON.parse(cached) as ProfileDisplayData
+        } else {
+          console.log('Profile: Cache expired, clearing')
+          localStorage.removeItem(cacheKey)
+          localStorage.removeItem(cacheTimestampKey)
+        }
+      }
+    } catch (error) {
+      console.error('Profile: Error loading from cache:', error)
+    }
+    
+    return null
+  }, [cacheKey, cacheTimestampKey])
+
+  // Save to cache
+  const saveToCache = useCallback((profileData: ProfileDisplayData) => {
+    if (typeof window === 'undefined') return
+    
+    try {
+      localStorage.setItem(cacheKey, JSON.stringify(profileData))
+      localStorage.setItem(cacheTimestampKey, Date.now().toString())
+      console.log('Profile: Saved to cache')
+    } catch (error) {
+      console.error('Profile: Error saving to cache:', error)
+    }
+  }, [cacheKey, cacheTimestampKey])
+
   const loadProfile = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
       
-      // Use read-only mode for public profile viewing
-      // Add timeout for mobile RPC calls
-      const initPromise = profileNFTService.initializeReadOnly()
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Profile loading timeout - please try again')), 15000)
+      // Try cache first
+      const cachedProfile = loadFromCache()
+      if (cachedProfile) {
+        console.log('Profile: Using cached data')
+        setProfile(cachedProfile)
+        setLoading(false)
+        return
+      }
+      
+      // Use connected provider if available (better rate limits than public RPC)
+      const useConnectedProvider = isConnected && provider !== null
+      
+      if (useConnectedProvider) {
+        console.log('Profile: Using connected wallet provider for better rate limits')
+      }
+      
+      // Get profile with retry logic (handled in service)
+      const getProfilePromise = profileNFTService.getProfile(
+        profileId,
+        useConnectedProvider,
+        provider || undefined
       )
       
-      await Promise.race([initPromise, timeoutPromise])
-      
-      // Get profile with timeout
-      const getProfilePromise = profileNFTService.getProfile(profileId)
+      // Add timeout for mobile RPC calls (longer timeout since we have retries)
       const getProfileTimeout = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Profile data loading timeout - please try again')), 15000)
+        setTimeout(() => reject(new Error('Profile data loading timeout - please try again')), 30000)
       )
       
       const profileData = await Promise.race([getProfilePromise, getProfileTimeout]) as ProfileDisplayData
       
+      // Save to cache
+      saveToCache(profileData)
       setProfile(profileData)
       
     } catch (err: unknown) {
       console.error('Error loading profile:', err)
       const errorMessage = err instanceof Error ? err.message : 'Failed to load profile'
-      setError(errorMessage)
+      
+      // Check if it's a rate limit error
+      if (errorMessage.includes('RPC_RATE_LIMIT')) {
+        // Try to use cached data even if expired
+        const cachedProfile = loadFromCache()
+        if (cachedProfile) {
+          console.log('Profile: Rate limited, using stale cache')
+          setProfile(cachedProfile)
+          setError('Using cached data - please refresh in a moment')
+          setLoading(false)
+          return
+        }
+        setError('Rate limit reached. Please wait a moment and try again.')
+      } else if (errorMessage.includes('PROFILE_NOT_FOUND')) {
+        setError('Profile not found')
+      } else {
+        setError(errorMessage)
+      }
     } finally {
       setLoading(false)
     }
-  }, [profileId])
+  }, [profileId, isConnected, provider, loadFromCache, saveToCache])
 
   const checkOwnership = useCallback(async () => {
     try {
