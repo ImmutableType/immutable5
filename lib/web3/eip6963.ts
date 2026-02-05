@@ -106,10 +106,24 @@ export function getAllProviders(): EIP6963ProviderDetail[] {
 
 /**
  * Get Flow Wallet's EIP-1193 provider specifically.
+ * Checks both EIP-6963 (desktop) and mobile-specific detection.
  */
 export function getFlowWalletProvider(): EIP1193Provider | null {
+  // First check EIP-6963 (desktop browser extensions)
   const detail = discoveredProviders.get(WALLET_RDNS.FLOW_WALLET);
-  return detail?.provider || null;
+  if (detail?.provider) {
+    return detail.provider;
+  }
+  
+  // Fall back to mobile-specific detection
+  if (typeof window !== 'undefined') {
+    const mobileProvider = checkMobileFlowWallet();
+    if (mobileProvider) {
+      return mobileProvider;
+    }
+  }
+  
+  return null;
 }
 
 /**
@@ -121,10 +135,65 @@ export function getMetaMaskProvider(): EIP1193Provider | null {
 }
 
 /**
- * Check if Flow Wallet has been discovered.
+ * Check for Flow Wallet on mobile devices (not using EIP-6963)
+ * Mobile apps may inject providers differently
+ */
+function checkMobileFlowWallet(): EIP1193Provider | null {
+  if (typeof window === 'undefined') return null;
+  
+  const win = window as any;
+  
+  // Check if window.ethereum is Flow Wallet on mobile
+  if (win.ethereum) {
+    // Check for Flow Wallet specific properties
+    if (win.ethereum.isFlowWallet || 
+        win.ethereum.providers?.some((p: any) => p.isFlowWallet) ||
+        win.flowWallet) {
+      console.log('[Mobile] Flow Wallet detected via window.ethereum');
+      return win.ethereum.isFlowWallet ? win.ethereum : win.flowWallet || win.ethereum;
+    }
+    
+    // On mobile, Flow Wallet might be in providers array
+    if (Array.isArray(win.ethereum.providers)) {
+      const flowProvider = win.ethereum.providers.find((p: any) => 
+        p.isFlowWallet || 
+        (p.constructor?.name?.toLowerCase().includes('flow')) ||
+        (p._state?.isFlowWallet)
+      );
+      if (flowProvider) {
+        console.log('[Mobile] Flow Wallet found in providers array');
+        return flowProvider;
+      }
+    }
+  }
+  
+  // Direct window.flowWallet check
+  if (win.flowWallet && typeof win.flowWallet.request === 'function') {
+    console.log('[Mobile] Flow Wallet detected via window.flowWallet');
+    return win.flowWallet;
+  }
+  
+  return null;
+}
+
+/**
+ * Check if Flow Wallet has been discovered (desktop EIP-6963 or mobile).
  */
 export function isFlowWalletAvailable(): boolean {
-  return discoveredProviders.has(WALLET_RDNS.FLOW_WALLET);
+  // Check EIP-6963 first (desktop browser extensions)
+  if (discoveredProviders.has(WALLET_RDNS.FLOW_WALLET)) {
+    return true;
+  }
+  
+  // Check mobile-specific detection
+  if (typeof window !== 'undefined') {
+    const mobileProvider = checkMobileFlowWallet();
+    if (mobileProvider) {
+      return true;
+    }
+  }
+  
+  return false;
 }
 
 /**

@@ -64,9 +64,21 @@ export function useUnifiedWallet(): UnifiedWalletReturn {
         
         // Check availability immediately, then again after delay for wallets that announce late
         const checkWallets = () => {
+          // On mobile, also check for direct window.ethereum injection
+          let flowWalletAvailable = isFlowWalletAvailable()
+          
+          // On mobile, Flow Wallet might not use EIP-6963, check directly
+          if (typeof window !== 'undefined' && !flowWalletAvailable) {
+            const win = window as any
+            if (win.ethereum?.isFlowWallet || win.flowWallet) {
+              flowWalletAvailable = true
+              console.log('[Mobile] Flow Wallet detected via direct window check')
+            }
+          }
+          
           setAvailableWallets({
             metamask: isMetaMaskAvailable(),
-            flowWallet: isFlowWalletAvailable()
+            flowWallet: flowWalletAvailable
           })
         }
         
@@ -77,6 +89,7 @@ export function useUnifiedWallet(): UnifiedWalletReturn {
         setTimeout(checkWallets, 500)
         setTimeout(checkWallets, 1000)
         setTimeout(checkWallets, 2000)
+        setTimeout(checkWallets, 3000) // Extra check for mobile apps
       })
       
       // Check if mobile device (for UI optimizations, not blocking)
@@ -208,7 +221,7 @@ export function useUnifiedWallet(): UnifiedWalletReturn {
   }
 
   const connectFlowWallet = async () => {
-    console.log('🔌 Connecting with Flow Wallet (EIP-6963)...')
+    console.log('🔌 Connecting with Flow Wallet...')
     
     try {
       // Initialize EIP-6963 discovery if not already done
@@ -219,7 +232,7 @@ export function useUnifiedWallet(): UnifiedWalletReturn {
       let flowProvider = null
       for (let i = 0; i < 5; i++) {
         await new Promise(resolve => setTimeout(resolve, 300))
-        flowProvider = getFlowWalletProvider()
+        flowProvider = getFlowWalletProvider() // Use top-level import
         if (flowProvider) {
           console.log(`✅ Flow Wallet found after ${i + 1} attempts`)
           break
@@ -245,7 +258,7 @@ export function useUnifiedWallet(): UnifiedWalletReturn {
           // Try using the first Flow-related provider
           flowProvider = flowProviders[0].provider
         } else {
-          // Check for Flow Wallet in window object as fallback
+          // Check for Flow Wallet in window object as fallback (mobile apps)
           const win = window as any
           
           // Check if they have Cadence/native Flow wallet (not compatible with Flow EVM)
@@ -254,12 +267,28 @@ export function useUnifiedWallet(): UnifiedWalletReturn {
             throw new Error('You appear to have a Cadence/native Flow wallet installed. This app requires Flow EVM wallet (Ethereum-compatible). Please install the Flow Wallet extension for Flow EVM support, or use MetaMask with Flow EVM network configured.')
           }
           
-          if (win.flowWallet) {
-            console.log('⚠️ Flow Wallet detected in window object but not via EIP-6963')
-            throw new Error('Flow Wallet is installed but not responding via EIP-6963. Please refresh the page or try reconnecting.')
+          // Check for mobile Flow Wallet injection
+          if (win.ethereum?.isFlowWallet) {
+            console.log('📱 Flow Wallet detected via window.ethereum (mobile)')
+            flowProvider = win.ethereum
+          } else if (win.flowWallet && typeof win.flowWallet.request === 'function') {
+            console.log('📱 Flow Wallet detected via window.flowWallet (mobile)')
+            flowProvider = win.flowWallet
+          } else if (win.ethereum?.providers) {
+            // Check providers array for Flow Wallet
+            const flowProviderInArray = win.ethereum.providers.find((p: any) => 
+              p.isFlowWallet || 
+              (p.constructor?.name?.toLowerCase().includes('flow'))
+            )
+            if (flowProviderInArray) {
+              console.log('📱 Flow Wallet found in providers array (mobile)')
+              flowProvider = flowProviderInArray
+            }
           }
           
-          throw new Error('Flow EVM Wallet not detected. Please install the Flow Wallet extension (for Flow EVM, not Cadence) or use MetaMask with Flow EVM network configured. Note: Cadence/native Flow wallets are not compatible with this app.')
+          if (!flowProvider) {
+            throw new Error('Flow EVM Wallet not detected. Please install the Flow Wallet app or extension (for Flow EVM, not Cadence) or use MetaMask with Flow EVM network configured. Note: Cadence/native Flow wallets are not compatible with this app.')
+          }
         }
       }
       

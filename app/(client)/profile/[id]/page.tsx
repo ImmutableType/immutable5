@@ -43,9 +43,21 @@ export default function ProfilePage() {
       setError(null)
       
       // Use read-only mode for public profile viewing
-      await profileNFTService.initializeReadOnly()
+      // Add timeout for mobile RPC calls
+      const initPromise = profileNFTService.initializeReadOnly()
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Profile loading timeout - please try again')), 15000)
+      )
       
-      const profileData = await profileNFTService.getProfile(profileId)
+      await Promise.race([initPromise, timeoutPromise])
+      
+      // Get profile with timeout
+      const getProfilePromise = profileNFTService.getProfile(profileId)
+      const getProfileTimeout = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Profile data loading timeout - please try again')), 15000)
+      )
+      
+      const profileData = await Promise.race([getProfilePromise, getProfileTimeout]) as ProfileDisplayData
       
       setProfile(profileData)
       
