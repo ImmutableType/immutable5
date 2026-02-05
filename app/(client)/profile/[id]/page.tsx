@@ -144,7 +144,7 @@ export default function ProfilePage() {
         gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
         gap: '2rem',
         marginBottom: '2rem'
-      }}>
+      }} className="profile-content-grid">
         
         {/* Personal Information */}
         <div>
@@ -356,7 +356,7 @@ export default function ProfilePage() {
 
   return (
     <div className="profile-container">
-      <div className="profile-card profile-card-wide" style={{ maxWidth: '720px', margin: '2rem auto' }}>
+      <div className="profile-card profile-card-wide profile-view-card" style={{ maxWidth: '720px', margin: '2rem auto' }}>
         
         {/* Profile Header - With Avatar */}
         <div style={{ 

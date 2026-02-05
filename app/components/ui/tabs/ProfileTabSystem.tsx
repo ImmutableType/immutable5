@@ -30,8 +30,10 @@ export default function ProfileTabSystem({ tabs, defaultTab }: ProfileTabSystemP
           display: 'flex',
           gap: '0',
           overflowX: 'auto',
-          WebkitOverflowScrolling: 'touch'
-        }}>
+          WebkitOverflowScrolling: 'touch',
+          scrollbarWidth: 'none', /* Firefox */
+          msOverflowStyle: 'none' /* IE/Edge */
+        }} className="profile-tabs-nav">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -52,7 +54,9 @@ export default function ProfileTabSystem({ tabs, defaultTab }: ProfileTabSystemP
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '0.5rem',
-                minWidth: 'max-content'
+                minWidth: 'max-content',
+                touchAction: 'manipulation',
+                WebkitTapHighlightColor: 'transparent'
               }}
               onMouseEnter={(e) => {
                 if (activeTab !== tab.id) {

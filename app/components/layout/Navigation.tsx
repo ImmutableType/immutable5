@@ -107,9 +107,26 @@ export default function Navigation() {
     }
   }, [isConnected, address])
 
+  // Haptic feedback helper for mobile
+  const triggerHaptic = () => {
+    if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+      navigator.vibrate(10) // Short vibration
+    }
+  }
+
   const handleConnect = () => {
     console.log('🔍 Navigation - handleConnect called')
     setShowWalletSelector(true)
+    setIsMobileMenuOpen(false)
+  }
+  
+  const handleMenuToggle = () => {
+    triggerHaptic()
+    setIsMobileMenuOpen(!isMobileMenuOpen)
+  }
+  
+  const handleMenuClose = () => {
+    triggerHaptic()
     setIsMobileMenuOpen(false)
   }
 
@@ -130,7 +147,10 @@ export default function Navigation() {
     }
   }, [isConnected, address, walletType, showWalletSelector])
 
-  const closeMenu = () => setIsMobileMenuOpen(false)
+  const closeMenu = () => {
+    triggerHaptic()
+    setIsMobileMenuOpen(false)
+  }
 
   return (
     <>
@@ -199,7 +219,7 @@ export default function Navigation() {
         {/* Mobile Menu Button */}
         <button
           className="mobile-menu-toggle"
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          onClick={handleMenuToggle}
           aria-label="Toggle mobile menu"
           aria-expanded={isMobileMenuOpen}
         >
@@ -211,13 +231,49 @@ export default function Navigation() {
 
       {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
-        <div className="mobile-menu-overlay" onClick={() => setIsMobileMenuOpen(false)}>
-          <div className="mobile-menu" onClick={(e) => e.stopPropagation()}>
+        <div className="mobile-menu-overlay" onClick={handleMenuClose}>
+          <div 
+            className="mobile-menu" 
+            onClick={(e) => e.stopPropagation()}
+            onTouchStart={(e) => {
+              const touch = e.touches[0]
+              const startX = touch.clientX
+              const menuElement = e.currentTarget
+              
+              const handleTouchMove = (moveEvent: TouchEvent) => {
+                const currentTouch = moveEvent.touches[0]
+                const diffX = currentTouch.clientX - startX
+                
+                // Only allow swipe right (closing)
+                if (diffX > 0) {
+                  menuElement.style.transform = `translateX(${Math.min(diffX, menuElement.offsetWidth)}px)`
+                }
+              }
+              
+              const handleTouchEnd = (endEvent: TouchEvent) => {
+                const endTouch = endEvent.changedTouches[0]
+                const diffX = endTouch.clientX - startX
+                const threshold = menuElement.offsetWidth * 0.3 // 30% of menu width
+                
+                if (diffX > threshold) {
+                  setIsMobileMenuOpen(false)
+                } else {
+                  menuElement.style.transform = ''
+                }
+                
+                document.removeEventListener('touchmove', handleTouchMove)
+                document.removeEventListener('touchend', handleTouchEnd)
+              }
+              
+              document.addEventListener('touchmove', handleTouchMove, { passive: true })
+              document.addEventListener('touchend', handleTouchEnd, { once: true })
+            }}
+          >
             <div className="mobile-menu-header">
               <h2>Menu</h2>
               <button
                 className="mobile-menu-close"
-                onClick={() => setIsMobileMenuOpen(false)}
+                onClick={handleMenuClose}
                 aria-label="Close menu"
               >
                 ✕

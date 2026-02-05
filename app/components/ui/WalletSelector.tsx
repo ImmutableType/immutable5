@@ -9,8 +9,9 @@ interface WalletSelectorProps {
 }
 
 export function WalletSelector({ onClose }: WalletSelectorProps) {
-  const { connectWallet, availableWallets, isConnecting } = useUnifiedWallet()
+  const { connectWallet, availableWallets, isConnecting, isMobileDevice } = useUnifiedWallet()
   const [error, setError] = useState<string | null>(null)
+  const [connectionTimeout, setConnectionTimeout] = useState(false)
   const [localWallets, setLocalWallets] = useState({
     metamask: false,
     flowWallet: false
@@ -47,17 +48,46 @@ export function WalletSelector({ onClose }: WalletSelectorProps) {
   // Debug logging - show actual values
   console.log('🔍 WalletSelector - Available wallets:', JSON.stringify(wallets, null, 2))
 
+  // Connection timeout handling for mobile
+  useEffect(() => {
+    if (isConnecting) {
+      setConnectionTimeout(false)
+      const timeout = setTimeout(() => {
+        setConnectionTimeout(true)
+      }, 30000) // 30 seconds
+      return () => clearTimeout(timeout)
+    } else {
+      setConnectionTimeout(false)
+    }
+  }, [isConnecting])
+
   const handleConnect = async (walletType: 'metamask' | 'flow-wallet') => {
     setError(null)
+    setConnectionTimeout(false)
     console.log('🔍 WalletSelector - handleConnect called with:', walletType)
     try {
       await connectWallet(walletType)
       console.log('✅ WalletSelector - Connection successful, closing modal')
       onClose?.()
     } catch (err: unknown) {
-      const error = err as { message?: string }
+      const error = err as { message?: string; code?: number }
       console.error('❌ WalletSelector - Connection failed:', error)
-      setError(error.message || 'Failed to connect wallet')
+      
+      // Better error messages for mobile
+      let errorMessage = error.message || 'Failed to connect wallet'
+      if (error.code === 4001) {
+        errorMessage = 'Connection rejected. Please try again and approve the connection.'
+      } else if (error.message?.includes('not found') || error.message?.includes('not available')) {
+        if (isMobileDevice) {
+          errorMessage = 'Wallet not found. Make sure you have Flow Wallet or MetaMask mobile app installed and try again.'
+        } else {
+          errorMessage = 'Wallet not found. Please install Flow Wallet or MetaMask browser extension.'
+        }
+      } else if (error.message?.includes('Cadence') || error.message?.includes('native Flow')) {
+        errorMessage = 'This app requires Flow EVM wallet (Ethereum-compatible). Cadence/native Flow wallets are not supported.'
+      }
+      
+      setError(errorMessage)
     }
   }
 
@@ -69,8 +99,43 @@ export function WalletSelector({ onClose }: WalletSelectorProps) {
       <h3>Connect Wallet</h3>
       <p>Choose a wallet to connect to Flow EVM Mainnet</p>
       
+      {/* Mobile connection instructions */}
+      {isMobileDevice && isConnecting && (
+        <div className="mobile-connection-status" style={{
+          padding: '1rem',
+          background: 'var(--color-primary-50, #eff6ff)',
+          borderRadius: '8px',
+          marginBottom: '1rem',
+          border: '1px solid var(--color-primary-200, #bfdbfe)'
+        }}>
+          <div style={{ fontWeight: '600', marginBottom: '0.5rem', color: 'var(--color-primary-700, #1d4ed8)' }}>
+            📱 Connecting on Mobile
+          </div>
+          <ol style={{ margin: '0.5rem 0', paddingLeft: '1.5rem', fontSize: '0.875rem', lineHeight: '1.6' }}>
+            <li>Approve the connection in your wallet app</li>
+            <li>Return to this browser tab</li>
+            <li>Wait for confirmation</li>
+          </ol>
+          {connectionTimeout && (
+            <div style={{ marginTop: '0.75rem', padding: '0.75rem', background: 'var(--color-amber-50, #fffbeb)', borderRadius: '6px', fontSize: '0.875rem' }}>
+              <strong>Taking too long?</strong> Make sure you returned to this tab after approving in your wallet app.
+            </div>
+          )}
+        </div>
+      )}
+      
       {error && (
-        <div className="wallet-error" style={{ color: 'red', marginBottom: '1rem' }}>
+        <div className="wallet-error" style={{
+          padding: '1rem',
+          background: 'var(--color-red-50, #fef2f2)',
+          border: '1px solid var(--color-red-200, #fecaca)',
+          borderRadius: '8px',
+          color: 'var(--color-red-700, #b91c1c)',
+          marginBottom: '1rem',
+          fontSize: '0.875rem',
+          lineHeight: '1.5'
+        }}>
+          <strong>⚠️ Connection Failed:</strong><br />
           {error}
         </div>
       )}
@@ -208,6 +273,19 @@ export function WalletSelector({ onClose }: WalletSelectorProps) {
         }
         .wallet-option:disabled {
           opacity: 0.6;
+        }
+        
+        @media (max-width: 768px) {
+          .wallet-selector {
+            padding: 1.25rem;
+          }
+          .wallet-selector h3 {
+            font-size: 1.125rem;
+          }
+          .wallet-option {
+            min-height: 60px !important;
+            padding: 1.25rem !important;
+          }
         }
       `}</style>
     </div>

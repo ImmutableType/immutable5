@@ -499,6 +499,11 @@ body {
     margin: 0 0.5rem;
   }
   
+  .profile-view-card {
+    margin: 1rem auto;
+    padding: 1.5rem;
+  }
+  
   .profile-title {
     font-size: var(--text-2xl);
   }
@@ -506,6 +511,104 @@ body {
   .btn-primary, .btn-success {
     padding: 1rem 1.5rem;
     min-height: 52px;
+  }
+  
+  /* Mobile form optimizations */
+  .form-input {
+    font-size: 16px; /* Prevents zoom on iOS */
+    padding: 1rem;
+    min-height: 44px;
+  }
+  
+  .form-textarea {
+    font-size: 16px; /* Prevents zoom on iOS */
+    min-height: 120px; /* Easier to type on mobile */
+    padding: 1rem;
+  }
+  
+  .form-label {
+    font-size: var(--text-base);
+    margin-bottom: 0.75rem;
+  }
+  
+  .form-group {
+    margin-bottom: 2rem; /* More spacing on mobile */
+  }
+  
+  .form-meta {
+    font-size: var(--text-sm);
+    margin-top: 0.5rem;
+  }
+  
+  /* Profile view grid optimization */
+  .profile-content-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1.5rem !important;
+  }
+}
+
+/* Touch-friendly elements on mobile */
+@media (hover: none) and (pointer: coarse) {
+  button, a, input, textarea, select {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  .btn {
+    min-height: 48px; /* Slightly larger than minimum */
+    padding: 0.875rem 1.5rem;
+  }
+  
+  .wallet-option {
+    min-height: 60px; /* Larger touch target for wallet buttons */
+  }
+
+  /* Improve readability on mobile */
+  body {
+    font-size: 16px;
+    line-height: 1.6;
+  }
+
+  /* Better spacing for content pages */
+  .profile-card-wide {
+    padding: 1.5rem;
+  }
+
+  /* Optimize about/roadmap pages */
+  .profile-container .profile-card-wide {
+    margin: 1rem auto;
+  }
+
+  /* Hide scrollbar for tab navigation on mobile */
+  .profile-tabs-nav::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+  }
+}
+
+/* Additional mobile optimizations */
+@media (max-width: 768px) {
+  /* Profile view header optimization */
+  .profile-view-card .profile-title {
+    font-size: var(--text-2xl);
+  }
+
+  /* Tab system mobile optimization */
+  .profile-tabs-nav {
+    padding: 0 0.5rem;
+  }
+
+  /* Better spacing for about/roadmap content */
+  .profile-card-wide section {
+    margin-bottom: 1.5rem;
+  }
+
+  .profile-card-wide h2 {
+    font-size: var(--text-xl);
+  }
+
+  /* Homepage loading state */
+  .profile-container.profile-centered {
+    padding: 2rem 1rem;
   }
 }
 
@@ -906,6 +1009,19 @@ html {
   .faq-answer {
     font-size: 0.9375rem;
   }
+
+  .faq-question-button {
+    min-height: 44px;
+    padding: 1rem 1.25rem;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .faq-toggle-all-btn {
+    width: 100%;
+    min-height: 44px;
+    padding: 0.875rem;
+  }
 }
 
 /* Reader Navigation Link */
@@ -951,8 +1067,14 @@ html {
   border: none;
   cursor: pointer;
   padding: 8px;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  z-index: 101;
+  position: relative;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .hamburger-line {
@@ -1039,6 +1161,8 @@ html {
   box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
   overflow-y: auto;
   animation: slideIn 0.3s ease;
+  will-change: transform;
+  transition: transform 0.2s ease-out;
 }
 
 .mobile-menu-header {
@@ -1062,6 +1186,19 @@ html {
   cursor: pointer;
   color: var(--color-text-primary);
   padding: 0.5rem;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  border-radius: 6px;
+  transition: background 0.2s ease;
+}
+
+.mobile-menu-close:active {
+  background: var(--color-slate-100);
 }
 
 .mobile-menu-links {
@@ -1076,6 +1213,9 @@ html {
   text-decoration: none;
   color: var(--color-text-primary);
   transition: background 0.2s ease;
+  min-height: 44px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .mobile-menu-link:hover {

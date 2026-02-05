@@ -79,7 +79,8 @@ export function useUnifiedWallet(): UnifiedWalletReturn {
         setTimeout(checkWallets, 2000)
       })
       
-      // Check if mobile device
+      // Check if mobile device (for UI optimizations, not blocking)
+      // This allows components to adjust their UI for mobile devices
       const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
       setIsMobileDevice(mobile)
     }

@@ -333,6 +333,32 @@ const fetchBookmarks = async () => {
           margin-bottom: 0.5rem;
         }
 
+        @media (max-width: 768px) {
+          .reader-page {
+            padding: 1rem 0.5rem;
+          }
+
+          .reader-header h1 {
+            font-size: 2rem;
+          }
+
+          .reader-subtitle {
+            font-size: 1rem;
+          }
+
+          .reader-stats {
+            flex-direction: column;
+            gap: 1rem;
+            align-items: center;
+          }
+
+          .stat-item {
+            flex-direction: column;
+            text-align: center;
+            gap: 0.25rem;
+          }
+        }
+
         .reader-subtitle {
           font-size: 1.125rem;
           color: var(--color-text-secondary, #64748b);
@@ -539,12 +565,27 @@ const fetchBookmarks = async () => {
         }
 
         @media (max-width: 768px) {
+          .reader-page {
+            padding: 1rem 0.5rem;
+          }
+
+          .reader-header {
+            margin-bottom: 2rem;
+          }
+
           .reader-header h1 {
             font-size: 2rem;
           }
 
+          .reader-subtitle {
+            font-size: 1rem;
+            margin-bottom: 1.5rem;
+          }
+
           .reader-stats {
+            flex-direction: column;
             gap: 1rem;
+            align-items: center;
           }
 
           .stat-item {
@@ -555,6 +596,33 @@ const fetchBookmarks = async () => {
 
           .bookmarks-grid {
             grid-template-columns: 1fr;
+            gap: 1rem;
+          }
+
+          .bookmark-card {
+            padding: 1.25rem;
+          }
+
+          .bookmark-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+          }
+
+          .bookmark-id {
+            margin-left: 0;
+          }
+
+          .bookmark-footer {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+          }
+
+          .load-more-button {
+            width: 100%;
+            padding: 1rem;
+            min-height: 48px;
           }
         }
       `}</style>

@@ -276,28 +276,6 @@ const CreateProfilePage: React.FC = () => {
     return `Create Identity Profile (${feeText})`
   }
 
-  // Mobile browser detection - show message immediately before anything else
-  if (isMobileDevice) {
-    return (
-      <div className="profile-container profile-centered">
-        <div className="profile-card">
-          <h1 className="profile-title">ImmutableType</h1>
-          <div className="alert alert-info">
-            <div className="alert-title">📱 Hey, guys. Damon here...</div>
-            <div className="alert-subtitle">
-              Please visit app.immutabletype.com on your desktop or laptop computer. Today is Sept 19, 2025, and I am unable to get the mobile UI to work without critical bugs crashing the vibe. Please head to a pc or laptop to use the app for now.
-            </div>
-          </div>
-          
-          <p className="profile-subtitle" style={{ marginTop: '1.5rem' }}>
-            <strong>Why desktop or laptop?</strong><br />
-            Because the app works well in those browsers. I realize it is annoying. Apologies for now. Thanks for understanding.
-          </p>
-        </div>
-      </div>
-    )
-  }
-
   // Show loading while checking for existing profile
   if (checkingExistingProfile) {
     return (
