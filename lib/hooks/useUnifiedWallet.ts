@@ -223,73 +223,161 @@ export function useUnifiedWallet(): UnifiedWalletReturn {
   const connectFlowWallet = async () => {
     console.log('🔌 Connecting with Flow Wallet...')
     
+    // Check if we're on mobile iOS
+    const isMobileIOS = typeof window !== 'undefined' && /iPhone|iPad|iPod/i.test(navigator.userAgent)
+    
     try {
       // Initialize EIP-6963 discovery if not already done
       const { initEIP6963Discovery, getAllProviders } = await import('../web3/eip6963')
       initEIP6963Discovery()
       
-      // Give wallets time to announce - try multiple times
-      let flowProvider = null
-      for (let i = 0; i < 5; i++) {
-        await new Promise(resolve => setTimeout(resolve, 300))
-        flowProvider = getFlowWalletProvider() // Use top-level import
-        if (flowProvider) {
-          console.log(`✅ Flow Wallet found after ${i + 1} attempts`)
-          break
-        }
-        
-        // Log all discovered providers for debugging
-        const allProviders = getAllProviders()
-        console.log(`🔍 Attempt ${i + 1}: Discovered providers:`, allProviders.map(p => p.info.name))
-      }
+      let flowProvider: any = null
+      const win = window as any
       
-      console.log('🔍 Flow Wallet provider result:', flowProvider ? 'Found' : 'Not found')
-      
-      if (!flowProvider) {
-        // Check if Flow Wallet might be installed but not announcing
-        const allProviders = getAllProviders()
-        const flowProviders = allProviders.filter(p => 
-          p.info.name.toLowerCase().includes('flow') || 
-          p.info.rdns.includes('flow')
-        )
+      // On mobile iOS, Flow Wallet might need to be opened first
+      if (isMobileIOS) {
+        console.log('📱 iOS mobile detected - checking for Flow Wallet app...')
         
-        if (flowProviders.length > 0) {
-          console.log('⚠️ Found Flow-related providers:', flowProviders.map(p => p.info.name))
-          // Try using the first Flow-related provider
-          flowProvider = flowProviders[0].provider
-        } else {
-          // Check for Flow Wallet in window object as fallback (mobile apps)
-          const win = window as any
-          
-          // Check if they have Cadence/native Flow wallet (not compatible with Flow EVM)
-          if (win.fcl || win.fcl_extensions) {
-            console.log('⚠️ Detected Flow FCL (Cadence wallet) - not compatible with Flow EVM')
-            throw new Error('You appear to have a Cadence/native Flow wallet installed. This app requires Flow EVM wallet (Ethereum-compatible). Please install the Flow Wallet extension for Flow EVM support, or use MetaMask with Flow EVM network configured.')
-          }
-          
-          // Check for mobile Flow Wallet injection
+        // Try to detect Flow Wallet first
+        flowProvider = getFlowWalletProvider()
+        
+        if (!flowProvider) {
+          // Check window object for mobile injection
           if (win.ethereum?.isFlowWallet) {
-            console.log('📱 Flow Wallet detected via window.ethereum (mobile)')
             flowProvider = win.ethereum
           } else if (win.flowWallet && typeof win.flowWallet.request === 'function') {
-            console.log('📱 Flow Wallet detected via window.flowWallet (mobile)')
             flowProvider = win.flowWallet
-          } else if (win.ethereum?.providers) {
-            // Check providers array for Flow Wallet
-            const flowProviderInArray = win.ethereum.providers.find((p: any) => 
-              p.isFlowWallet || 
-              (p.constructor?.name?.toLowerCase().includes('flow'))
-            )
-            if (flowProviderInArray) {
-              console.log('📱 Flow Wallet found in providers array (mobile)')
-              flowProvider = flowProviderInArray
+          }
+        }
+        
+        // If still not found, try to open Flow Wallet app via deep link
+        if (!flowProvider) {
+          console.log('📱 Flow Wallet not detected - attempting to open Flow Wallet app...')
+          
+          // Flow Wallet deep link schemes (common patterns)
+          const deepLinkSchemes = [
+            'flowwallet://',
+            'flow-wallet://',
+            'com.flowfoundation.wallet://',
+            'flow://'
+          ]
+          
+          let appOpened = false
+          for (const scheme of deepLinkSchemes) {
+            try {
+              // Try to open the app using hidden iframe (doesn't navigate away)
+              const iframe = document.createElement('iframe')
+              iframe.style.display = 'none'
+              iframe.src = scheme
+              document.body.appendChild(iframe)
+              
+              // Remove iframe after a short delay
+              setTimeout(() => {
+                document.body.removeChild(iframe)
+              }, 1000)
+              
+              appOpened = true
+              console.log(`📱 Attempted to open Flow Wallet via ${scheme}`)
+              break
+            } catch (e) {
+              // Continue to next scheme
+              console.log(`📱 Failed to open via ${scheme}:`, e)
             }
           }
           
-          if (!flowProvider) {
-            throw new Error('Flow EVM Wallet not detected. Please install the Flow Wallet app or extension (for Flow EVM, not Cadence) or use MetaMask with Flow EVM network configured. Note: Cadence/native Flow wallets are not compatible with this app.')
+          if (appOpened) {
+            // Wait a bit for the app to inject provider or user to return
+            console.log('📱 Waiting for Flow Wallet to inject provider or user to return from app...')
+            
+            // Wait longer and check multiple times
+            for (let i = 0; i < 10; i++) {
+              await new Promise(resolve => setTimeout(resolve, 500))
+              
+              // Check again after delay
+              flowProvider = getFlowWalletProvider()
+              if (!flowProvider && win.ethereum?.isFlowWallet) {
+                flowProvider = win.ethereum
+              } else if (!flowProvider && win.flowWallet && typeof win.flowWallet.request === 'function') {
+                flowProvider = win.flowWallet
+              }
+              
+              if (flowProvider) {
+                console.log(`✅ Flow Wallet detected after ${i + 1} checks`)
+                break
+              }
+            }
           }
         }
+        
+        // If still not found after trying to open app, provide helpful error
+        if (!flowProvider) {
+          throw new Error('Flow Wallet app not detected. Please ensure the Flow Wallet app is installed. If installed, try opening the app manually, then return to this page and try connecting again.')
+        }
+      } else {
+        // Desktop flow - use existing logic
+        // Give wallets time to announce - try multiple times
+        for (let i = 0; i < 5; i++) {
+          await new Promise(resolve => setTimeout(resolve, 300))
+          flowProvider = getFlowWalletProvider()
+          if (flowProvider) {
+            console.log(`✅ Flow Wallet found after ${i + 1} attempts`)
+            break
+          }
+          
+          // Log all discovered providers for debugging
+          const allProviders = getAllProviders()
+          console.log(`🔍 Attempt ${i + 1}: Discovered providers:`, allProviders.map(p => p.info.name))
+        }
+        
+        console.log('🔍 Flow Wallet provider result:', flowProvider ? 'Found' : 'Not found')
+        
+        if (!flowProvider) {
+          // Check if Flow Wallet might be installed but not announcing
+          const allProviders = getAllProviders()
+          const flowProviders = allProviders.filter(p => 
+            p.info.name.toLowerCase().includes('flow') || 
+            p.info.rdns.includes('flow')
+          )
+          
+          if (flowProviders.length > 0) {
+            console.log('⚠️ Found Flow-related providers:', flowProviders.map(p => p.info.name))
+            // Try using the first Flow-related provider
+            flowProvider = flowProviders[0].provider
+          } else {
+            // Check if they have Cadence/native Flow wallet (not compatible with Flow EVM)
+            if (win.fcl || win.fcl_extensions) {
+              console.log('⚠️ Detected Flow FCL (Cadence wallet) - not compatible with Flow EVM')
+              throw new Error('You appear to have a Cadence/native Flow wallet installed. This app requires Flow EVM wallet (Ethereum-compatible). Please install the Flow Wallet extension for Flow EVM support, or use MetaMask with Flow EVM network configured.')
+            }
+            
+            // Check for Flow Wallet injection
+            if (win.ethereum?.isFlowWallet) {
+              console.log('📱 Flow Wallet detected via window.ethereum')
+              flowProvider = win.ethereum
+            } else if (win.flowWallet && typeof win.flowWallet.request === 'function') {
+              console.log('📱 Flow Wallet detected via window.flowWallet')
+              flowProvider = win.flowWallet
+            } else if (win.ethereum?.providers) {
+              // Check providers array for Flow Wallet
+              const flowProviderInArray = win.ethereum.providers.find((p: any) => 
+                p.isFlowWallet || 
+                (p.constructor?.name?.toLowerCase().includes('flow'))
+              )
+              if (flowProviderInArray) {
+                console.log('📱 Flow Wallet found in providers array')
+                flowProvider = flowProviderInArray
+              }
+            }
+            
+            if (!flowProvider) {
+              throw new Error('Flow EVM Wallet not detected. Please install the Flow Wallet extension (for Flow EVM, not Cadence) or use MetaMask with Flow EVM network configured. Note: Cadence/native Flow wallets are not compatible with this app.')
+            }
+          }
+        }
+      }
+      
+      if (!flowProvider) {
+        throw new Error('Flow Wallet provider not available. Please ensure Flow Wallet is installed and try again.')
       }
       
       console.log('✅ Flow Wallet provider found, requesting accounts...')
